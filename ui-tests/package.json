@@ -5,7 +5,8 @@
   "description": "Playwright smoke suite for enterprise QA blueprint",
   "scripts": {
     "test:smoke": "playwright test --grep @smoke",
-    "test": "playwright test"
+    "test": "playwright test",
+    "start": "node server.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.1",
