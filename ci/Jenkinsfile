@@ -1,0 +1,21 @@
+pipeline {
+  agent any
+
+  stages {
+    stage('Install') {
+      steps {
+        dir('ui-tests') {
+          sh 'npm ci'
+        }
+      }
+    }
+
+    stage('UI Smoke') {
+      steps {
+        dir('ui-tests') {
+          sh 'npx playwright test --grep @smoke'
+        }
+      }
+    }
+  }
+}
