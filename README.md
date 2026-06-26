@@ -2,6 +2,20 @@
 
 Enterprise-grade reference framework showing layered quality engineering for UI, API, and data validation.
 
+## Business Value
+- Demonstrates how UI automation can be tied to release signals and operational health.
+- Shows deterministic local execution that can be replicated in CI.
+- Provides a starting point for expanding into API and data-layer validation.
+
+## Architecture
+```mermaid
+flowchart LR
+	App[Local QA Sample App] --> UI[Playwright Smoke Suite]
+	UI --> Report[Test Results]
+	UI --> CI[GitLab or Jenkins]
+	CI --> Gate[Release Decision]
+```
+
 ## Day 1 Outcome
 - Repository initialized with standards and structure
 - Playwright UI smoke test running against a local sample app
@@ -20,6 +34,13 @@ cd enterprise-qa-automation-blueprint
 npm --prefix ui-tests install
 npm --prefix ui-tests run test:smoke
 ```
+
+## Evidence
+- Smoke suite executes 2 end-to-end checks against the local app.
+- Refresh interaction is validated as a user-visible state transition.
+- Test output can be attached in pull requests to justify release readiness.
+
+See: docs/evidence.md
 
 ## Demonstrable Behavior
 1. Loads a locally hosted quality snapshot page.
