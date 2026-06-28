@@ -1,6 +1,14 @@
 # Enterprise QA Automation Blueprint
 
-Enterprise-grade reference framework showing layered quality engineering for UI, API, and data validation.
+## Portfolio Role
+This repository is the automation architecture execution part of the portfolio story.
+It shows how a layered QA framework turns UI smoke checks into a release signal that hiring managers can review quickly.
+
+## Profile Map
+- Portfolio narrative: automation architecture execution
+- Skill signal: enterprise automation framework thinking
+- Review focus: Playwright smoke flow, deterministic local execution, and CI handoff
+- Evidence anchor: `docs/evidence.md`
 
 ## Business Value
 - Demonstrates how UI automation can be tied to release signals and operational health.
