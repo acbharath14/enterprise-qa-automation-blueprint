@@ -192,3 +192,18 @@ so the baseline is stored as text and `global-setup.ts` decodes it into
 overwrites, so a stale local PNG can never mask a regression. Regenerate with
 `npx playwright test visual --project=chromium --update-snapshots` followed by
 `npm run baseline:update`.
+
+## Allure trends need preserved history
+
+`allure generate --clean` wipes history every run, so the trend graph stays
+empty. The publish job restores `history.json`/`history-trend.json` from the
+live site before generating — trends then accumulate across runs.
+
+## Failure showcase without breaking CI
+
+`tests/failure-showcase.spec.ts` holds two deliberately wrong assertions
+(a UI text mismatch and an API contract mismatch). It is skipped in every
+normal run (`test.skip` unless `SHOWCASE=1`) and only executes via the
+`failure_showcase` workflow dispatch, which publishes the result to
+`allure-showcase/` — separate from the main report, so the real trend stays
+clean. The main publish job preserves that directory across deploys.
