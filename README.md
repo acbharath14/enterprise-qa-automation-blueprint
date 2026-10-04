@@ -25,8 +25,8 @@ flowchart LR
 ```
 .
 ├── playwright-suite/
-│   ├── sample-app/index.html        # component gallery under test: dashboard, feedback form, login,
-│   │                                # sortable table, modal, file upload, tabs, theme toggle
+│   ├── sample-app/index.html        # component gallery under test, grouped by category:
+│   │                                # Release dashboard / Forms / Overlays / Advanced components
 │   ├── server.mjs                   # tiny Node server: serves the app + JSON API (metrics, feedback,
 │   │                                # login, upload) with security headers
 │   ├── pages/                       # Page Objects: DashboardPage, GalleryPage, LoginPage —

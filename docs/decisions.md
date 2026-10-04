@@ -165,3 +165,14 @@ the emulated locale instead of the machine's: `datetime.spec.ts` and the
 frozen-clock smoke test compute expectations inside the page context, so they
 hold under any timezone. The aria snapshot (`toMatchAriaSnapshot`) is
 chromium-gated because serialized accessibility trees vary across engines.
+
+## Gallery, not a product: sections grouped by category
+
+The sample app accumulated components wave by wave until it read as two
+things at once — a release dashboard and a component playground. It is now
+organized honestly: one page, four labeled categories (Release dashboard,
+Forms, Overlays, Advanced components), each a `<h2>` group with the
+components as `<h3>` cards. The delete-confirmation button moved out of the
+releases table into its own Confirm Dialog card. No test changes were needed:
+every selector is ID- or role-based, so section order and heading levels don't
+affect the suite.

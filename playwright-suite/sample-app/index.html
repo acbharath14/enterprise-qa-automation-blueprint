@@ -26,6 +26,7 @@
       .error { color: var(--err); font-size: 0.9em; margin-top: 4px; min-height: 1.2em; }
       label { display: block; margin-top: 12px; font-weight: 700; }
       a { color: var(--link); }
+      .category { margin: 36px 0 4px; font-size: 1.4em; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
       input, select, textarea { display: block; margin-top: 4px; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--fg); width: 100%; max-width: 420px; box-sizing: border-box; }
       input[type='checkbox'] { display: inline-block; width: auto; }
       table { border-collapse: collapse; margin-top: 12px; width: 100%; }
@@ -44,8 +45,10 @@
       </div>
       <p>This sample application is a component gallery: every section below exercises a different UI pattern and backend interaction for the test suite to validate.</p>
 
+      <h2 class="category">Release dashboard</h2>
+
       <section class="card" aria-label="quality summary">
-        <h2>Release Snapshot</h2>
+        <h3>Release Snapshot</h3>
         <div class="metric" id="coverage">Coverage: 82%</div>
         <div class="metric" id="api">API Health: Green</div>
         <div class="metric" id="perf">P95 Latency: 640 ms</div>
@@ -54,14 +57,65 @@
       </section>
 
       <section class="card" aria-label="live metrics">
-        <h2>Live Metrics</h2>
+        <h3>Live Metrics</h3>
         <p>Loads current metrics from the backend API.</p>
         <button id="load-metrics" type="button">Load live metrics</button>
         <div id="live-metrics" class="status" aria-live="polite"></div>
       </section>
 
+      <section class="card" aria-label="releases table">
+        <h3>Releases</h3>
+        <table id="releases-table">
+          <thead>
+            <tr>
+              <th><button type="button" data-sort="name">Release</button></th>
+              <th><button type="button" data-sort="coverage">Coverage</button></th>
+              <th><button type="button" data-sort="status">Status</button></th>
+            </tr>
+          </thead>
+          <tbody id="releases-body"></tbody>
+        </table>
+
+      </section>
+
+      <section class="card" aria-label="search autocomplete">
+        <h3>Release Search</h3>
+        <label for="search-input">Find a release</label>
+        <input id="search-input" type="text" role="combobox" aria-expanded="false" aria-controls="search-results" aria-autocomplete="list" autocomplete="off" placeholder="Type to search…" />
+        <ul id="search-results" role="listbox" aria-label="matching releases" hidden></ul>
+        <div class="status" id="search-selection" aria-live="polite"></div>
+      </section>
+
+      <section class="card" aria-label="schedule release">
+        <h3>Schedule Release</h3>
+        <label for="release-date">Release date</label>
+        <input id="release-date" type="date" min="2026-01-01" max="2026-12-31" />
+        <p><button id="schedule-button" type="button">Schedule</button></p>
+        <div class="status" id="schedule-result" aria-live="polite"></div>
+      </section>
+
+      <section class="card" aria-label="export">
+        <h3>Export</h3>
+        <p><a id="export-csv" href="/api/export" download="releases.csv">Export releases as CSV</a></p>
+        <p><a id="docs-link" href="/" target="_blank" rel="noopener">Open docs in new tab</a></p>
+      </section>
+
+      <section class="card" aria-label="release notes tabs">
+        <h3>Release Notes</h3>
+        <div role="tablist" aria-label="release notes">
+          <button role="tab" id="tab-overview" aria-selected="true" aria-controls="panel-overview" type="button">Overview</button>
+          <button role="tab" id="tab-details" aria-selected="false" aria-controls="panel-details" type="button">Details</button>
+          <button role="tab" id="tab-activity" aria-selected="false" aria-controls="panel-activity" type="button">Activity</button>
+        </div>
+        <div role="tabpanel" id="panel-overview" aria-labelledby="tab-overview"><p>Shipped on schedule with all quality gates green.</p></div>
+        <div role="tabpanel" id="panel-details" aria-labelledby="tab-details" hidden><p>42 tests across 8 types, 4 browsers, 2 shards.</p></div>
+        <div role="tabpanel" id="panel-activity" aria-labelledby="tab-activity" hidden><p>Last run finished 3 minutes ago.</p></div>
+      </section>
+
+      <h2 class="category">Forms</h2>
+
       <section class="card" aria-label="feedback form">
-        <h2>Feedback Form</h2>
+        <h3>Feedback Form</h3>
         <form id="feedback-form" novalidate>
           <label for="fb-name">Name</label>
           <input id="fb-name" name="name" type="text" autocomplete="name" />
@@ -91,7 +145,7 @@
       </section>
 
       <section class="card" aria-label="login form">
-        <h2>Sign In</h2>
+        <h3>Sign In</h3>
         <form id="login-form" novalidate>
           <label for="login-username">Username</label>
           <input id="login-username" name="username" type="text" autocomplete="username" />
@@ -103,24 +157,8 @@
         <div class="status" id="login-welcome" aria-live="polite"></div>
       </section>
 
-      <section class="card" aria-label="releases table">
-        <h2>Releases</h2>
-        <table id="releases-table">
-          <thead>
-            <tr>
-              <th><button type="button" data-sort="name">Release</button></th>
-              <th><button type="button" data-sort="coverage">Coverage</button></th>
-              <th><button type="button" data-sort="status">Status</button></th>
-            </tr>
-          </thead>
-          <tbody id="releases-body"></tbody>
-        </table>
-        <p><button id="delete-release" type="button">Delete release</button></p>
-        <div class="status" id="delete-result" aria-live="polite"></div>
-      </section>
-
       <section class="card" aria-label="file upload">
-        <h2>Upload Evidence</h2>
+        <h3>Upload Evidence</h3>
         <form id="upload-form">
           <label for="upload-input">Choose a file</label>
           <input id="upload-input" name="file" type="file" />
@@ -129,36 +167,25 @@
         <div class="status" id="upload-result" aria-live="polite"></div>
       </section>
 
-      <section class="card" aria-label="release notes tabs">
-        <h2>Release Notes</h2>
-        <div role="tablist" aria-label="release notes">
-          <button role="tab" id="tab-overview" aria-selected="true" aria-controls="panel-overview" type="button">Overview</button>
-          <button role="tab" id="tab-details" aria-selected="false" aria-controls="panel-details" type="button">Details</button>
-          <button role="tab" id="tab-activity" aria-selected="false" aria-controls="panel-activity" type="button">Activity</button>
-        </div>
-        <div role="tabpanel" id="panel-overview" aria-labelledby="tab-overview"><p>Shipped on schedule with all quality gates green.</p></div>
-        <div role="tabpanel" id="panel-details" aria-labelledby="tab-details" hidden><p>42 tests across 8 types, 4 browsers, 2 shards.</p></div>
-        <div role="tabpanel" id="panel-activity" aria-labelledby="tab-activity" hidden><p>Last run finished 3 minutes ago.</p></div>
+      <h2 class="category">Overlays</h2>
+
+      <section class="card" aria-label="confirm dialog">
+        <h3>Confirm Dialog</h3>
+        <p>Deleting a release asks for confirmation first.</p>
+        <p><button id="delete-release" type="button">Delete release</button></p>
+        <div class="status" id="delete-result" aria-live="polite"></div>
       </section>
 
-      <section class="card" aria-label="search autocomplete">
-        <h2>Release Search</h2>
-        <label for="search-input">Find a release</label>
-        <input id="search-input" type="text" role="combobox" aria-expanded="false" aria-controls="search-results" aria-autocomplete="list" autocomplete="off" placeholder="Type to search…" />
-        <ul id="search-results" role="listbox" aria-label="matching releases" hidden></ul>
-        <div class="status" id="search-selection" aria-live="polite"></div>
+      <section class="card" aria-label="notifications">
+        <h3>Notifications</h3>
+        <p><button id="notify-button" type="button">Notify team</button></p>
+        <div id="toast" role="status" aria-live="polite" hidden></div>
       </section>
 
-      <section class="card" aria-label="schedule release">
-        <h2>Schedule Release</h2>
-        <label for="release-date">Release date</label>
-        <input id="release-date" type="date" min="2026-01-01" max="2026-12-31" />
-        <p><button id="schedule-button" type="button">Schedule</button></p>
-        <div class="status" id="schedule-result" aria-live="polite"></div>
-      </section>
+      <h2 class="category">Advanced components</h2>
 
       <section class="card" aria-label="release wizard">
-        <h2>New Release Wizard</h2>
+        <h3>New Release Wizard</h3>
         <ol id="wizard-progress" aria-label="progress">
           <li data-wstep="1" aria-current="step">Name</li>
           <li data-wstep="2">Environment</li>
@@ -186,7 +213,7 @@
       </section>
 
       <section class="card" aria-label="priority list">
-        <h2>Priority List</h2>
+        <h3>Priority List</h3>
         <p>Drag to reorder.</p>
         <ul id="priority-list">
           <li draggable="true" data-id="a">Write tests</li>
@@ -195,30 +222,18 @@
         </ul>
       </section>
 
-      <section class="card" aria-label="notifications">
-        <h2>Notifications</h2>
-        <p><button id="notify-button" type="button">Notify team</button></p>
-        <div id="toast" role="status" aria-live="polite" hidden></div>
-      </section>
-
-      <section class="card" aria-label="export">
-        <h2>Export</h2>
-        <p><a id="export-csv" href="/api/export" download="releases.csv">Export releases as CSV</a></p>
-        <p><a id="docs-link" href="/" target="_blank" rel="noopener">Open docs in new tab</a></p>
-      </section>
-
       <section class="card" aria-label="embedded frame">
-        <h2>Embedded Frame</h2>
+        <h3>Embedded Frame</h3>
         <iframe id="demo-frame" title="demo frame" src="/frame" width="100%" height="120"></iframe>
       </section>
 
       <section class="card" aria-label="shadow dom">
-        <h2>Shadow DOM</h2>
+        <h3>Shadow DOM</h3>
         <qa-counter></qa-counter>
       </section>
 
       <section class="card" aria-label="controls">
-        <h2>Controls</h2>
+        <h3>Controls</h3>
         <p><button id="notify-toggle" type="button" role="switch" aria-checked="false">Notifications</button></p>
         <label for="volume">Volume</label>
         <input id="volume" type="range" min="0" max="100" value="50" />
