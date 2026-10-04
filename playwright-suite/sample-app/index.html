@@ -9,12 +9,12 @@
       :root, [data-theme='dark'] {
         --bg: #0f172a; --fg: #e2e8f0; --card: #111827;
         --border: #334155; --metric: #1e293b; --accent: #38bdf8;
-        --accent-fg: #082f49; --ok: #86efac; --err: #fca5a5; --link: #7dd3fc;
+        --accent-fg: #082f49; --ok: #86efac; --err: #fca5a5; --link: #7dd3fc; --cat-dashboard: #38bdf8; --cat-forms: #86efac; --cat-overlays: #fbbf24; --cat-advanced: #c084fc;
       }
       [data-theme='light'] {
         --bg: #f1f5f9; --fg: #0f172a; --card: #ffffff;
         --border: #cbd5e1; --metric: #e2e8f0; --accent: #0284c7;
-        --accent-fg: #ffffff; --ok: #15803d; --err: #b91c1c; --link: #0369a1;
+        --accent-fg: #ffffff; --ok: #15803d; --err: #b91c1c; --link: #0369a1; --cat-dashboard: #0284c7; --cat-forms: #15803d; --cat-overlays: #b45309; --cat-advanced: #7c3aed;
       }
       body { font-family: Arial, sans-serif; margin: 0; background: var(--bg); color: var(--fg); }
       main { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
@@ -27,6 +27,14 @@
       label { display: block; margin-top: 12px; font-weight: 700; }
       a { color: var(--link); }
       .category { margin: 36px 0 4px; font-size: 1.4em; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
+      .cat-dashboard { border-top: 4px solid var(--cat-dashboard); }
+      .cat-forms { border-top: 4px solid var(--cat-forms); }
+      .cat-overlays { border-top: 4px solid var(--cat-overlays); }
+      .cat-advanced { border-top: 4px solid var(--cat-advanced); }
+      h2.category[data-cat="dashboard"] { color: var(--cat-dashboard); border-color: var(--cat-dashboard); }
+      h2.category[data-cat="forms"] { color: var(--cat-forms); border-color: var(--cat-forms); }
+      h2.category[data-cat="overlays"] { color: var(--cat-overlays); border-color: var(--cat-overlays); }
+      h2.category[data-cat="advanced"] { color: var(--cat-advanced); border-color: var(--cat-advanced); }
       input, select, textarea { display: block; margin-top: 4px; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--fg); width: 100%; max-width: 420px; box-sizing: border-box; }
       input[type='checkbox'] { display: inline-block; width: auto; }
       table { border-collapse: collapse; margin-top: 12px; width: 100%; }
@@ -45,9 +53,9 @@
       </div>
       <p>This sample application is a component gallery: every section below exercises a different UI pattern and backend interaction for the test suite to validate.</p>
 
-      <h2 class="category">Release dashboard</h2>
+      <h2 class="category" data-cat="dashboard">Release dashboard</h2>
 
-      <section class="card" aria-label="quality summary">
+      <section class="card cat-dashboard" aria-label="quality summary">
         <h3>Release Snapshot</h3>
         <div class="metric" id="coverage">Coverage: 82%</div>
         <div class="metric" id="api">API Health: Green</div>
@@ -56,14 +64,14 @@
         <button id="refresh-button" type="button">Refresh health snapshot</button>
       </section>
 
-      <section class="card" aria-label="live metrics">
+      <section class="card cat-dashboard" aria-label="live metrics">
         <h3>Live Metrics</h3>
         <p>Loads current metrics from the backend API.</p>
         <button id="load-metrics" type="button">Load live metrics</button>
         <div id="live-metrics" class="status" aria-live="polite"></div>
       </section>
 
-      <section class="card" aria-label="releases table">
+      <section class="card cat-dashboard" aria-label="releases table">
         <h3>Releases</h3>
         <table id="releases-table">
           <thead>
@@ -78,7 +86,7 @@
 
       </section>
 
-      <section class="card" aria-label="search autocomplete">
+      <section class="card cat-dashboard" aria-label="search autocomplete">
         <h3>Release Search</h3>
         <label for="search-input">Find a release</label>
         <input id="search-input" type="text" role="combobox" aria-expanded="false" aria-controls="search-results" aria-autocomplete="list" autocomplete="off" placeholder="Type to search…" />
@@ -86,7 +94,7 @@
         <div class="status" id="search-selection" aria-live="polite"></div>
       </section>
 
-      <section class="card" aria-label="schedule release">
+      <section class="card cat-dashboard" aria-label="schedule release">
         <h3>Schedule Release</h3>
         <label for="release-date">Release date</label>
         <input id="release-date" type="date" min="2026-01-01" max="2026-12-31" />
@@ -94,13 +102,13 @@
         <div class="status" id="schedule-result" aria-live="polite"></div>
       </section>
 
-      <section class="card" aria-label="export">
+      <section class="card cat-dashboard" aria-label="export">
         <h3>Export</h3>
         <p><a id="export-csv" href="/api/export" download="releases.csv">Export releases as CSV</a></p>
         <p><a id="docs-link" href="/" target="_blank" rel="noopener">Open docs in new tab</a></p>
       </section>
 
-      <section class="card" aria-label="release notes tabs">
+      <section class="card cat-dashboard" aria-label="release notes tabs">
         <h3>Release Notes</h3>
         <div role="tablist" aria-label="release notes">
           <button role="tab" id="tab-overview" aria-selected="true" aria-controls="panel-overview" type="button">Overview</button>
@@ -112,9 +120,9 @@
         <div role="tabpanel" id="panel-activity" aria-labelledby="tab-activity" hidden><p>Last run finished 3 minutes ago.</p></div>
       </section>
 
-      <h2 class="category">Forms</h2>
+      <h2 class="category" data-cat="forms">Forms</h2>
 
-      <section class="card" aria-label="feedback form">
+      <section class="card cat-forms" aria-label="feedback form">
         <h3>Feedback Form</h3>
         <form id="feedback-form" novalidate>
           <label for="fb-name">Name</label>
@@ -144,7 +152,7 @@
         <div class="status" id="fb-success" aria-live="polite"></div>
       </section>
 
-      <section class="card" aria-label="login form">
+      <section class="card cat-forms" aria-label="login form">
         <h3>Sign In</h3>
         <form id="login-form" novalidate>
           <label for="login-username">Username</label>
@@ -157,7 +165,7 @@
         <div class="status" id="login-welcome" aria-live="polite"></div>
       </section>
 
-      <section class="card" aria-label="file upload">
+      <section class="card cat-forms" aria-label="file upload">
         <h3>Upload Evidence</h3>
         <form id="upload-form">
           <label for="upload-input">Choose a file</label>
@@ -167,24 +175,24 @@
         <div class="status" id="upload-result" aria-live="polite"></div>
       </section>
 
-      <h2 class="category">Overlays</h2>
+      <h2 class="category" data-cat="overlays">Overlays</h2>
 
-      <section class="card" aria-label="confirm dialog">
+      <section class="card cat-overlays" aria-label="confirm dialog">
         <h3>Confirm Dialog</h3>
         <p>Deleting a release asks for confirmation first.</p>
         <p><button id="delete-release" type="button">Delete release</button></p>
         <div class="status" id="delete-result" aria-live="polite"></div>
       </section>
 
-      <section class="card" aria-label="notifications">
+      <section class="card cat-overlays" aria-label="notifications">
         <h3>Notifications</h3>
         <p><button id="notify-button" type="button">Notify team</button></p>
         <div id="toast" role="status" aria-live="polite" hidden></div>
       </section>
 
-      <h2 class="category">Advanced components</h2>
+      <h2 class="category" data-cat="advanced">Advanced components</h2>
 
-      <section class="card" aria-label="release wizard">
+      <section class="card cat-advanced" aria-label="release wizard">
         <h3>New Release Wizard</h3>
         <ol id="wizard-progress" aria-label="progress">
           <li data-wstep="1" aria-current="step">Name</li>
@@ -212,7 +220,7 @@
         <div class="status" id="wiz-done" aria-live="polite"></div>
       </section>
 
-      <section class="card" aria-label="priority list">
+      <section class="card cat-advanced" aria-label="priority list">
         <h3>Priority List</h3>
         <p>Drag to reorder.</p>
         <ul id="priority-list">
@@ -222,17 +230,17 @@
         </ul>
       </section>
 
-      <section class="card" aria-label="embedded frame">
+      <section class="card cat-advanced" aria-label="embedded frame">
         <h3>Embedded Frame</h3>
         <iframe id="demo-frame" title="demo frame" src="/frame" width="100%" height="120"></iframe>
       </section>
 
-      <section class="card" aria-label="shadow dom">
+      <section class="card cat-advanced" aria-label="shadow dom">
         <h3>Shadow DOM</h3>
         <qa-counter></qa-counter>
       </section>
 
-      <section class="card" aria-label="controls">
+      <section class="card cat-advanced" aria-label="controls">
         <h3>Controls</h3>
         <p><button id="notify-toggle" type="button" role="switch" aria-checked="false">Notifications</button></p>
         <label for="volume">Volume</label>
