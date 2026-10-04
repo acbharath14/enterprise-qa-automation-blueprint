@@ -29,7 +29,9 @@ flowchart LR
 │   ├── sample-app/index.html        # component gallery under test, grouped by category:
 │   │                                # Release dashboard / Forms / Overlays / Advanced components
 │   ├── server.mjs                   # tiny Node server: serves the app + JSON API (metrics, feedback,
-│   │                                # login, upload) with security headers
+│   │                                # login, upload, search, export) with security headers
+│   ├── global-setup.ts              # decodes the base64 visual baseline before tests run
+│   ├── scripts/update-baseline.mjs  # re-encodes the PNG after regenerating the baseline
 │   ├── pages/                       # Page Objects: DashboardPage, GalleryPage, LoginPage —
 │   │                                # every selector lives here, never in tests
 │   ├── fixtures/test.ts             # custom fixtures: dashboardPage / galleryPage, already navigated

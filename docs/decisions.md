@@ -203,7 +203,7 @@ live site before generating — trends then accumulate across runs.
 
 `tests/failure-showcase.spec.ts` holds two deliberately wrong assertions
 (a UI text mismatch and an API contract mismatch). It is skipped in every
-normal run (`test.skip` unless `SHOWCASE=1`) and only executes via the
-`failure_showcase` workflow dispatch, which publishes the result to
-`allure-showcase/` — separate from the main report, so the real trend stays
-clean. The main publish job preserves that directory across deploys.
+normal run (`test.skip` unless `SHOWCASE=1`). The `publish-report` job runs
+it separately (`continue-on-error: true`) and generates a second Allure
+report at `allure-showcase/` — separate from the main report, so the real
+trend stays clean. No manual step, no cross-run state to preserve.
