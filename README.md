@@ -6,6 +6,8 @@ A Playwright + TypeScript test framework built around a simple idea: smoke tests
 
 **Who this is for:** testers and SDETs who want a working reference for how UI, API, accessibility, visual, performance, and security checks fit together in one suite — and a starting point they can adapt to their own application. If you are new to Playwright, start with [Getting started](#getting-started), then read [Repository tour](#repository-tour).
 
+**Latest test report:** [acbharath14.github.io/enterprise-qa-automation-blueprint](https://acbharath14.github.io/enterprise-qa-automation-blueprint/) — published from every `main` run.
+
 ## Architecture
 
 ```mermaid
@@ -166,7 +168,7 @@ Tag it (`@smoke`, `@a11y`) if it belongs in a filtered run, data-drive it from `
 
 ## How CI Works
 
-Every push/PR touching `playwright-suite/` runs the suite sharded across 2 runners × 4 projects. HTML and Allure reports are uploaded as artifacts per shard. On `main`, the merged report publishes to GitHub Pages. A scheduled run every Monday keeps the badge honest.
+Every push/PR touching `playwright-suite/` runs the suite sharded across 2 runners × 4 projects. HTML and Allure reports are uploaded as artifacts per shard. On `main`, the merged report publishes to [GitHub Pages](https://acbharath14.github.io/enterprise-qa-automation-blueprint/). A scheduled run every Monday keeps the badge honest.
 
 ## Troubleshooting
 
