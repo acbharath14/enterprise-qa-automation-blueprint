@@ -7,8 +7,9 @@ import { test, expect } from '../fixtures/test';
 test.describe('feedback form', () => {
   test('shows inline errors for empty submit', async ({ galleryPage }) => {
     await galleryPage.feedbackSubmit.click();
-    await expect(galleryPage.nameError).toHaveText('Name is required.');
-    await expect(galleryPage.emailError).toHaveText('Enter a valid email address.');
+    // Soft assertions: report every validation error in one run.
+    await expect.soft(galleryPage.nameError).toHaveText('Name is required.');
+    await expect.soft(galleryPage.emailError).toHaveText('Enter a valid email address.');
     await expect(galleryPage.feedbackSuccess).toBeEmpty();
   });
 
@@ -19,25 +20,31 @@ test.describe('feedback form', () => {
   });
 
   test('submits valid feedback and sends the right payload', async ({ galleryPage, page }) => {
-    const [request] = await Promise.all([
-      page.waitForRequest(
-        (req) => req.url().includes('/api/feedback') && req.method() === 'POST',
-      ),
-      galleryPage.submitFeedback({
+    let request;
+    await test.step('fill and submit the form', async () => {
+      [request] = await Promise.all([
+        page.waitForRequest(
+          (req) => req.url().includes('/api/feedback') && req.method() === 'POST',
+        ),
+        galleryPage.submitFeedback({
+          name: 'Ada',
+          email: 'ada@example.com',
+          rating: '5',
+          message: 'Great release!',
+          subscribe: true,
+        }),
+      ]);
+    });
+
+    await test.step('verify the payload and the confirmation', async () => {
+      expect(request.postDataJSON()).toMatchObject({
         name: 'Ada',
         email: 'ada@example.com',
         rating: '5',
         message: 'Great release!',
         subscribe: true,
-      }),
-    ]);
-    expect(request.postDataJSON()).toMatchObject({
-      name: 'Ada',
-      email: 'ada@example.com',
-      rating: '5',
-      message: 'Great release!',
-      subscribe: true,
+      });
+      await expect(galleryPage.feedbackSuccess).toContainText('Thanks, Ada!');
     });
-    await expect(galleryPage.feedbackSuccess).toContainText('Thanks, Ada!');
   });
 });

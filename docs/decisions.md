@@ -105,11 +105,13 @@ the session persists without signing in again. This is Playwright's documented
 pattern: pay the login cost once per run, not once per test. The auth file is
 git-ignored — sessions never get committed.
 
-## API contract pinned with a snapshot
+## API contract pinned with a committed file
 
-`api.spec.ts` commits `metrics.json` via `toMatchSnapshot`. Any field added,
-removed, or renamed on `/api/metrics` fails the build loudly. Cheaper than a
-schema validator for a stable contract, and the diff shows exactly what changed.
+`api.spec.ts` asserts the `/api/metrics` payload equals
+`test-data/metrics-snapshot.json`. Any field added, removed, or renamed fails
+the build loudly. Deliberately not `toMatchSnapshot`: that resolves a
+separate file per project (`metrics-<project>-linux.json`), which would mean
+committing seven copies of identical JSON. One file, all projects.
 
 ## Deterministic time with page.clock
 
@@ -130,3 +132,47 @@ The app uses CSS variables with a toggle, and a dedicated `dark` project runs
 the suite under `colorScheme: 'dark'`. `theme.spec.ts` flips the toggle and
 asserts the tokens actually change. Theme regressions are invisible to
 functional tests — this makes them visible.
+
+## Demo auth is simulated — the pattern is what's real
+
+The sample app's "authentication" is deliberately fake: hardcoded credentials
+(`admin`/`secret`), a static token string, no expiry, no server-side session —
+the client just checks `localStorage`. Do not copy this as a real auth
+implementation.
+
+What the suite genuinely demonstrates is the test-automation pattern:
+`auth.setup.ts` signs in once through the real UI, saves `storageState`, and
+the `authed` project reuses that session instead of logging in per test. That
+pattern transfers directly to production apps with OIDC/OAuth2 providers,
+httpOnly cookies, and server-side sessions.
+
+## Wave 2: the remaining production component patterns
+
+The gallery's second wave adds the UI patterns the first wave lacked: an
+autocomplete combobox (`/api/search`, debounced, keyboard selection),
+a date picker, a 3-step wizard with per-step validation, HTML5 drag-and-drop
+reordering, an auto-dismissing toast, a CSV download (filename + content
+assertions), a same-origin iFrame (`frameLocator`), a shadow-DOM custom
+element, an ARIA switch, a range slider, and a popup link.
+
+Two testing utilities ride along: `test.step` structures multi-step flows in
+reports, `expect.soft` collects all form errors in one run, and
+`testInfo.attach` embeds the raw API response in the report as evidence.
+`video: 'retain-on-failure'` is enabled alongside traces.
+
+The `tz` project (Pacific/Auckland, en-NZ) proves datetime rendering follows
+the emulated locale instead of the machine's: `datetime.spec.ts` and the
+frozen-clock smoke test compute expectations inside the page context, so they
+hold under any timezone. The aria snapshot (`toMatchAriaSnapshot`) is
+chromium-gated because serialized accessibility trees vary across engines.
+
+## Gallery, not a product: sections grouped by category
+
+The sample app accumulated components wave by wave until it read as two
+things at once — a release dashboard and a component playground. It is now
+organized honestly: one page, four labeled categories (Release dashboard,
+Forms, Overlays, Advanced components), each a `<h2>` group with the
+components as `<h3>` cards. The delete-confirmation button moved out of the
+releases table into its own Confirm Dialog card. No test changes were needed:
+every selector is ID- or role-based, so section order and heading levels don't
+affect the suite.

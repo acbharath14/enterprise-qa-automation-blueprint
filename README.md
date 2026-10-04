@@ -25,8 +25,8 @@ flowchart LR
 ```
 .
 ├── playwright-suite/
-│   ├── sample-app/index.html        # component gallery under test: dashboard, feedback form, login,
-│   │                                # sortable table, modal, file upload, tabs, theme toggle
+│   ├── sample-app/index.html        # component gallery under test, grouped by category:
+│   │                                # Release dashboard / Forms / Overlays / Advanced components
 │   ├── server.mjs                   # tiny Node server: serves the app + JSON API (metrics, feedback,
 │   │                                # login, upload) with security headers
 │   ├── pages/                       # Page Objects: DashboardPage, GalleryPage, LoginPage —
@@ -35,10 +35,11 @@ flowchart LR
 │   │                                # and ready — tests start interacting, not waiting
 │   ├── tests/                       # one spec file per test type (see Test coverage below)
 │   │   ├── visual.spec.ts-snapshots/ # committed screenshot baseline for visual regression
-│   │   └── api.spec.ts-snapshots/   # committed JSON snapshot pinning the API contract
+│   │   └── accessibility.spec.ts-snapshots/ # committed aria snapshot of the feedback form
 │   ├── test-data/metrics.json       # data file driving the dashboard specs (edit data, not code)
-│   ├── playwright.config.ts         # projects (chromium/firefox/webkit/mobile/dark/authed + auth
-│   │                                # setup), retries, reporters, trace-on-failure, auto-started webServer
+│   ├── test-data/metrics-snapshot.json # committed API contract: /api/metrics must equal this
+│   ├── playwright.config.ts         # projects (chromium/firefox/webkit/mobile/dark/tz/authed + auth
+│   │                                # setup), retries, reporters, trace+video-on-failure, auto-started webServer
 │   └── package.json                 # scripts: test, test:smoke, test:a11y, test:headed, report
 ├── docs/
 │   ├── decisions.md                 # why the framework is shaped this way — read this for the reasoning
@@ -82,19 +83,30 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 
 | Type | File | What it proves |
 |---|---|---|
-| Smoke | `tests/smoke.spec.ts` | Critical paths work; frozen-clock assertion on the refresh timestamp (`@smoke`) |
+| Smoke | `tests/smoke.spec.ts` | Critical paths work; frozen-clock assertion on the refresh timestamp (`@smoke`) — rendered in the page's own context so it holds under any timezone |
 | Dashboard | `tests/dashboard.spec.ts` | Data-driven UI assertions from `test-data/metrics.json` |
-| Accessibility | `tests/accessibility.spec.ts` | axe-core scan, WCAG 2A/2AA (`@a11y` tag) |
+| Accessibility | `tests/accessibility.spec.ts` | axe-core scan, WCAG 2A/2AA (`@a11y` tag) + committed aria snapshot of the feedback form |
 | Keyboard | `tests/keyboard.spec.ts` | Tab order, focus, Enter/Space activation — what axe-core can't check |
-| API | `tests/api.spec.ts` | Contract shape, value sanity, JSON error responses, committed response snapshot |
+| API | `tests/api.spec.ts` | Contract shape, value sanity, JSON error responses, committed contract file (`test-data/metrics-snapshot.json`) |
 | API mocking | `tests/api-mocked.spec.ts` | UI behavior when the backend returns 500s or slow responses |
-| Integration | `tests/integration.spec.ts` | UI calls the right API and renders its response (`waitForResponse`) |
+| Integration | `tests/integration.spec.ts` | UI calls the right API and renders its response (`waitForResponse`); attaches the raw response to the report |
 | Offline | `tests/offline.spec.ts` | Friendly message when the API is unreachable |
-| Forms | `tests/forms.spec.ts` | Inline validation errors; valid submit sends the exact expected POST payload |
+| Forms | `tests/forms.spec.ts` | Inline validation errors (soft assertions); valid submit sends the exact expected POST payload; `test.step` structure |
 | Auth | `tests/auth.spec.ts` + `auth.setup.ts` | Login success/failure; setup project saves `storageState` reused by `authed.spec.ts` |
 | Upload | `tests/upload.spec.ts` | File upload round-trip, server echoes the filename |
 | Dialogs | `tests/dialogs.spec.ts` | Native confirm: message content, accept and dismiss paths |
 | Table | `tests/table.spec.ts` | Column sorting ascending/descending |
+| Search | `tests/search.spec.ts` | Autocomplete combobox: debounced results, keyboard selection, ARIA states |
+| Date picker | `tests/datepicker.spec.ts` | Date input fill and schedule confirmation |
+| Wizard | `tests/wizard.spec.ts` | Multi-step flow: per-step validation, back/next, review and submit (`test.step` structure) |
+| Drag & drop | `tests/dragdrop.spec.ts` | Reorder the priority list with `dragTo` |
+| Toast | `tests/toast.spec.ts` | Notification appears and auto-dismisses |
+| Download | `tests/download.spec.ts` | CSV export: filename and file content assertions |
+| iFrame | `tests/iframe.spec.ts` | Same-origin frame interaction via `frameLocator` |
+| Shadow DOM | `tests/shadowdom.spec.ts` | Counter inside an open shadow root (Playwright pierces it automatically) |
+| Controls | `tests/controls.spec.ts` | ARIA switch toggles `aria-checked`; range slider updates its output |
+| Datetime | `tests/datetime.spec.ts` | Timestamp rendering under emulated locale/timezone (`tz` project: Pacific/Auckland, en-NZ) |
+| Popup | `tests/popup.spec.ts` | Link opens a new tab (`waitForEvent('popup')`); new page is asserted and closed |
 | Visual | `tests/visual.spec.ts` | Layout regression vs. committed baseline (dynamic regions masked) |
 | Theme | `tests/theme.spec.ts` | Dark/light toggle flips design tokens |
 | Performance | `tests/performance.spec.ts` | Load budgets, API latency budget, zero console/page errors |
@@ -105,7 +117,7 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 ## Running tests
 
 ```bash
-npm test                          # everything: 7 projects (chromium/firefox/webkit/mobile/dark/authed + setup)
+npm test                          # everything: 8 projects (chromium/firefox/webkit/mobile/dark/tz/authed + setup)
 npm run test:smoke                 # only @smoke tagged tests — the fast release signal
 npm run test:a11y                  # only @a11y tagged tests
 npm run test:headed                # watch chromium run in a visible browser
