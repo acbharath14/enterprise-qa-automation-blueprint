@@ -81,7 +81,10 @@ jobs:
         working-directory: playwright-suite
         run: npx playwright install --with-deps chromium
 
-      - name: Run failure showcase (intentional failures)
+      # Two deliberately wrong assertions. They fail here but the job continues,
+      # so the published Allure report shows what a real failure looks like
+      # (assertion diff, screenshot, video, trace) without breaking the build.
+      - name: Run failure showcase
         working-directory: playwright-suite
         continue-on-error: true
         env:
@@ -116,15 +119,14 @@ jobs:
               -o "allure-results/history/$f" || echo "no previous $f yet"
           done
 
-      - name: Generate reports
+      - name: Generate Allure report (suite + showcase merged)
         run: |
           npm install -g allure-commandline
-          allure generate allure-results -o _site/allure --clean
-          allure generate showcase-allure-results -o _site/allure-showcase --clean
+          allure generate allure-results showcase-allure-results -o _site/allure --clean
 
       - name: Add report index
         run: |
-          printf '%s\n' '<!doctype html><html><body><h1>Test Reports</h1><ul><li><a href="allure/">Allure report</a></li><li><a href="allure-showcase/">Allure failure showcase (intentional failures)</a></li><li><a href="playwright-report-shard-1/">Playwright HTML — Shard 1</a></li><li><a href="playwright-report-shard-2/">Playwright HTML — Shard 2</a></li></ul></body></html>' > _site/index.html
+          printf '%s\n' '<!doctype html><html><body><h1>Test Reports</h1><p>The Allure report includes two intentional failures under <b>Showcase › Intentional failures</b>, demonstrating failure capture (assertion diff, screenshot, video, trace).</p><ul><li><a href="allure/">Allure report</a></li><li><a href="playwright-report-shard-1/">Playwright HTML — Shard 1</a></li><li><a href="playwright-report-shard-2/">Playwright HTML — Shard 2</a></li></ul></body></html>' > _site/index.html
 
       - uses: actions/upload-pages-artifact@v3
         with:
