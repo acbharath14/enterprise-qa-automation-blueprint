@@ -4,7 +4,7 @@ pipeline {
   stages {
     stage('Install') {
       steps {
-        dir('ui-tests') {
+        dir('playwright-suite') {
           sh 'npm ci'
         }
       }
@@ -12,7 +12,7 @@ pipeline {
 
     stage('UI Smoke') {
       steps {
-        dir('ui-tests') {
+        dir('playwright-suite') {
           sh 'npx playwright test --grep @smoke'
         }
       }

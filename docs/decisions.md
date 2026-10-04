@@ -5,9 +5,9 @@ start here.
 
 ## Page Object Model + fixtures, not raw selectors in specs
 
-Selectors live in `ui-tests/pages/DashboardPage.ts`. Specs describe behavior
+Selectors live in `playwright-suite/pages/DashboardPage.ts`. Specs describe behavior
 ("refresh updates the snapshot message"), never CSS. The custom fixture in
-`ui-tests/fixtures/test.ts` navigates and asserts the page loaded before each
+`playwright-suite/fixtures/test.ts` navigates and asserts the page loaded before each
 test, so every spec starts from a known-good state and failures point at the
 app, not at test setup.
 

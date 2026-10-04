@@ -8,15 +8,15 @@
 
 ## Tasks
 1. Initialize repository and branch strategy.
-2. Install Playwright dependencies under ui-tests.
+2. Install Playwright dependencies under playwright-suite.
 3. Run smoke test locally and capture output.
 4. Push initial commit to GitHub.
 
 ## Commands
 ```bash
 cd enterprise-qa-automation-blueprint
-npm --prefix ui-tests install
-npm --prefix ui-tests run test:smoke
+npm --prefix playwright-suite install
+npm --prefix playwright-suite run test:smoke
 ```
 
 ## Suggested Commit Sequence

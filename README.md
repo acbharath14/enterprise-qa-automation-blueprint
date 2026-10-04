@@ -20,7 +20,7 @@ flowchart LR
 
 ```
 .
-├── ui-tests/
+├── playwright-suite/
 │   ├── sample-app/index.html        # the demo app under test — replace this with your app
 │   ├── server.mjs                   # tiny Node server: serves the app + a JSON /api/metrics endpoint
 │   ├── pages/DashboardPage.ts       # Page Object: every selector and page action lives here, never in tests
@@ -49,7 +49,7 @@ The pattern to notice: **tests describe behavior, page objects describe the UI, 
 ```bash
 # 1. Clone and install
 git clone https://github.com/acbharath14/enterprise-qa-automation-blueprint.git
-cd enterprise-qa-automation-blueprint/ui-tests
+cd enterprise-qa-automation-blueprint/playwright-suite
 npm install
 
 # 2. Install the browsers Playwright drives (one-time download)
@@ -121,7 +121,7 @@ BASE_URL=https://staging.myapp.com npx playwright test
 **2. Add a page object.** Selectors and page actions live in `pages/`, never in test files:
 
 ```ts
-// ui-tests/pages/LoginPage.ts
+// playwright-suite/pages/LoginPage.ts
 import { Page, Locator } from '@playwright/test';
 
 export class LoginPage {
@@ -150,7 +150,7 @@ export class LoginPage {
 **3. Write a spec using the fixture.** Tests describe behavior in plain steps:
 
 ```ts
-// ui-tests/tests/login.spec.ts
+// playwright-suite/tests/login.spec.ts
 import { test, expect } from '@playwright/test';
 import { LoginPage } from '../pages/LoginPage';
 
@@ -166,7 +166,7 @@ Tag it (`@smoke`, `@a11y`) if it belongs in a filtered run, data-drive it from `
 
 ## How CI Works
 
-Every push/PR touching `ui-tests/` runs the suite sharded across 2 runners × 4 projects. HTML and Allure reports are uploaded as artifacts per shard. On `main`, the merged report publishes to GitHub Pages. A scheduled run every Monday keeps the badge honest.
+Every push/PR touching `playwright-suite/` runs the suite sharded across 2 runners × 4 projects. HTML and Allure reports are uploaded as artifacts per shard. On `main`, the merged report publishes to GitHub Pages. A scheduled run every Monday keeps the badge honest.
 
 ## Troubleshooting
 
