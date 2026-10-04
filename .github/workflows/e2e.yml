@@ -1,0 +1,82 @@
+name: e2e
+
+on:
+  push:
+    branches: [main]
+    paths: ['ui-tests/**', '.github/workflows/e2e.yml']
+  pull_request:
+    paths: ['ui-tests/**', '.github/workflows/e2e.yml']
+  schedule:
+    # Weekly Monday 06:00 UTC — keeps the suite (and badge) alive
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ui-tests/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ui-tests
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: ui-tests
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Run tests (shard ${{ matrix.shard }}/2)
+        working-directory: ui-tests
+        run: npx playwright test --shard=${{ matrix.shard }}/2
+        env:
+          CI: true
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-shard-${{ matrix.shard }}
+          path: ui-tests/playwright-report/
+          retention-days: 14
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-shard-${{ matrix.shard }}
+          path: ui-tests/allure-results/
+          retention-days: 14
+
+  publish-report:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: playwright-report-shard-*
+          path: _site
+          merge-multiple: false
+
+      - name: Add report index
+        run: |
+          printf '%s\n' '<!doctype html><html><body><h1>Test Reports</h1><ul><li><a href="playwright-report-shard-1/">Shard 1</a></li><li><a href="playwright-report-shard-2/">Shard 2</a></li></ul></body></html>' > _site/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - uses: actions/deploy-pages@v4
