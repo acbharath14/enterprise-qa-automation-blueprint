@@ -71,9 +71,25 @@ jobs:
           path: _site
           merge-multiple: false
 
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: allure-results-shard-*
+          path: allure-results
+          merge-multiple: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Generate Allure report
+        run: |
+          npm install -g allure-commandline
+          allure generate allure-results -o _site/allure --clean
+
       - name: Add report index
         run: |
-          printf '%s\n' '<!doctype html><html><body><h1>Test Reports</h1><ul><li><a href="playwright-report-shard-1/">Shard 1</a></li><li><a href="playwright-report-shard-2/">Shard 2</a></li></ul></body></html>' > _site/index.html
+          printf '%s\n' '<!doctype html><html><body><h1>Test Reports</h1><ul><li><a href="allure/">Allure report</a></li><li><a href="playwright-report-shard-1/">Playwright HTML — Shard 1</a></li><li><a href="playwright-report-shard-2/">Playwright HTML — Shard 2</a></li></ul></body></html>' > _site/index.html
 
       - uses: actions/upload-pages-artifact@v3
         with:
