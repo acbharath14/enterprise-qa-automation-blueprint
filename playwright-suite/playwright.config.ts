@@ -2,6 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
+  // Materializes the committed visual baseline (stored as base64 text) before tests run.
+  globalSetup: './global-setup.ts',
   timeout: 30_000,
   fullyParallel: true,
   retries: process.env.CI ? 2 : 0,

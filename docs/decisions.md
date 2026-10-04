@@ -176,3 +176,13 @@ components as `<h3>` cards. The delete-confirmation button moved out of the
 releases table into its own Confirm Dialog card. No test changes were needed:
 every selector is ID- or role-based, so section order and heading levels don't
 affect the suite.
+
+## Visual baseline is versioned as base64 text
+
+The screenshot baseline lives in `test-data/visual-baseline.b64`, not as a
+committed PNG: binary files can't be pushed through every available workflow,
+so the baseline is stored as text and `global-setup.ts` decodes it into
+`tests/visual.spec.ts-snapshots/` before every run. The decode always
+overwrites, so a stale local PNG can never mask a regression. Regenerate with
+`npx playwright test visual --project=chromium --update-snapshots` followed by
+`npm run baseline:update`.
