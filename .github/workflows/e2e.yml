@@ -10,9 +10,21 @@ on:
     # Weekly Monday 06:00 UTC — keeps the suite (and badge) alive
     - cron: '0 6 * * 1'
   workflow_dispatch:
+    inputs:
+      failure_showcase:
+        description: 'Run the intentional failure showcase and publish it to the site'
+        type: boolean
+        default: false
+
+# Serializes Pages deployments: the showcase job merges into the live site.
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: false
 
 jobs:
   test:
+    # Skip the full suite when only the failure showcase was requested.
+    if: github.event_name != 'workflow_dispatch' || !inputs.failure_showcase
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -71,9 +83,112 @@ jobs:
           path: _site
           merge-multiple: false
 
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: allure-results-shard-*
+          path: allure-results
+          merge-multiple: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Restore Allure history for trends
+        run: |
+          mkdir -p allure-results/history
+          for f in history.json history-trend.json; do
+            curl -sfL "https://acbharath14.github.io/enterprise-qa-automation-blueprint/allure/history/$f" \
+              -o "allure-results/history/$f" || echo "no previous $f yet"
+          done
+
+      - name: Generate Allure report
+        run: |
+          npm install -g allure-commandline
+          allure generate allure-results -o _site/allure --clean
+
+      - name: Check out the live site
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: live-site
+
+      - name: Preserve the failure showcase
+        run: |
+          if [ -d live-site/allure-showcase ]; then
+            rm -rf _site/allure-showcase
+            cp -r live-site/allure-showcase _site/allure-showcase
+            echo "showcase preserved"
+          else
+            echo "no showcase published yet"
+          fi
+
       - name: Add report index
         run: |
-          printf '%s\n' '<!doctype html><html><body><h1>Test Reports</h1><ul><li><a href="playwright-report-shard-1/">Shard 1</a></li><li><a href="playwright-report-shard-2/">Shard 2</a></li></ul></body></html>' > _site/index.html
+          printf '%s\n' '<!doctype html><html><body><h1>Test Reports</h1><ul><li><a href="allure/">Allure report</a></li><li><a href="allure-showcase/">Allure failure showcase (intentional failures)</a></li><li><a href="playwright-report-shard-1/">Playwright HTML — Shard 1</a></li><li><a href="playwright-report-shard-2/">Playwright HTML — Shard 2</a></li></ul></body></html>' > _site/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - uses: actions/deploy-pages@v4
+
+  failure-showcase:
+    # Manually triggered: runs the intentional failures and publishes them
+    # alongside the real reports, without touching the main Allure history.
+    if: github.event_name == 'workflow_dispatch' && inputs.failure_showcase
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: playwright-suite/package-lock.json
+
+      - name: Install dependencies
+        working-directory: playwright-suite
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: playwright-suite
+        run: npx playwright install --with-deps chromium
+
+      - name: Run intentional failures
+        working-directory: playwright-suite
+        continue-on-error: true
+        env:
+          CI: true
+          SHOWCASE: '1'
+        run: npx playwright test tests/failure-showcase.spec.ts --project=chromium --reporter=allure-playwright
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Generate showcase report
+        run: |
+          npm install -g allure-commandline
+          allure generate playwright-suite/allure-results -o showcase-site/allure-showcase --clean
+
+      - name: Check out the live site
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: _site
+
+      - name: Add the showcase to the site
+        run: |
+          rm -rf _site/allure-showcase
+          mkdir -p _site/allure-showcase
+          cp -r showcase-site/allure-showcase/* _site/allure-showcase/
+          printf '%s\n' '<!doctype html><html><body><h1>Test Reports</h1><ul><li><a href="allure/">Allure report</a></li><li><a href="allure-showcase/">Allure failure showcase (intentional failures)</a></li><li><a href="playwright-report-shard-1/">Playwright HTML — Shard 1</a></li><li><a href="playwright-report-shard-2/">Playwright HTML — Shard 2</a></li></ul></body></html>' > _site/index.html
 
       - uses: actions/upload-pages-artifact@v3
         with:
