@@ -6,7 +6,9 @@ A Playwright + TypeScript test framework built around a simple idea: smoke tests
 
 **Who this is for:** testers and SDETs who want a working reference for how UI, API, accessibility, visual, performance, and security checks fit together in one suite — and a starting point they can adapt to their own application. If you are new to Playwright, start with [Getting started](#getting-started), then read [Repository tour](#repository-tour).
 
-**Latest test report:** [acbharath14.github.io/enterprise-qa-automation-blueprint](https://acbharath14.github.io/enterprise-qa-automation-blueprint/) — published from every `main` run.
+**Latest test reports** — published from every `main` run:
+- [Playwright HTML report](https://acbharath14.github.io/enterprise-qa-automation-blueprint/) (per-shard)
+- [Allure report](https://acbharath14.github.io/enterprise-qa-automation-blueprint/allure/) (trends, retries, history)
 
 ## Architecture
 
