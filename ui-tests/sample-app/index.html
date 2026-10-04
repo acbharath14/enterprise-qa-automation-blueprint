@@ -26,12 +26,31 @@
         <div class="status" id="status">All critical checks are healthy.</div>
         <button id="refresh-button" type="button">Refresh health snapshot</button>
       </section>
+
+      <section class="card" aria-label="live metrics">
+        <h2>Live Metrics</h2>
+        <p>Loads current metrics from the backend API.</p>
+        <button id="load-metrics" type="button">Load live metrics</button>
+        <div id="live-metrics" class="status" aria-live="polite"></div>
+      </section>
     </main>
 
     <script>
       const status = document.getElementById('status');
       document.getElementById('refresh-button').addEventListener('click', () => {
         status.textContent = 'Snapshot refreshed successfully at ' + new Date().toLocaleTimeString();
+      });
+
+      document.getElementById('load-metrics').addEventListener('click', async () => {
+        const el = document.getElementById('live-metrics');
+        try {
+          const res = await fetch('/api/metrics');
+          if (!res.ok) throw new Error('request failed with status ' + res.status);
+          const m = await res.json();
+          el.textContent = `Coverage ${m.coverage}% · API ${m.apiHealth} · P95 ${m.p95LatencyMs} ms`;
+        } catch {
+          el.textContent = 'Could not load live metrics.';
+        }
       });
     </script>
   </body>
