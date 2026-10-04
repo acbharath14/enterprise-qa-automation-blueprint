@@ -84,6 +84,8 @@ jobs:
       # Two deliberately wrong assertions. They fail here but the job continues,
       # so the published Allure report shows what a real failure looks like
       # (assertion diff, screenshot, video, trace) without breaking the build.
+      # Note: `|| true` is required — without it, bash -e aborts the step on
+      # the failing tests and the `mv` below never runs.
       - name: Run failure showcase
         working-directory: playwright-suite
         continue-on-error: true
@@ -91,7 +93,7 @@ jobs:
           CI: true
           SHOWCASE: '1'
         run: |
-          npx playwright test tests/failure-showcase.spec.ts --project=chromium --reporter=allure-playwright
+          npx playwright test tests/failure-showcase.spec.ts --project=chromium --reporter=allure-playwright || true
           mv allure-results ../showcase-allure-results
 
       - uses: actions/download-artifact@v4
