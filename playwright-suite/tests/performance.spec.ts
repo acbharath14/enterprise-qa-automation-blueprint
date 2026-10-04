@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/test';
 
 /**
  * Performance budgets (not benchmarks): assert the app stays within

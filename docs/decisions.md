@@ -204,6 +204,15 @@ live site before generating — trends then accumulate across runs.
 `tests/failure-showcase.spec.ts` holds two deliberately wrong assertions
 (a UI text mismatch and an API contract mismatch). It is skipped in every
 normal run (`test.skip` unless `SHOWCASE=1`). The `publish-report` job runs
-it separately (`continue-on-error: true`) and generates a second Allure
-report at `allure-showcase/` — separate from the main report, so the real
-trend stays clean. No manual step, no cross-run state to preserve.
+it separately (`continue-on-error: true`) and merges the results into the main
+Allure report, where the failures appear under **Showcase › Intentional
+failures** with full failure detail (assertion diff, screenshot, video,
+trace). The build stays green; the report honestly shows the failures.
+
+## Intuitive Allure suite names
+
+The reporter defaults to the Playwright project name (chromium, firefox, …)
+as the top-level suite, which reads poorly. `fixtures/test.ts` sets friendly
+`parentSuite`/`suite` labels in a `beforeEach` (e.g. `Accessibility › WCAG
+scans`, `API › Mocked API`), which the reporter prefers over its defaults.
+Every spec imports `test` from the fixture so the labels apply everywhere.
