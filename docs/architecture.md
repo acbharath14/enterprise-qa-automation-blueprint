@@ -2,8 +2,8 @@
 
 ## Layered Quality Model
 1. UI Layer: Playwright smoke and regression journeys.
-2. API Layer: REST contract and integration validation (to be added).
-3. Data Layer: DB consistency and reconciliation checks (to be added).
+2. API Layer: REST contract and integration validation (`api.spec.ts`, `integration.spec.ts`).
+3. Data Layer: DB consistency and reconciliation checks (out of scope for the demo app).
 4. Orchestration Layer: CI quality gates and report publishing.
 
 ## Design Principles

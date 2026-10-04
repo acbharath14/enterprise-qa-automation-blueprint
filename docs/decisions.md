@@ -11,11 +11,15 @@ Selectors live in `playwright-suite/pages/DashboardPage.ts`. Specs describe beha
 test, so every spec starts from a known-good state and failures point at the
 app, not at test setup.
 
-## Three browser projects
+## Eight projects: browsers, devices, and environments
 
-Chromium, Firefox, WebKit. UI bugs are disproportionately browser-specific,
-and Playwright makes cross-browser runs nearly free. CI installs all three
-with system dependencies.
+Chromium, Firefox, WebKit, a mobile viewport (Pixel 7), a dark colorScheme,
+a locale/timezone variant (Pacific/Auckland, en-NZ), an authenticated
+session (`authed`, via `storageState`), and a `setup` project that signs in
+once. UI bugs are disproportionately browser-specific, and Playwright makes
+cross-browser runs nearly free — CI installs all three engines with system
+dependencies. The extra projects cost one line each and prove the suite is
+environment-independent.
 
 ## Sharded execution (2 shards)
 
@@ -64,9 +68,10 @@ browser needed. UI specs prove the user journey; API tests pin the contract
 
 ## Visual regression, masked
 
-`visual.spec.ts` compares against a committed baseline with dynamic
-regions (timestamps, live metrics) masked — only layout regressions fail the
-build, not data changes. Baselines run in the desktop-chromium project only:
+`visual.spec.ts` compares against the committed baseline (materialized
+from base64 text by `global-setup.ts`) with dynamic regions (timestamps, live
+metrics) masked — only layout regressions fail the build, not data changes.
+Baselines run in the desktop-chromium project only:
 cross-OS font rendering makes multi-browser baselines flaky without a
 dedicated visual service, and the mobile project (also chromium-based) would
 need its own viewport-specific baseline.
@@ -116,8 +121,9 @@ committing seven copies of identical JSON. One file, all projects.
 ## Deterministic time with page.clock
 
 The refresh timestamp is asserted exactly, not fuzzily: `page.clock.install`
-freezes time, so the test compares against the same `toLocaleTimeString()`
-the app renders. No sleeps, no regexes, no flakes.
+freezes time, and the expected value is rendered inside the page context, so
+the assertion holds under any machine timezone. No sleeps, no regexes, no
+flakes.
 
 ## UI↔API integration, not just isolation
 

@@ -2,7 +2,7 @@
 
 [![e2e](https://github.com/acbharath14/enterprise-qa-automation-blueprint/actions/workflows/e2e.yml/badge.svg)](https://github.com/acbharath14/enterprise-qa-automation-blueprint/actions/workflows/e2e.yml)
 
-A Playwright + TypeScript test framework built around a simple idea: smoke tests should produce a release signal, not just a pass/fail log. The suite runs against a small local sample app (a release-health dashboard) and the results feed into CI quality gates.
+A Playwright + TypeScript test framework built around a simple idea: smoke tests should produce a release signal, not just a pass/fail log. The suite runs against a small local sample app (a component gallery of production UI patterns) and the results feed into CI quality gates.
 
 **Who this is for:** testers and SDETs who want a working reference for how UI, API, accessibility, visual, performance, and security checks fit together in one suite — and a starting point they can adapt to their own application. If you are new to Playwright, start with [Getting started](#getting-started), then read [Repository tour](#repository-tour).
 
@@ -41,11 +41,12 @@ flowchart LR
 │   ├── test-data/metrics-snapshot.json # committed API contract: /api/metrics must equal this
 │   ├── playwright.config.ts         # projects (chromium/firefox/webkit/mobile/dark/tz/authed + auth
 │   │                                # setup), retries, reporters, trace+video-on-failure, auto-started webServer
-│   └── package.json                 # scripts: test, test:smoke, test:a11y, test:headed, report
+│   └── package.json                 # scripts: test, test:smoke, test:a11y, test:headed, report,
+│   │                                # baseline:update
 ├── docs/
 │   ├── decisions.md                 # why the framework is shaped this way — read this for the reasoning
-│   ├── ARCHITECTURE.md
-│   └── EXECUTION_EVIDENCE.md
+│   ├── architecture.md              # layered quality model and design principles
+│   └── evidence.md                  # sample passing run output
 ├── ci/                              # GitLab CI and Jenkins pipeline templates
 └── .github/workflows/e2e.yml        # GitHub Actions: sharded runs, HTML + Allure reports, Pages deploy
 ```
@@ -197,7 +198,7 @@ Tag it (`@smoke`, `@a11y`) if it belongs in a filtered run, data-drive it from `
 
 ## How CI Works
 
-Every push/PR touching `playwright-suite/` runs the suite sharded across 2 runners × 4 projects. HTML and Allure reports are uploaded as artifacts per shard. On `main`, the merged report publishes to [GitHub Pages](https://acbharath14.github.io/enterprise-qa-automation-blueprint/). A scheduled run every Monday keeps the badge honest.
+Every push/PR touching `playwright-suite/` runs the suite split across 2 shards covering all 8 projects. HTML and Allure reports are uploaded as artifacts per shard. On `main`, the merged report publishes to [GitHub Pages](https://acbharath14.github.io/enterprise-qa-automation-blueprint/). A scheduled run every Monday keeps the badge honest.
 
 ## Troubleshooting
 
