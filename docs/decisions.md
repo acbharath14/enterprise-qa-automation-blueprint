@@ -87,3 +87,46 @@ for unknown `/api/*` routes, and never reflects query input.
 
 Dashboard expectations live in `test-data/metrics.json`, not in the spec.
 Adding a metric means editing data, not code.
+# Design decisions — gallery expansion
+
+## The sample app is a component gallery, not a toy page
+
+The app grew from a metrics dashboard into a gallery of common UI patterns:
+forms with validation, login, sortable table, native dialogs, file upload,
+tabs, and a theme toggle. One static HTML file, no build step — it stays
+approachable for novices while giving every spec something real to validate.
+Each section exists because a test type needs it.
+
+## Auth via setup project + storageState
+
+`auth.setup.ts` signs in once through the real UI and saves
+`playwright/.auth/user.json`. The `authed` project loads that file and proves
+the session persists without signing in again. This is Playwright's documented
+pattern: pay the login cost once per run, not once per test. The auth file is
+git-ignored — sessions never get committed.
+
+## API contract pinned with a snapshot
+
+`api.spec.ts` commits `metrics.json` via `toMatchSnapshot`. Any field added,
+removed, or renamed on `/api/metrics` fails the build loudly. Cheaper than a
+schema validator for a stable contract, and the diff shows exactly what changed.
+
+## Deterministic time with page.clock
+
+The refresh timestamp is asserted exactly, not fuzzily: `page.clock.install`
+freezes time, so the test compares against the same `toLocaleTimeString()`
+the app renders. No sleeps, no regexes, no flakes.
+
+## UI↔API integration, not just isolation
+
+`integration.spec.ts` uses `waitForResponse` to prove the dashboard calls
+`GET /api/metrics` and renders *that response's* body. API specs test the
+contract; UI specs test the rendering; this test proves they talk to each
+other.
+
+## Theme as a first-class test
+
+The app uses CSS variables with a toggle, and a dedicated `dark` project runs
+the suite under `colorScheme: 'dark'`. `theme.spec.ts` flips the toggle and
+asserts the tokens actually change. Theme regressions are invisible to
+functional tests — this makes them visible.

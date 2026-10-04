@@ -1,22 +1,47 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
     <title>Enterprise QA Demo</title>
     <style>
-      body { font-family: Arial, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
+      :root, [data-theme='dark'] {
+        --bg: #0f172a; --fg: #e2e8f0; --card: #111827;
+        --border: #334155; --metric: #1e293b; --accent: #38bdf8;
+        --accent-fg: #082f49; --ok: #86efac; --err: #fca5a5;
+      }
+      [data-theme='light'] {
+        --bg: #f1f5f9; --fg: #0f172a; --card: #ffffff;
+        --border: #cbd5e1; --metric: #e2e8f0; --accent: #0284c7;
+        --accent-fg: #ffffff; --ok: #15803d; --err: #b91c1c;
+      }
+      body { font-family: Arial, sans-serif; margin: 0; background: var(--bg); color: var(--fg); }
       main { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
-      .card { background: #111827; border: 1px solid #334155; border-radius: 16px; padding: 24px; margin-top: 24px; }
-      button { background: #38bdf8; color: #082f49; border: 0; padding: 12px 18px; border-radius: 999px; font-weight: 700; cursor: pointer; }
-      .metric { display: inline-block; margin-right: 16px; margin-top: 12px; padding: 10px 14px; background: #1e293b; border-radius: 12px; }
-      .status { margin-top: 16px; font-weight: 700; color: #86efac; }
+      .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-top: 24px; }
+      button { background: var(--accent); color: var(--accent-fg); border: 0; padding: 12px 18px; border-radius: 999px; font-weight: 700; cursor: pointer; }
+      button:disabled { opacity: 0.5; cursor: default; }
+      .metric { display: inline-block; margin-right: 16px; margin-top: 12px; padding: 10px 14px; background: var(--metric); border-radius: 12px; }
+      .status { margin-top: 16px; font-weight: 700; color: var(--ok); }
+      .error { color: var(--err); font-size: 0.9em; margin-top: 4px; min-height: 1.2em; }
+      label { display: block; margin-top: 12px; font-weight: 700; }
+      input, select, textarea { display: block; margin-top: 4px; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--fg); width: 100%; max-width: 420px; box-sizing: border-box; }
+      input[type='checkbox'] { display: inline-block; width: auto; }
+      table { border-collapse: collapse; margin-top: 12px; width: 100%; }
+      th, td { border: 1px solid var(--border); padding: 10px 12px; text-align: left; }
+      th button { background: none; color: var(--fg); padding: 0; border-radius: 0; text-decoration: underline; }
+      [role='tab'] { border-radius: 8px; margin-right: 8px; }
+      [role='tab'][aria-selected='true'] { outline: 2px solid var(--accent); }
+      .topbar { display: flex; justify-content: space-between; align-items: center; }
     </style>
   </head>
   <body>
     <main>
-      <h1>Enterprise QA Automation Blueprint</h1>
-      <p>This sample application demonstrates a realistic smoke-test target with a visible journey, metrics, and an interactive action.</p>
+      <div class="topbar">
+        <h1>Enterprise QA Automation Blueprint</h1>
+        <button id="theme-toggle" type="button">Toggle theme</button>
+      </div>
+      <p>This sample application is a component gallery: every section below exercises a different UI pattern and backend interaction for the test suite to validate.</p>
 
       <section class="card" aria-label="quality summary">
         <h2>Release Snapshot</h2>
@@ -33,9 +58,97 @@
         <button id="load-metrics" type="button">Load live metrics</button>
         <div id="live-metrics" class="status" aria-live="polite"></div>
       </section>
+
+      <section class="card" aria-label="feedback form">
+        <h2>Feedback Form</h2>
+        <form id="feedback-form" novalidate>
+          <label for="fb-name">Name</label>
+          <input id="fb-name" name="name" type="text" autocomplete="name" />
+          <div class="error" id="fb-name-error" aria-live="polite"></div>
+
+          <label for="fb-email">Email</label>
+          <input id="fb-email" name="email" type="email" autocomplete="email" />
+          <div class="error" id="fb-email-error" aria-live="polite"></div>
+
+          <label for="fb-rating">Rating</label>
+          <select id="fb-rating" name="rating">
+            <option value="5">5 — Excellent</option>
+            <option value="4">4 — Good</option>
+            <option value="3">3 — Okay</option>
+            <option value="2">2 — Poor</option>
+            <option value="1">1 — Broken</option>
+          </select>
+
+          <label for="fb-message">Message</label>
+          <textarea id="fb-message" name="message" rows="3"></textarea>
+
+          <label><input id="fb-subscribe" name="subscribe" type="checkbox" /> Email me about this release</label>
+
+          <p><button type="submit">Send feedback</button></p>
+        </form>
+        <div class="status" id="fb-success" aria-live="polite"></div>
+      </section>
+
+      <section class="card" aria-label="login form">
+        <h2>Sign In</h2>
+        <form id="login-form" novalidate>
+          <label for="login-username">Username</label>
+          <input id="login-username" name="username" type="text" autocomplete="username" />
+          <label for="login-password">Password</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" />
+          <p><button type="submit">Sign in</button></p>
+        </form>
+        <div class="error" id="login-error" aria-live="polite"></div>
+        <div class="status" id="login-welcome" aria-live="polite"></div>
+      </section>
+
+      <section class="card" aria-label="releases table">
+        <h2>Releases</h2>
+        <table id="releases-table">
+          <thead>
+            <tr>
+              <th><button type="button" data-sort="name">Release</button></th>
+              <th><button type="button" data-sort="coverage">Coverage</button></th>
+              <th><button type="button" data-sort="status">Status</button></th>
+            </tr>
+          </thead>
+          <tbody id="releases-body"></tbody>
+        </table>
+        <p><button id="delete-release" type="button">Delete release</button></p>
+        <div class="status" id="delete-result" aria-live="polite"></div>
+      </section>
+
+      <section class="card" aria-label="file upload">
+        <h2>Upload Evidence</h2>
+        <form id="upload-form">
+          <label for="upload-input">Choose a file</label>
+          <input id="upload-input" name="file" type="file" />
+          <p><button type="submit">Upload</button></p>
+        </form>
+        <div class="status" id="upload-result" aria-live="polite"></div>
+      </section>
+
+      <section class="card" aria-label="release notes tabs">
+        <h2>Release Notes</h2>
+        <div role="tablist" aria-label="release notes">
+          <button role="tab" id="tab-overview" aria-selected="true" aria-controls="panel-overview" type="button">Overview</button>
+          <button role="tab" id="tab-details" aria-selected="false" aria-controls="panel-details" type="button">Details</button>
+          <button role="tab" id="tab-activity" aria-selected="false" aria-controls="panel-activity" type="button">Activity</button>
+        </div>
+        <div role="tabpanel" id="panel-overview" aria-labelledby="tab-overview"><p>Shipped on schedule with all quality gates green.</p></div>
+        <div role="tabpanel" id="panel-details" aria-labelledby="tab-details" hidden><p>42 tests across 8 types, 4 browsers, 2 shards.</p></div>
+        <div role="tabpanel" id="panel-activity" aria-labelledby="tab-activity" hidden><p>Last run finished 3 minutes ago.</p></div>
+      </section>
     </main>
 
     <script>
+      // Theme toggle
+      document.getElementById('theme-toggle').addEventListener('click', () => {
+        const html = document.documentElement;
+        html.dataset.theme = html.dataset.theme === 'light' ? 'dark' : 'light';
+      });
+
+      // Dashboard
       const status = document.getElementById('status');
       document.getElementById('refresh-button').addEventListener('click', () => {
         status.textContent = 'Snapshot refreshed successfully at ' + new Date().toLocaleTimeString();
@@ -52,6 +165,140 @@
           el.textContent = 'Could not load live metrics.';
         }
       });
+
+      // Feedback form with inline validation
+      document.getElementById('feedback-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('fb-name').value.trim();
+        const email = document.getElementById('fb-email').value.trim();
+        const nameErr = document.getElementById('fb-name-error');
+        const emailErr = document.getElementById('fb-email-error');
+        const success = document.getElementById('fb-success');
+        nameErr.textContent = '';
+        emailErr.textContent = '';
+        success.textContent = '';
+        let valid = true;
+        if (!name) {
+          nameErr.textContent = 'Name is required.';
+          valid = false;
+        }
+        if (!email || !email.includes('@')) {
+          emailErr.textContent = 'Enter a valid email address.';
+          valid = false;
+        }
+        if (!valid) return;
+        const payload = {
+          name,
+          email,
+          rating: document.getElementById('fb-rating').value,
+          message: document.getElementById('fb-message').value.trim(),
+          subscribe: document.getElementById('fb-subscribe').checked,
+        };
+        const res = await fetch('/api/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          success.textContent = `Thanks, ${name}! Your feedback was recorded.`;
+        } else {
+          emailErr.textContent = 'Submission failed — please try again.';
+        }
+      });
+
+      // Login form
+      document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('login-username').value;
+        const password = document.getElementById('login-password').value;
+        const err = document.getElementById('login-error');
+        const welcome = document.getElementById('login-welcome');
+        err.textContent = '';
+        welcome.textContent = '';
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        if (res.ok) {
+          const { token } = await res.json();
+          localStorage.setItem('qa-demo-token', token);
+          welcome.textContent = `Welcome, ${username}!`;
+        } else {
+          err.textContent = 'Invalid credentials.';
+        }
+      });
+
+      // Sortable releases table
+      const releases = [
+        { name: 'Aurora', coverage: 82, status: 'Green' },
+        { name: 'Beacon', coverage: 74, status: 'Green' },
+        { name: 'Cipher', coverage: 61, status: 'Amber' },
+        { name: 'Dynamo', coverage: 93, status: 'Green' },
+      ];
+      const sortState = { key: null, dir: 1 };
+      function renderTable() {
+        const rows = [...releases].sort((a, b) => {
+          if (!sortState.key) return 0;
+          const va = a[sortState.key];
+          const vb = b[sortState.key];
+          return (va > vb ? 1 : va < vb ? -1 : 0) * sortState.dir;
+        });
+        document.getElementById('releases-body').innerHTML = rows
+          .map((r) => `<tr><td>${r.name}</td><td>${r.coverage}%</td><td>${r.status}</td></tr>`)
+          .join('');
+      }
+      document.querySelectorAll('#releases-table th button').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const key = btn.dataset.sort;
+          sortState.dir = sortState.key === key ? -sortState.dir : 1;
+          sortState.key = key;
+          renderTable();
+        });
+      });
+      renderTable();
+
+      // Modal (native confirm)
+      document.getElementById('delete-release').addEventListener('click', () => {
+        const confirmed = confirm('Delete release Aurora?');
+        document.getElementById('delete-result').textContent = confirmed
+          ? 'Release Aurora deleted.'
+          : 'Delete cancelled.';
+      });
+
+      // File upload
+      document.getElementById('upload-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const input = document.getElementById('upload-input');
+        const result = document.getElementById('upload-result');
+        if (!input.files.length) {
+          result.textContent = 'Choose a file first.';
+          return;
+        }
+        const form = new FormData();
+        form.append('file', input.files[0]);
+        const res = await fetch('/api/upload', { method: 'POST', body: form });
+        const { filename } = await res.json();
+        result.textContent = `Uploaded: ${filename}`;
+      });
+
+      // Tabs
+      const tabs = [...document.querySelectorAll('[role="tab"]')];
+      tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          tabs.forEach((t) => {
+            t.setAttribute('aria-selected', 'false');
+            document.getElementById(t.getAttribute('aria-controls')).hidden = true;
+          });
+          tab.setAttribute('aria-selected', 'true');
+          document.getElementById(tab.getAttribute('aria-controls')).hidden = false;
+        });
+      });
+
+      // Restore session
+      if (localStorage.getItem('qa-demo-token')) {
+        document.getElementById('login-welcome').textContent = 'Welcome, admin!';
+      }
     </script>
   </body>
 </html>
