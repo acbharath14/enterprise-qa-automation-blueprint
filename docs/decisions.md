@@ -55,3 +55,35 @@ automatically by Playwright's `webServer` config. Clone, `npm ci`,
 Beyond push/PR triggers, the workflow runs every Monday. Scheduled runs
 catch environment rot (browser updates, dependency drift) and keep the
 status badge honest: green means the suite passed recently, not once in June.
+
+## Direct API tests alongside UI tests
+
+`api.spec.ts` hits `/api/metrics` with Playwright's `request` fixture — no
+browser needed. UI specs prove the user journey; API tests pin the contract
+(shape + value sanity). Both run in the same suite and the same report.
+
+## Visual regression, masked
+
+`visual.spec.ts` compares against a committed baseline with dynamic
+regions (timestamps, live metrics) masked — only layout regressions fail the
+build, not data changes. Baselines run in the desktop-chromium project only:
+cross-OS font rendering makes multi-browser baselines flaky without a
+dedicated visual service, and the mobile project (also chromium-based) would
+need its own viewport-specific baseline.
+
+## Performance budgets, not benchmarks
+
+`performance.spec.ts` asserts budgets (page interactive, API latency, zero
+console/page errors) rather than measuring speed. Budgets catch regressions
+in CI; precise benchmarking belongs in a dedicated perf suite.
+
+## Security headers on the demo server
+
+The sample server sends `X-Content-Type-Options: nosniff`, returns JSON 404s
+for unknown `/api/*` routes, and never reflects query input.
+`security.spec.ts` locks that in — even demo apps should model the basics.
+
+## Data-driven from JSON
+
+Dashboard expectations live in `test-data/metrics.json`, not in the spec.
+Adding a metric means editing data, not code.
