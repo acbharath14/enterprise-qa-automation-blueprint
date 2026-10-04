@@ -36,7 +36,7 @@ flowchart LR
 │   ├── tests/                       # one spec file per test type (see Test coverage below)
 │   │   ├── visual.spec.ts-snapshots/ # baseline PNG, materialized at test time (see below)
 │   │   └── accessibility.spec.ts-snapshots/ # committed aria snapshot of the feedback form
-│   ├── test-data/visual-baseline.b64   # the visual baseline, versioned as base64 text
+│   ├── test-data/visual-baseline.b64.partN   # the visual baseline, versioned as base64 text
 │   ├── test-data/metrics.json       # data file driving the dashboard specs (edit data, not code)
 │   ├── test-data/metrics-snapshot.json # committed API contract: /api/metrics must equal this
 │   ├── playwright.config.ts         # projects (chromium/firefox/webkit/mobile/dark/tz/authed + auth
@@ -135,7 +135,7 @@ npx playwright test visual --project=chromium --update-snapshots
 npm run baseline:update
 ```
 
-The first command re-captures the PNG; the second re-encodes it into `test-data/visual-baseline.b64`, which is the file actually committed. The PNG itself is materialized from that text by `global-setup.ts` before every run, so a fresh clone needs no manual steps. Review the new screenshot before committing — a baseline update should be a deliberate, reviewed change.
+The first command re-captures the PNG; the second re-encodes it into `test-data/visual-baseline.b64.partN`, which is the file actually committed. The PNG itself is materialized from that text by `global-setup.ts` before every run, so a fresh clone needs no manual steps. Review the new screenshot before committing — a baseline update should be a deliberate, reviewed change.
 
 ## Make it yours
 
