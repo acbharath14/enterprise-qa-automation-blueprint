@@ -65,6 +65,29 @@ const server = http.createServer(async (req, res) => {
     json(res, 200, { ok: true, filename: match ? match[1] : 'unknown' });
     return;
   }
+  if (url === '/api/search' && method === 'GET') {
+    const q = new URL(req.url, 'http://localhost').searchParams.get('q') || '';
+    const names = ['Aurora', 'Beacon', 'Cipher', 'Dynamo'];
+    json(res, 200, names.filter((n) => n.toLowerCase().includes(q.toLowerCase())));
+    return;
+  }
+  if (url === '/api/export' && method === 'GET') {
+    const csv = 'release,coverage,status\nAurora,82,Green\nBeacon,74,Green\nCipher,61,Amber\nDynamo,93,Green\n';
+    res.writeHead(200, {
+      'Content-Type': 'text/csv',
+      'Content-Disposition': 'attachment; filename="releases.csv"',
+      ...securityHeaders,
+    });
+    res.end(csv);
+    return;
+  }
+  if (url === '/frame') {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', ...securityHeaders });
+    res.end(
+      '<!doctype html><html><body><button id="frame-button" type="button">Ping from frame</button><div id="frame-result"></div><script>document.getElementById("frame-button").addEventListener("click",()=>{document.getElementById("frame-result").textContent="Frame says hi!";});</script></body></html>',
+    );
+    return;
+  }
   if (url.startsWith('/api/')) {
     json(res, 404, { error: 'Not found' });
     return;

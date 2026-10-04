@@ -1,0 +1,17 @@
+- text: Name
+- textbox "Name"
+- text: Email
+- textbox "Email"
+- text: Rating
+- combobox "Rating":
+  - option "5 — Excellent" [selected]
+  - option "4 — Good"
+  - option "3 — Okay"
+  - option "2 — Poor"
+  - option "1 — Broken"
+- text: Message
+- textbox "Message"
+- checkbox "Email me about this release"
+- text: Email me about this release
+- paragraph:
+  - button "Send feedback"

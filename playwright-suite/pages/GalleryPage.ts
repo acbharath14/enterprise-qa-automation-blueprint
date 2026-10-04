@@ -31,6 +31,40 @@ export class GalleryPage {
   readonly detailsPanel: Locator;
   // Theme
   readonly themeToggle: Locator;
+  // Search
+  readonly searchInput: Locator;
+  readonly searchResults: Locator;
+  readonly searchSelection: Locator;
+  // Schedule
+  readonly dateInput: Locator;
+  readonly scheduleButton: Locator;
+  readonly scheduleResult: Locator;
+  // Wizard
+  readonly wizName: Locator;
+  readonly wizNameError: Locator;
+  readonly wizNext1: Locator;
+  readonly wizEnv: Locator;
+  readonly wizNext2: Locator;
+  readonly wizBack2: Locator;
+  readonly wizReview: Locator;
+  readonly wizSubmit: Locator;
+  readonly wizDone: Locator;
+  // Priority list
+  readonly priorityItems: Locator;
+  // Toast
+  readonly notifyButton: Locator;
+  readonly toast: Locator;
+  // Export / docs
+  readonly exportLink: Locator;
+  readonly docsLink: Locator;
+  // Frame
+  readonly demoFrame: Locator;
+  // Shadow DOM
+  readonly counterButton: Locator;
+  // Controls
+  readonly notifySwitch: Locator;
+  readonly volumeSlider: Locator;
+  readonly volumeValue: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -54,6 +88,31 @@ export class GalleryPage {
     this.detailsTab = page.getByRole('tab', { name: 'Details' });
     this.detailsPanel = page.locator('#panel-details');
     this.themeToggle = page.getByRole('button', { name: 'Toggle theme' });
+    this.searchInput = page.getByLabel('Find a release');
+    this.searchResults = page.locator('#search-results');
+    this.searchSelection = page.locator('#search-selection');
+    this.dateInput = page.getByLabel('Release date');
+    this.scheduleButton = page.getByRole('button', { name: 'Schedule' });
+    this.scheduleResult = page.locator('#schedule-result');
+    this.wizName = page.getByLabel('Release name');
+    this.wizNameError = page.locator('#wiz-name-error');
+    this.wizNext1 = page.locator('#wiz-next-1');
+    this.wizEnv = page.getByLabel('Environment');
+    this.wizNext2 = page.locator('#wiz-next-2');
+    this.wizBack2 = page.locator('#wiz-back-2');
+    this.wizReview = page.locator('#wiz-review');
+    this.wizSubmit = page.getByRole('button', { name: 'Create release' });
+    this.wizDone = page.locator('#wiz-done');
+    this.priorityItems = page.locator('#priority-list li');
+    this.notifyButton = page.getByRole('button', { name: 'Notify team' });
+    this.toast = page.locator('#toast');
+    this.exportLink = page.getByRole('link', { name: 'Export releases as CSV' });
+    this.docsLink = page.getByRole('link', { name: 'Open docs in new tab' });
+    this.demoFrame = page.locator('#demo-frame');
+    this.counterButton = page.locator('qa-counter').getByRole('button', { name: /Count:/ });
+    this.notifySwitch = page.getByRole('switch', { name: 'Notifications' });
+    this.volumeSlider = page.getByLabel('Volume');
+    this.volumeValue = page.locator('#volume-value');
   }
 
   async goto() {

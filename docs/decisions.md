@@ -145,3 +145,23 @@ What the suite genuinely demonstrates is the test-automation pattern:
 the `authed` project reuses that session instead of logging in per test. That
 pattern transfers directly to production apps with OIDC/OAuth2 providers,
 httpOnly cookies, and server-side sessions.
+
+## Wave 2: the remaining production component patterns
+
+The gallery's second wave adds the UI patterns the first wave lacked: an
+autocomplete combobox (`/api/search`, debounced, keyboard selection),
+a date picker, a 3-step wizard with per-step validation, HTML5 drag-and-drop
+reordering, an auto-dismissing toast, a CSV download (filename + content
+assertions), a same-origin iFrame (`frameLocator`), a shadow-DOM custom
+element, an ARIA switch, a range slider, and a popup link.
+
+Two testing utilities ride along: `test.step` structures multi-step flows in
+reports, `expect.soft` collects all form errors in one run, and
+`testInfo.attach` embeds the raw API response in the report as evidence.
+`video: 'retain-on-failure'` is enabled alongside traces.
+
+The `tz` project (Pacific/Auckland, en-NZ) proves datetime rendering follows
+the emulated locale instead of the machine's: `datetime.spec.ts` and the
+frozen-clock smoke test compute expectations inside the page context, so they
+hold under any timezone. The aria snapshot (`toMatchAriaSnapshot`) is
+chromium-gated because serialized accessibility trees vary across engines.

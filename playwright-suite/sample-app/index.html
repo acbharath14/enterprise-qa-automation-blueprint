@@ -9,12 +9,12 @@
       :root, [data-theme='dark'] {
         --bg: #0f172a; --fg: #e2e8f0; --card: #111827;
         --border: #334155; --metric: #1e293b; --accent: #38bdf8;
-        --accent-fg: #082f49; --ok: #86efac; --err: #fca5a5;
+        --accent-fg: #082f49; --ok: #86efac; --err: #fca5a5; --link: #7dd3fc;
       }
       [data-theme='light'] {
         --bg: #f1f5f9; --fg: #0f172a; --card: #ffffff;
         --border: #cbd5e1; --metric: #e2e8f0; --accent: #0284c7;
-        --accent-fg: #ffffff; --ok: #15803d; --err: #b91c1c;
+        --accent-fg: #ffffff; --ok: #15803d; --err: #b91c1c; --link: #0369a1;
       }
       body { font-family: Arial, sans-serif; margin: 0; background: var(--bg); color: var(--fg); }
       main { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
@@ -25,6 +25,7 @@
       .status { margin-top: 16px; font-weight: 700; color: var(--ok); }
       .error { color: var(--err); font-size: 0.9em; margin-top: 4px; min-height: 1.2em; }
       label { display: block; margin-top: 12px; font-weight: 700; }
+      a { color: var(--link); }
       input, select, textarea { display: block; margin-top: 4px; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--fg); width: 100%; max-width: 420px; box-sizing: border-box; }
       input[type='checkbox'] { display: inline-block; width: auto; }
       table { border-collapse: collapse; margin-top: 12px; width: 100%; }
@@ -138,6 +139,90 @@
         <div role="tabpanel" id="panel-overview" aria-labelledby="tab-overview"><p>Shipped on schedule with all quality gates green.</p></div>
         <div role="tabpanel" id="panel-details" aria-labelledby="tab-details" hidden><p>42 tests across 8 types, 4 browsers, 2 shards.</p></div>
         <div role="tabpanel" id="panel-activity" aria-labelledby="tab-activity" hidden><p>Last run finished 3 minutes ago.</p></div>
+      </section>
+
+      <section class="card" aria-label="search autocomplete">
+        <h2>Release Search</h2>
+        <label for="search-input">Find a release</label>
+        <input id="search-input" type="text" role="combobox" aria-expanded="false" aria-controls="search-results" aria-autocomplete="list" autocomplete="off" placeholder="Type to search…" />
+        <ul id="search-results" role="listbox" aria-label="matching releases" hidden></ul>
+        <div class="status" id="search-selection" aria-live="polite"></div>
+      </section>
+
+      <section class="card" aria-label="schedule release">
+        <h2>Schedule Release</h2>
+        <label for="release-date">Release date</label>
+        <input id="release-date" type="date" min="2026-01-01" max="2026-12-31" />
+        <p><button id="schedule-button" type="button">Schedule</button></p>
+        <div class="status" id="schedule-result" aria-live="polite"></div>
+      </section>
+
+      <section class="card" aria-label="release wizard">
+        <h2>New Release Wizard</h2>
+        <ol id="wizard-progress" aria-label="progress">
+          <li data-wstep="1" aria-current="step">Name</li>
+          <li data-wstep="2">Environment</li>
+          <li data-wstep="3">Review</li>
+        </ol>
+        <div data-wpanel="1">
+          <label for="wiz-name">Release name</label>
+          <input id="wiz-name" type="text" />
+          <div class="error" id="wiz-name-error" aria-live="polite"></div>
+          <p><button id="wiz-next-1" type="button">Next</button></p>
+        </div>
+        <div data-wpanel="2" hidden>
+          <label for="wiz-env">Environment</label>
+          <select id="wiz-env">
+            <option value="staging">Staging</option>
+            <option value="production">Production</option>
+          </select>
+          <p><button id="wiz-back-2" type="button">Back</button> <button id="wiz-next-2" type="button">Next</button></p>
+        </div>
+        <div data-wpanel="3" hidden>
+          <p id="wiz-review" aria-live="polite"></p>
+          <p><button id="wiz-back-3" type="button">Back</button> <button id="wiz-submit" type="button">Create release</button></p>
+        </div>
+        <div class="status" id="wiz-done" aria-live="polite"></div>
+      </section>
+
+      <section class="card" aria-label="priority list">
+        <h2>Priority List</h2>
+        <p>Drag to reorder.</p>
+        <ul id="priority-list">
+          <li draggable="true" data-id="a">Write tests</li>
+          <li draggable="true" data-id="b">Review PR</li>
+          <li draggable="true" data-id="c">Deploy</li>
+        </ul>
+      </section>
+
+      <section class="card" aria-label="notifications">
+        <h2>Notifications</h2>
+        <p><button id="notify-button" type="button">Notify team</button></p>
+        <div id="toast" role="status" aria-live="polite" hidden></div>
+      </section>
+
+      <section class="card" aria-label="export">
+        <h2>Export</h2>
+        <p><a id="export-csv" href="/api/export" download="releases.csv">Export releases as CSV</a></p>
+        <p><a id="docs-link" href="/" target="_blank" rel="noopener">Open docs in new tab</a></p>
+      </section>
+
+      <section class="card" aria-label="embedded frame">
+        <h2>Embedded Frame</h2>
+        <iframe id="demo-frame" title="demo frame" src="/frame" width="100%" height="120"></iframe>
+      </section>
+
+      <section class="card" aria-label="shadow dom">
+        <h2>Shadow DOM</h2>
+        <qa-counter></qa-counter>
+      </section>
+
+      <section class="card" aria-label="controls">
+        <h2>Controls</h2>
+        <p><button id="notify-toggle" type="button" role="switch" aria-checked="false">Notifications</button></p>
+        <label for="volume">Volume</label>
+        <input id="volume" type="range" min="0" max="100" value="50" />
+        <output id="volume-value" for="volume">50</output>
       </section>
     </main>
 
@@ -294,6 +379,135 @@
           document.getElementById(tab.getAttribute('aria-controls')).hidden = false;
         });
       });
+
+      // Search autocomplete (debounced)
+      const searchInput = document.getElementById('search-input');
+      const searchResults = document.getElementById('search-results');
+      const searchSelection = document.getElementById('search-selection');
+      let searchTimer = null;
+      let activeOption = -1;
+      function renderOptions(names) {
+        searchResults.innerHTML = names
+          .map((n) => `<li role="option" id="search-opt-${n}">${n}</li>`)
+          .join('');
+        const open = names.length > 0;
+        searchResults.hidden = !open;
+        searchInput.setAttribute('aria-expanded', String(open));
+        activeOption = -1;
+      }
+      searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        const q = searchInput.value.trim();
+        if (!q) {
+          renderOptions([]);
+          return;
+        }
+        searchTimer = setTimeout(async () => {
+          const res = await fetch('/api/search?q=' + encodeURIComponent(q));
+          renderOptions(await res.json());
+        }, 200);
+      });
+      searchInput.addEventListener('keydown', (e) => {
+        const options = [...searchResults.querySelectorAll('[role="option"]')];
+        if (e.key === 'ArrowDown' && options.length) {
+          e.preventDefault();
+          activeOption = (activeOption + 1) % options.length;
+          options.forEach((o, i) => o.setAttribute('aria-selected', String(i === activeOption)));
+          searchInput.setAttribute('aria-activedescendant', options[activeOption].id);
+        } else if (e.key === 'Enter' && activeOption >= 0) {
+          e.preventDefault();
+          const chosen = options[activeOption].textContent;
+          searchInput.value = chosen;
+          searchSelection.textContent = `Selected: ${chosen}`;
+          renderOptions([]);
+        }
+      });
+
+      // Date picker
+      document.getElementById('schedule-button').addEventListener('click', () => {
+        const val = document.getElementById('release-date').value;
+        document.getElementById('schedule-result').textContent = val
+          ? `Scheduled for ${val}.`
+          : 'Pick a date first.';
+      });
+
+      // Wizard
+      const wpanels = [...document.querySelectorAll('[data-wpanel]')];
+      const wsteps = [...document.querySelectorAll('#wizard-progress li')];
+      function showWPanel(n) {
+        wpanels.forEach((p) => (p.hidden = p.dataset.wpanel !== String(n)));
+        wsteps.forEach((s) => {
+          if (Number(s.dataset.wstep) === n) s.setAttribute('aria-current', 'step');
+          else s.removeAttribute('aria-current');
+        });
+      }
+      document.getElementById('wiz-next-1').addEventListener('click', () => {
+        const name = document.getElementById('wiz-name').value.trim();
+        const err = document.getElementById('wiz-name-error');
+        if (!name) {
+          err.textContent = 'Give the release a name.';
+          return;
+        }
+        err.textContent = '';
+        showWPanel(2);
+      });
+      document.getElementById('wiz-back-2').addEventListener('click', () => showWPanel(1));
+      document.getElementById('wiz-next-2').addEventListener('click', () => {
+        const name = document.getElementById('wiz-name').value.trim();
+        const env = document.getElementById('wiz-env').value;
+        document.getElementById('wiz-review').textContent = `Create "${name}" in ${env}?`;
+        showWPanel(3);
+      });
+      document.getElementById('wiz-back-3').addEventListener('click', () => showWPanel(2));
+      document.getElementById('wiz-submit').addEventListener('click', () => {
+        const name = document.getElementById('wiz-name').value.trim();
+        document.getElementById('wiz-done').textContent = `Release "${name}" created.`;
+      });
+
+      // Drag and drop (HTML5)
+      const plist = document.getElementById('priority-list');
+      let dragEl = null;
+      plist.querySelectorAll('li').forEach((li) => {
+        li.addEventListener('dragstart', () => (dragEl = li));
+        li.addEventListener('dragover', (e) => e.preventDefault());
+        li.addEventListener('drop', (e) => {
+          e.preventDefault();
+          if (dragEl && dragEl !== li) plist.insertBefore(dragEl, li.nextSibling);
+        });
+      });
+
+      // Toast
+      document.getElementById('notify-button').addEventListener('click', () => {
+        const toast = document.getElementById('toast');
+        toast.textContent = 'Team notified!';
+        toast.hidden = false;
+        setTimeout(() => {
+          toast.hidden = true;
+        }, 2500);
+      });
+
+      // Switch + slider
+      document.getElementById('notify-toggle').addEventListener('click', (e) => {
+        const btn = e.currentTarget;
+        btn.setAttribute('aria-checked', String(btn.getAttribute('aria-checked') !== 'true'));
+      });
+      document.getElementById('volume').addEventListener('input', (e) => {
+        document.getElementById('volume-value').textContent = e.target.value;
+      });
+
+      // Shadow DOM counter
+      class QaCounter extends HTMLElement {
+        constructor() {
+          super();
+          const shadow = this.attachShadow({ mode: 'open' });
+          shadow.innerHTML = '<button type="button">Count: <span id="n">0</span></button>';
+          shadow.querySelector('button').addEventListener('click', () => {
+            const n = shadow.querySelector('#n');
+            n.textContent = String(Number(n.textContent) + 1);
+          });
+        }
+      }
+      customElements.define('qa-counter', QaCounter);
 
       // Restore session
       if (localStorage.getItem('qa-demo-token')) {

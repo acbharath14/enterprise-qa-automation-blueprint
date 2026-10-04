@@ -12,3 +12,13 @@ test('dashboard has no serious accessibility violations @a11y', async ({ dashboa
     `Accessibility violations found:\n${blocking.map((v) => `- [${v.impact}] ${v.id}: ${v.description}`).join('\n')}`,
   ).toEqual([]);
 });
+
+test('feedback form has a stable accessibility tree @a11y', async ({ galleryPage }, testInfo) => {
+  // Aria snapshots pin the accessible structure; axe-core pins the rules.
+  // Chromium-only: serialized snapshots vary across engines.
+  test.skip(
+    testInfo.project.name !== 'chromium',
+    'aria snapshot is chromium-only',
+  );
+  await expect(galleryPage.page.locator('#feedback-form')).toMatchAriaSnapshot();
+});
