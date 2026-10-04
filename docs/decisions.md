@@ -105,11 +105,13 @@ the session persists without signing in again. This is Playwright's documented
 pattern: pay the login cost once per run, not once per test. The auth file is
 git-ignored — sessions never get committed.
 
-## API contract pinned with a snapshot
+## API contract pinned with a committed file
 
-`api.spec.ts` commits `metrics.json` via `toMatchSnapshot`. Any field added,
-removed, or renamed on `/api/metrics` fails the build loudly. Cheaper than a
-schema validator for a stable contract, and the diff shows exactly what changed.
+`api.spec.ts` asserts the `/api/metrics` payload equals
+`test-data/metrics-snapshot.json`. Any field added, removed, or renamed fails
+the build loudly. Deliberately not `toMatchSnapshot`: that resolves a
+separate file per project (`metrics-<project>-linux.json`), which would mean
+committing seven copies of identical JSON. One file, all projects.
 
 ## Deterministic time with page.clock
 
