@@ -11,8 +11,11 @@ test.describe('visual regression', () => {
       'visual baselines are desktop-chromium-only',
     );
     // Dynamic regions (timestamps, live metrics) are masked — only layout
-    // regressions fail the build, not data changes.
+    // regressions fail the build, not data changes. Full-page so every
+    // gallery section is covered, not just the viewport.
     await expect(page).toHaveScreenshot('dashboard.png', {
+      fullPage: true,
+      animations: 'disabled',
       mask: [dashboardPage.status, dashboardPage.liveMetrics],
       maxDiffPixelRatio: 0.02,
     });

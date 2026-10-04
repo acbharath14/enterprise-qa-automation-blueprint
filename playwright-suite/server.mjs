@@ -10,16 +10,86 @@ const appPath = path.join(rootDir, 'sample-app', 'index.html');
 const metrics = { coverage: 82, apiHealth: 'Green', p95LatencyMs: 640 };
 const securityHeaders = { 'X-Content-Type-Options': 'nosniff' };
 
+function readBody(req) {
+  return new Promise((resolve) => {
+    let data = '';
+    req.on('data', (chunk) => (data += chunk));
+    req.on('end', () => resolve(data));
+  });
+}
+
+function json(res, status, payload) {
+  res.writeHead(status, { 'Content-Type': 'application/json', ...securityHeaders });
+  res.end(JSON.stringify(payload));
+}
+
 const server = http.createServer(async (req, res) => {
-  const url = req.url || '/';
-  if (url === '/api/metrics') {
-    res.writeHead(200, { 'Content-Type': 'application/json', ...securityHeaders });
-    res.end(JSON.stringify(metrics));
+  const url = (req.url || '/').split('?')[0];
+  const method = req.method || 'GET';
+
+  if (url === '/api/metrics' && method === 'GET') {
+    json(res, 200, metrics);
+    return;
+  }
+  if (url === '/api/feedback' && method === 'POST') {
+    let body = {};
+    try {
+      body = JSON.parse((await readBody(req)) || '{}');
+    } catch {
+      /* fall through to 400 */
+    }
+    if (!body.name || !body.email || !String(body.email).includes('@')) {
+      json(res, 400, { error: 'Name and a valid email are required' });
+      return;
+    }
+    json(res, 200, { ok: true, id: 'fb-123' });
+    return;
+  }
+  if (url === '/api/login' && method === 'POST') {
+    let body = {};
+    try {
+      body = JSON.parse((await readBody(req)) || '{}');
+    } catch {
+      /* fall through to 401 */
+    }
+    if (body.username === 'admin' && body.password === 'secret') {
+      json(res, 200, { ok: true, token: 'demo-token' });
+      return;
+    }
+    json(res, 401, { error: 'Invalid credentials' });
+    return;
+  }
+  if (url === '/api/upload' && method === 'POST') {
+    const raw = await readBody(req);
+    const match = /filename="([^"]+)"/.exec(raw);
+    json(res, 200, { ok: true, filename: match ? match[1] : 'unknown' });
+    return;
+  }
+  if (url === '/api/search' && method === 'GET') {
+    const q = new URL(req.url, 'http://localhost').searchParams.get('q') || '';
+    const names = ['Aurora', 'Beacon', 'Cipher', 'Dynamo'];
+    json(res, 200, names.filter((n) => n.toLowerCase().includes(q.toLowerCase())));
+    return;
+  }
+  if (url === '/api/export' && method === 'GET') {
+    const csv = 'release,coverage,status\nAurora,82,Green\nBeacon,74,Green\nCipher,61,Amber\nDynamo,93,Green\n';
+    res.writeHead(200, {
+      'Content-Type': 'text/csv',
+      'Content-Disposition': 'attachment; filename="releases.csv"',
+      ...securityHeaders,
+    });
+    res.end(csv);
+    return;
+  }
+  if (url === '/frame') {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', ...securityHeaders });
+    res.end(
+      '<!doctype html><html><body><button id="frame-button" type="button">Ping from frame</button><div id="frame-result"></div><script>document.getElementById("frame-button").addEventListener("click",()=>{document.getElementById("frame-result").textContent="Frame says hi!";});</script></body></html>',
+    );
     return;
   }
   if (url.startsWith('/api/')) {
-    res.writeHead(404, { 'Content-Type': 'application/json', ...securityHeaders });
-    res.end(JSON.stringify({ error: 'Not found' }));
+    json(res, 404, { error: 'Not found' });
     return;
   }
   const html = await readFile(appPath, 'utf8');

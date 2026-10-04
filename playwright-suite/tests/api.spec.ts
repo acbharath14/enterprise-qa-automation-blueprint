@@ -1,4 +1,8 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { test, expect } from '@playwright/test';
+
+declare const __dirname: string;
 
 /**
  * Direct API tests (no browser): pin the contract of the backend the UI
@@ -32,5 +36,15 @@ test.describe('metrics API', () => {
     expect(res.status()).toBe(404);
     expect(res.headers()['content-type']).toContain('application/json');
     expect((await res.json()).error).toBeDefined();
+  });
+
+  test('metrics payload matches the committed contract', async ({ request }) => {
+    const body = await (await request.get('/api/metrics')).json();
+    // One contract file for all projects — unlike toMatchSnapshot, which
+    // resolves a separate file per project (metrics-<project>-linux.json).
+    const expected = JSON.parse(
+      readFileSync(join(__dirname, '..', 'test-data', 'metrics-snapshot.json'), 'utf8'),
+    );
+    expect(body).toEqual(expected);
   });
 });
