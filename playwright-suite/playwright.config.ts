@@ -18,9 +18,18 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   projects: [
+    // Authenticates once via the UI; the 'authed' project reuses the session.
+    { name: 'setup', testMatch: /.*\.setup\.ts/ },
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
     { name: 'mobile', use: { ...devices['Pixel 7'] } },
+    { name: 'dark', use: { ...devices['Desktop Chrome'], colorScheme: 'dark' } },
+    {
+      name: 'authed',
+      testMatch: /.*authed\.spec\.ts/,
+      dependencies: ['setup'],
+      use: { ...devices['Desktop Chrome'], storageState: 'playwright/.auth/user.json' },
+    },
   ],
 });

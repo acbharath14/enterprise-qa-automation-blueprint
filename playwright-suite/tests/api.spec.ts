@@ -33,4 +33,9 @@ test.describe('metrics API', () => {
     expect(res.headers()['content-type']).toContain('application/json');
     expect((await res.json()).error).toBeDefined();
   });
+
+  test('metrics payload matches the committed snapshot', async ({ request }) => {
+    const body = await (await request.get('/api/metrics')).json();
+    expect(JSON.stringify(body, null, 2)).toMatchSnapshot('metrics.json');
+  });
 });
