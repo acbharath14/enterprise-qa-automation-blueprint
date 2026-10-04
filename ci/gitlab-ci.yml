@@ -5,10 +5,10 @@ ui_smoke:
   image: mcr.microsoft.com/playwright:v1.54.1-noble
   stage: test
   script:
-    - cd ui-tests
+    - cd playwright-suite
     - npm ci
     - npx playwright test --grep @smoke
   artifacts:
     when: always
     paths:
-      - ui-tests/playwright-report/
+      - playwright-suite/playwright-report/

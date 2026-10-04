@@ -3,7 +3,7 @@
 ## Command
 
 ```bash
-npm --prefix ui-tests run test:smoke
+npm --prefix playwright-suite run test:smoke
 ```
 
 ## Output
