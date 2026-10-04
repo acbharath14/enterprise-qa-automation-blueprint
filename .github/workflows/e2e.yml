@@ -3,9 +3,9 @@ name: e2e
 on:
   push:
     branches: [main]
-    paths: ['ui-tests/**', '.github/workflows/e2e.yml']
+    paths: ['playwright-suite/**', '.github/workflows/e2e.yml']
   pull_request:
-    paths: ['ui-tests/**', '.github/workflows/e2e.yml']
+    paths: ['playwright-suite/**', '.github/workflows/e2e.yml']
   schedule:
     # Weekly Monday 06:00 UTC — keeps the suite (and badge) alive
     - cron: '0 6 * * 1'
@@ -25,18 +25,18 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: ui-tests/package-lock.json
+          cache-dependency-path: playwright-suite/package-lock.json
 
       - name: Install dependencies
-        working-directory: ui-tests
+        working-directory: playwright-suite
         run: npm ci
 
       - name: Install Playwright browsers
-        working-directory: ui-tests
+        working-directory: playwright-suite
         run: npx playwright install --with-deps chromium firefox webkit
 
       - name: Run tests (shard ${{ matrix.shard }}/2)
-        working-directory: ui-tests
+        working-directory: playwright-suite
         run: npx playwright test --shard=${{ matrix.shard }}/2
         env:
           CI: true
@@ -46,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-shard-${{ matrix.shard }}
-          path: ui-tests/playwright-report/
+          path: playwright-suite/playwright-report/
           retention-days: 14
 
       - name: Upload Allure results
@@ -54,7 +54,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: allure-results-shard-${{ matrix.shard }}
-          path: ui-tests/allure-results/
+          path: playwright-suite/allure-results/
           retention-days: 14
 
   publish-report:
