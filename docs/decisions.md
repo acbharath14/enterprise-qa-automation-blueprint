@@ -212,7 +212,9 @@ trace). The build stays green; the report honestly shows the failures.
 ## Intuitive Allure suite names
 
 The reporter defaults to the Playwright project name (chromium, firefox, …)
-as the top-level suite, which reads poorly. `fixtures/test.ts` sets friendly
-`parentSuite`/`suite` labels in a `beforeEach` (e.g. `Accessibility › WCAG
-scans`, `API › Mocked API`), which the reporter prefers over its defaults.
-Every spec imports `test` from the fixture so the labels apply everywhere.
+as the top-level suite, which reads poorly. `scripts/fix-allure-labels.mjs`
+rewrites the `parentSuite`/`suite` labels in the result JSON after each run
+(e.g. `Accessibility › WCAG scans`, `API › Mocked API`), before the report is
+generated. A post-processing script was chosen over `allure.parentSuite()` in
+a `beforeEach` because the runtime API silently drops labels for some files
+when several specs run in one invocation; the script is deterministic.
