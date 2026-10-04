@@ -132,3 +132,16 @@ The app uses CSS variables with a toggle, and a dedicated `dark` project runs
 the suite under `colorScheme: 'dark'`. `theme.spec.ts` flips the toggle and
 asserts the tokens actually change. Theme regressions are invisible to
 functional tests — this makes them visible.
+
+## Demo auth is simulated — the pattern is what's real
+
+The sample app's "authentication" is deliberately fake: hardcoded credentials
+(`admin`/`secret`), a static token string, no expiry, no server-side session —
+the client just checks `localStorage`. Do not copy this as a real auth
+implementation.
+
+What the suite genuinely demonstrates is the test-automation pattern:
+`auth.setup.ts` signs in once through the real UI, saves `storageState`, and
+the `authed` project reuses that session instead of logging in per test. That
+pattern transfers directly to production apps with OIDC/OAuth2 providers,
+httpOnly cookies, and server-side sessions.
