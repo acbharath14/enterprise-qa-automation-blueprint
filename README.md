@@ -31,12 +31,26 @@ Useful scripts: `npm run test:smoke` (smoke only), `npm run test:a11y` (accessib
 
 - `ui-tests/pages/` — Page Object Models (all selectors live here)
 - `ui-tests/fixtures/` — custom test fixtures (page ready before each test)
-- `ui-tests/tests/` — smoke, dashboard, accessibility (axe-core), and API-mocked specs
+- `ui-tests/tests/` — smoke, dashboard, accessibility, API, API-mocked, visual, performance, and security specs
+- `ui-tests/test-data/` — data files driving the data-driven specs
 - `ui-tests/sample-app/` and `server.mjs` — the local app under test, including a JSON `/api/metrics` endpoint
-- `ui-tests/playwright.config.ts` — Chromium/Firefox/WebKit projects, retries on CI, trace on failure
+- `ui-tests/playwright.config.ts` — Chromium/Firefox/WebKit/Mobile projects, retries on CI, trace on failure
 - `.github/workflows/e2e.yml` — sharded CI, HTML + Allure reports, weekly scheduled run
 - `ci/` — GitLab CI and Jenkins pipeline templates
 - `docs/` — architecture notes, execution evidence, and [design decisions](docs/decisions.md)
+
+## Test coverage
+
+| Type | File | What it proves |
+|---|---|---|
+| Smoke | `tests/smoke.spec.ts` | Critical paths work |
+| Dashboard | `tests/dashboard.spec.ts` | Data-driven UI assertions from JSON |
+| Accessibility | `tests/accessibility.spec.ts` | axe-core, WCAG 2A/2AA |
+| API | `tests/api.spec.ts` | Contract shape, value sanity, error responses |
+| API mocking | `tests/api-mocked.spec.ts` | UI behavior under stubbed backends |
+| Visual | `tests/visual.spec.ts` | Layout regression (dynamic regions masked) |
+| Performance | `tests/performance.spec.ts` | Load budgets, zero console errors |
+| Security | `tests/security.spec.ts` | Headers, JSON 404s, no input reflection |
 
 ## How CI Works
 
