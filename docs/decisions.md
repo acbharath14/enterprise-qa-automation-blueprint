@@ -192,3 +192,29 @@ so the baseline is stored as text and `global-setup.ts` decodes it into
 overwrites, so a stale local PNG can never mask a regression. Regenerate with
 `npx playwright test visual --project=chromium --update-snapshots` followed by
 `npm run baseline:update`.
+
+## Allure trends need preserved history
+
+`allure generate --clean` wipes history every run, so the trend graph stays
+empty. The publish job restores `history.json`/`history-trend.json` from the
+live site before generating — trends then accumulate across runs.
+
+## Failure showcase without breaking CI
+
+`tests/failure-showcase.spec.ts` holds two deliberately wrong assertions
+(a UI text mismatch and an API contract mismatch). It is skipped in every
+normal run (`test.skip` unless `SHOWCASE=1`). The `publish-report` job runs
+it separately (`continue-on-error: true`) and merges the results into the main
+Allure report, where the failures appear under **Showcase › Intentional
+failures** with full failure detail (assertion diff, screenshot, video,
+trace). The build stays green; the report honestly shows the failures.
+
+## Intuitive Allure suite names
+
+The reporter defaults to the Playwright project name (chromium, firefox, …)
+as the top-level suite, which reads poorly. `scripts/fix-allure-labels.mjs`
+rewrites the `parentSuite`/`suite` labels in the result JSON after each run
+(e.g. `Accessibility › WCAG scans`, `API › Mocked API`), before the report is
+generated. A post-processing script was chosen over `allure.parentSuite()` in
+a `beforeEach` because the runtime API silently drops labels for some files
+when several specs run in one invocation; the script is deterministic.

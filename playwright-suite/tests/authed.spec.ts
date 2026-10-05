@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/test';
 
 /**
  * Runs in the 'authed' project, which loads the storageState saved by
