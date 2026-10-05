@@ -8,7 +8,8 @@ A Playwright + TypeScript test framework built around a simple idea: smoke tests
 
 **Latest test reports** — published from every `main` run:
 - [Playwright HTML report](https://acbharath14.github.io/enterprise-qa-automation-blueprint/) (per-shard)
-- [Allure report](https://acbharath14.github.io/enterprise-qa-automation-blueprint/allure/) (trends, retries, history) — includes two intentional failures under **Showcase › Intentional failures**, demonstrating failure capture (assertion diff, screenshot, video, trace)
+- [Allure report](https://acbharath14.github.io/enterprise-qa-automation-blueprint/allure/) (trends, retries, history)
+- [Failure showcase](https://acbharath14.github.io/enterprise-qa-automation-blueprint/playwright-report-showcase/) — two intentional failures ([Allure view](https://acbharath14.github.io/enterprise-qa-automation-blueprint/allure/) under **Showcase › Intentional failures**), demonstrating failure capture (assertion diff, screenshot, video, trace)
 
 ## Architecture
 
