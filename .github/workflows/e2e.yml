@@ -86,10 +86,10 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       # Two deliberately wrong assertions. They fail here but the job continues,
-      # so the published Allure report shows what a real failure looks like
+      # so the published reports show what a real failure looks like
       # (assertion diff, screenshot, video, trace) without breaking the build.
       # Note: `|| true` is required — without it, bash -e aborts the step on
-      # the failing tests and the `mv` below never runs.
+      # the failing tests and the `mv` commands below never run.
       - name: Run failure showcase
         working-directory: playwright-suite
         continue-on-error: true
@@ -97,8 +97,17 @@ jobs:
           CI: true
           SHOWCASE: '1'
         run: |
-          npx playwright test tests/failure-showcase.spec.ts --project=chromium --reporter=allure-playwright || true
+          npx playwright test tests/failure-showcase.spec.ts --project=chromium --reporter=allure-playwright,html || true
           mv allure-results ../showcase-allure-results
+          mv playwright-report ../showcase-playwright-report
+
+      - name: Upload showcase Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-showcase
+          path: showcase-allure-results/
+          retention-days: 14
 
       - uses: actions/download-artifact@v4
         with:
@@ -135,12 +144,99 @@ jobs:
           npm install -g allure-commandline
           allure generate allure-results showcase-allure-results -o _site/allure --clean
 
+      - name: Add showcase HTML report to the site
+        run: |
+          mkdir -p _site/playwright-report-showcase
+          cp -r showcase-playwright-report/* _site/playwright-report-showcase/
+
       - name: Add report index
         run: |
-          printf '%s\n' '<!doctype html><html><body><h1>Test Reports</h1><p>The Allure report includes two intentional failures under <b>Showcase › Intentional failures</b>, demonstrating failure capture (assertion diff, screenshot, video, trace).</p><ul><li><a href="allure/">Allure report</a></li><li><a href="playwright-report-shard-1/">Playwright HTML — Shard 1</a></li><li><a href="playwright-report-shard-2/">Playwright HTML — Shard 2</a></li></ul></body></html>' > _site/index.html
+          printf '%s\n' '<!doctype html><html><body><h1>Test Reports</h1><p>The <b>failure showcase</b> holds two intentional failures, demonstrating failure capture (assertion diff, screenshot, video, trace).</p><ul><li><a href="allure/">Allure report</a> (failures under <b>Showcase › Intentional failures</b>)</li><li><a href="playwright-report-showcase/">Playwright HTML — Failure showcase</a></li><li><a href="playwright-report-shard-1/">Playwright HTML — Shard 1</a></li><li><a href="playwright-report-shard-2/">Playwright HTML — Shard 2</a></li></ul></body></html>' > _site/index.html
 
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
 
       - uses: actions/deploy-pages@v4
+
+  notify:
+    # Email execution summary after every main run (push, schedule, manual).
+    needs: [test, publish-report]
+    if: always() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: allure-results-*
+          path: notify-results
+          merge-multiple: true
+
+      - name: Build execution summary
+        id: summary
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = require('path');
+          const counts = { passed: 0, failed: 0, skipped: 0, broken: 0 };
+          for (const f of fs.readdirSync('notify-results')) {
+            if (!f.endsWith('-result.json')) continue;
+            const r = JSON.parse(fs.readFileSync(path.join('notify-results', f), 'utf8'));
+            if (counts[r.status] !== undefined) counts[r.status]++;
+          }
+          const total = Object.values(counts).reduce((a, b) => a + b, 0);
+          for (const [k, v] of Object.entries({ total, ...counts }))
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, k + '=' + v + '\n');
+          "
+
+      - name: Send email summary
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          node -e "
+          const https = require('https');
+          const summary = {
+            total: '${{ steps.summary.outputs.total }}',
+            passed: '${{ steps.summary.outputs.passed }}',
+            failed: '${{ steps.summary.outputs.failed }}',
+            skipped: '${{ steps.summary.outputs.skipped }}',
+            broken: '${{ steps.summary.outputs.broken }}',
+          };
+          const runUrl = '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}';
+          const body = {
+            from: 'QA Automation <onboarding@resend.dev>',
+            to: ['acbharath14@gmail.com'],
+            subject: \`E2E summary: \${summary.passed} passed, \${summary.failed} failed, \${summary.skipped} skipped (run #${{ github.run_number }})\`,
+            html: \`
+              <h2>Playwright E2E — execution summary</h2>
+              <p>Repo: ${{ github.repository }} · Branch: main · <a href=\"\${runUrl}\">workflow run #${{ github.run_number }}</a></p>
+              <ul>
+                <li>Total: \${summary.total}</li>
+                <li>Passed: \${summary.passed}</li>
+                <li>Failed: \${summary.failed} (2 are intentional showcase failures)</li>
+                <li>Skipped: \${summary.skipped}</li>
+                <li>Broken: \${summary.broken}</li>
+              </ul>
+              <p><a href=\"https://acbharath14.github.io/enterprise-qa-automation-blueprint/allure/\">Allure report</a> ·
+              <a href=\"https://acbharath14.github.io/enterprise-qa-automation-blueprint/playwright-report-showcase/\">Failure showcase (HTML)</a> ·
+              <a href=\"https://acbharath14.github.io/enterprise-qa-automation-blueprint/\">All reports</a></p>\`,
+          };
+          const data = JSON.stringify(body);
+          const req = https.request('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(data),
+            },
+          }, (res) => {
+            let out = '';
+            res.on('data', (c) => out += c);
+            res.on('end', () => {
+              console.log('Resend status:', res.statusCode, out);
+              if (res.statusCode >= 300) process.exit(1);
+            });
+          });
+          req.on('error', (e) => { console.error(e); process.exit(1); });
+          req.write(data);
+          req.end();
+          "
