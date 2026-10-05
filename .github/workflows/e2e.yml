@@ -41,6 +41,10 @@ jobs:
         env:
           CI: true
 
+      - name: Apply friendly Allure suite names
+        working-directory: playwright-suite
+        run: node scripts/fix-allure-labels.mjs
+
       - name: Upload HTML report
         if: always()
         uses: actions/upload-artifact@v4
@@ -120,6 +124,11 @@ jobs:
             curl -sfL "https://acbharath14.github.io/enterprise-qa-automation-blueprint/allure/history/$f" \
               -o "allure-results/history/$f" || echo "no previous $f yet"
           done
+
+      - name: Apply friendly Allure suite names
+        run: |
+          node playwright-suite/scripts/fix-allure-labels.mjs allure-results
+          node playwright-suite/scripts/fix-allure-labels.mjs showcase-allure-results
 
       - name: Generate Allure report (suite + showcase merged)
         run: |
