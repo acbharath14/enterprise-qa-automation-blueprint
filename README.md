@@ -116,6 +116,7 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | Theme | `tests/theme.spec.ts` | Dark/light toggle flips design tokens |
 | Performance | `tests/performance.spec.ts` | Load budgets, API latency budget, zero console/page errors |
 | Load / stress | `k6/` | k6 smoke, load (50 VUs, SLO thresholds), and stress (to 300 VUs) tests against the sample app API — see `k6/README.md` |
+| API health checks | `newman/` | Postman collection (7 requests, 15 assertions) run hourly via Newman in CI; HTML report + email alert on failure — see `newman/README.md` |
 | Security | `tests/security.spec.ts` | Security headers, JSON 404s, no reflection of untrusted input |
 
 **Understanding the test types:** each spec file focuses on one quality attribute so failures point at the *kind* of problem, not just the page. `smoke.spec.ts` answers "is the app up?"; `api.spec.ts` answers "is the contract intact?"; `visual.spec.ts` answers "did the layout change?". When you add coverage for your app, follow the same rule — one file per question.
