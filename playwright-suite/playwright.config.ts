@@ -97,7 +97,8 @@ export default defineConfig({
               // The iPhone descriptor selects the WebKit client via
               // `defaultBrowserType`; `connectOptions` then attaches it to
               // the real device over CDP instead of launching locally.
-              ...devices['iPhone 15'],
+              // Descriptor matches the caps device (iPhone 15 Pro Max).
+              ...devices['iPhone 15 Pro Max'],
               connectOptions: {
                 wsEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(
                   JSON.stringify(browserstackCaps),
