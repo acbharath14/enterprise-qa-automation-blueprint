@@ -1,0 +1,94 @@
+import { test, expect } from '../fixtures/test';
+
+/**
+ * Core Web Vitals — Google's user-perceived performance metrics.
+ * Thresholds are Google's "good" ratings:
+ *   LCP (Largest Contentful Paint) < 2.5s — when the main content is visible
+ *   CLS (Cumulative Layout Shift)  < 0.1  — visual stability (no janky shifts)
+ *   INP (Interaction to Next Paint) < 200ms — responsiveness to input
+ *
+ * These are budgets, not benchmarks: they catch regressions in the
+ * experience, not micro-optimizations. Measured in Chromium via the
+ * PerformanceObserver API.
+ */
+
+test('LCP: largest contentful paint under 2.5s', async ({ page }) => {
+  await page.goto('/');
+
+  const lcp = await page.evaluate(
+    () =>
+      new Promise<number>((resolve) => {
+        // buffered: true captures the entry even if paint happened before we observe
+        const observer = new PerformanceObserver((list) => {
+          const entries = list.getEntries();
+          const last = entries[entries.length - 1] as any;
+          resolve(last.renderTime || last.loadTime || 0);
+          observer.disconnect();
+        });
+        observer.observe({ type: 'largest-contentful-paint', buffered: true });
+        // Fallback: resolve 0 if no LCP entry appears (page with no paintable content)
+        setTimeout(() => resolve(0), 5000);
+      }),
+  );
+
+  expect(lcp).toBeGreaterThan(0);
+  expect(lcp).toBeLessThan(2500);
+});
+
+test('CLS: cumulative layout shift under 0.1', async ({ page }) => {
+  await page.goto('/');
+  // Let the page settle — fonts, images, and late layout settle here
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(1000);
+
+  const cls = await page.evaluate(() => {
+    let value = 0;
+    for (const entry of performance.getEntriesByType('layout-shift') as any[]) {
+      // Ignore shifts caused by recent user input (expected, not jank)
+      if (!entry.hadRecentInput) value += entry.value;
+    }
+    return value;
+  });
+
+  expect(cls).toBeLessThan(0.1);
+});
+
+test('INP: interaction responds within 200ms', async ({ page }) => {
+  await page.goto('/');
+  await expect(
+    page.getByRole('heading', { name: 'Enterprise QA Automation Blueprint' }),
+  ).toBeVisible();
+
+  // Observe long event-timing entries (interactions)
+  await page.evaluate(() => {
+    (window as any).__inpDurations = [];
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries() as any[]) {
+        (window as any).__inpDurations.push(entry.duration);
+      }
+    });
+    observer.observe({ type: 'event', buffered: true });
+    (window as any).__inpObserver = observer;
+  });
+
+  // Interact: click a control and type in the search box
+  const refreshButton = page.getByRole('button', { name: /refresh/i });
+  if (await refreshButton.isVisible()) {
+    await refreshButton.click();
+  }
+  const searchBox = page.getByRole('combobox').first();
+  if (await searchBox.isVisible()) {
+    await searchBox.fill('test');
+  }
+  await page.waitForTimeout(1000);
+
+  const maxDuration = await page.evaluate(() => {
+    const durations = (window as any).__inpDurations as number[];
+    (window as any).__inpObserver?.disconnect();
+    return durations.length ? Math.max(...durations) : 0;
+  });
+
+  // 0 means no measurable interaction latency was recorded — acceptable
+  // for a light page; the assertion guards against real jank (>200ms)
+  expect(maxDuration).toBeLessThan(200);
+});

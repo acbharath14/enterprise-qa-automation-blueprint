@@ -117,6 +117,7 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | Visual | `tests/visual.spec.ts` | Layout regression vs. committed baseline (dynamic regions masked) |
 | Theme | `tests/theme.spec.ts` | Dark/light toggle flips design tokens |
 | Performance | `tests/performance.spec.ts` | Load budgets, API latency budget, zero console/page errors |
+| Web Vitals | `tests/web-vitals.spec.ts` | Core Web Vitals via PerformanceObserver: LCP < 2.5s, CLS < 0.1, INP < 200ms (Google's "good" thresholds) |
 | Load / stress | `k6/` | k6 smoke, load (50 VUs, SLO thresholds), and stress (to 300 VUs) tests against the sample app API — see `k6/README.md` |
 | API health checks | `newman/` | Postman collection (7 requests, 15 assertions) run hourly via Newman in CI; HTML report + email alert on failure — see `newman/README.md` |
 | Security | `tests/security.spec.ts`, `tests/pentest.spec.ts` | Security headers, JSON 404s, no reflection of untrusted input; attack simulations (`npm run test:pentest`): SQLi/NoSQLi/XSS/traversal payload batteries, auth attacks, upload sanitization, clickjacking headers |

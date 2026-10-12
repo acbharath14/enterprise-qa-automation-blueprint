@@ -41,6 +41,7 @@ const SUITES = {
   'toast.spec.ts': ['UI components', 'Toast'],
   'upload.spec.ts': ['UI components', 'File upload'],
   'visual.spec.ts': ['Visual', 'Visual regression'],
+  'web-vitals.spec.ts': ['Performance', 'Core Web Vitals'],
   'wizard.spec.ts': ['UI components', 'Release wizard'],
 };
 
