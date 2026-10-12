@@ -154,8 +154,9 @@ BROWSERSTACK_USERNAME=you BROWSERSTACK_ACCESS_KEY=xxx npm run test:browserstack
 - The project only exists when both env vars are set — without them,
   `npx playwright test` behaves exactly as before.
 - Device is configurable: `BROWSERSTACK_DEVICE='iPhone 15' BROWSERSTACK_OS_VERSION=17`.
-- Real-device minutes are billed, so `test:browserstack` targets the `@mobile`
-  specs by default; drop `--grep @mobile` to run the whole suite.
+- The project only runs `@mobile`-tagged specs — enforced in the config, so
+  even a bare `npx playwright test --project=browserstack` can't accidentally
+  burn device minutes on the desktop suite.
 - CI: add the two values as repository secrets and start the Local tunnel
   (BrowserStack's `setup-local` GitHub Action) before `npm run test:browserstack`.
 

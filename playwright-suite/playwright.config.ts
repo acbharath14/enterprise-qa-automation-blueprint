@@ -72,6 +72,9 @@ export default defineConfig({
       ? [
           {
             name: 'browserstack',
+            // Real-device minutes are billed: only mobile-tagged specs run
+            // here, no matter how the project is invoked.
+            grep: /@mobile/,
             use: {
               connectOptions: {
                 wsEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(
