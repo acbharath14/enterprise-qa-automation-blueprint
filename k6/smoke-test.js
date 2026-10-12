@@ -24,12 +24,16 @@ export default function () {
   const search = http.get(`${BASE}/api/search?q=free`);
   check(search, { 'search 200': (r) => r.status === 200 });
 
+  // Demo credentials (same as the sample app) — the 401 path is already
+  // covered by the Playwright auth specs; here we want the happy path so
+  // the <1% http_req_failed threshold stays meaningful (k6 counts 4xx as
+  // failed requests even when a check explicitly accepts them).
   const login = http.post(
     `${BASE}/api/login`,
-    JSON.stringify({ username: 'test', password: 'test123' }),
+    JSON.stringify({ username: 'admin', password: 'secret' }),
     { headers: { 'Content-Type': 'application/json' } }
   );
-  check(login, { 'login 200 or 401': (r) => [200, 401].includes(r.status) });
+  check(login, { 'login 200': (r) => r.status === 200 });
 
   sleep(1);
 }
