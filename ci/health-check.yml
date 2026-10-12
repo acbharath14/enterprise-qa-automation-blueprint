@@ -1,0 +1,69 @@
+# API Health Check — copy to .github/workflows/health-check.yml
+# (GitHub App cannot push workflow files; add via web UI)
+#
+# Runs the Postman collection hourly via Newman, emails the HTML report.
+# Required secrets: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, ALERT_TO
+name: API Health Check
+
+"on":
+  schedule:
+    - cron: "0 * * * *"  # every hour
+  workflow_dispatch:      # manual trigger
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Newman
+        run: npm install -g newman newman-reporter-htmlextra
+
+      - name: Start sample app
+        run: |
+          cd playwright-suite
+          node server.mjs &
+          sleep 3
+          curl -sf http://localhost:4173/api/metrics
+
+      - name: Run Postman collection
+        id: newman
+        run: |
+          mkdir -p reports
+          newman run newman/health-check.postman_collection.json \
+            -e newman/local.postman_environment.json \
+            -r htmlextra,cli \
+            --reporter-htmlextra-export reports/newman-report.html \
+            || echo "failed=true" >> $GITHUB_OUTPUT
+
+      - name: Upload Newman report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-report
+          path: reports/newman-report.html
+
+      - name: Email report on failure
+        if: steps.newman.outputs.failed == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USER }}
+          password: ${{ secrets.SMTP_PASS }}
+          subject: "🚨 API Health Check FAILED — ${{ github.repository }}"
+          to: ${{ secrets.ALERT_TO }}
+          from: API Health Check
+          html_body: |
+            <h2>API Health Check Failed</h2>
+            <p>Repository: ${{ github.repository }}<br>
+            Run: <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">view run</a><br>
+            Time: ${{ github.event.repository.updated_at }}</p>
+            <p>The hourly Postman/Newman health check found failing assertions.
+            The full HTML report is attached as a workflow artifact.</p>
+          attachments: reports/newman-report.html
