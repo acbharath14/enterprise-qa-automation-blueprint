@@ -13,14 +13,29 @@ on:
     - cron: '0 7 * * 1'
 
 jobs:
-  real-device:
+  # `secrets.*` can't be tested in a job `if`, so this gate job checks once
+  # and the real job reads the result via `needs`.
+  gate:
     runs-on: ubuntu-latest
-    # Skip silently when credentials aren't configured. Note: `secrets.*`
-    # can't be referenced directly in a job `if`, so it's copied to env first.
-    env:
-      BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
-      BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
-    if: ${{ env.BROWSERSTACK_USERNAME != '' }}
+    outputs:
+      bs_ready: ${{ steps.check.outputs.bs_ready }}
+    steps:
+      - id: check
+        env:
+          BS_USER: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+        run: |
+          if [ -n "$BS_USER" ] && [ -n "$BS_KEY" ]; then
+            echo "bs_ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "bs_ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  real-device:
+    needs: gate
+    # Skip silently when credentials aren't configured (e.g. forks).
+    if: ${{ needs.gate.outputs.bs_ready == 'true' }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -41,12 +56,17 @@ jobs:
         uses: browserstack/github-actions/setup-local@master
         with:
           local-testing: start
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
 
       - name: Run mobile specs on real device
         working-directory: playwright-suite
         run: npm run test:browserstack
         env:
           CI: true
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
           BROWSERSTACK_DEVICE: ${{ inputs.device || 'Samsung Galaxy S23' }}
 
       - name: Upload HTML report
