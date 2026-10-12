@@ -2,7 +2,7 @@
 # (GitHub App cannot push workflow files; add via web UI)
 #
 # Runs the Postman collection hourly via Newman, emails the HTML report.
-# Required secrets: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, ALERT_TO
+# Required secrets: RESEND_API_KEY, ALERT_TO, ALERT_FROM (optional)
 name: API Health Check
 
 "on":
@@ -50,20 +50,23 @@ jobs:
 
       - name: Email report on failure
         if: steps.newman.outputs.failed == 'true'
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.SMTP_HOST }}
-          server_port: ${{ secrets.SMTP_PORT }}
-          username: ${{ secrets.SMTP_USER }}
-          password: ${{ secrets.SMTP_PASS }}
-          subject: "🚨 API Health Check FAILED — ${{ github.repository }}"
-          to: ${{ secrets.ALERT_TO }}
-          from: API Health Check
-          html_body: |
-            <h2>API Health Check Failed</h2>
-            <p>Repository: ${{ github.repository }}<br>
-            Run: <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">view run</a><br>
-            Time: ${{ github.event.repository.updated_at }}</p>
-            <p>The hourly Postman/Newman health check found failing assertions.
-            The full HTML report is attached as a workflow artifact.</p>
-          attachments: reports/newman-report.html
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_TO: ${{ secrets.ALERT_TO }}
+          ALERT_FROM: ${{ secrets.ALERT_FROM }}
+        run: |
+          REPORT_B64=$(base64 -w0 reports/newman-report.html)
+          FROM="${ALERT_FROM:-API Health Check <onboarding@resend.dev>}"
+          curl -sf https://api.resend.com/emails \
+            -H "Authorization: Bearer $RESEND_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg to "$ALERT_TO" \
+              --arg from "$FROM" \
+              --arg subject "🚨 API Health Check FAILED — ${{ github.repository }}" \
+              --arg run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              --arg b64 "$REPORT_B64" \
+              '{from: $from, to: [$to], subject: $subject,
+                html: ("<h2>API Health Check Failed</h2><p>Run: <a href="" + $run_url + "">view run</a></p><p>The hourly Postman/Newman health check found failing assertions. Full report attached.</p>"),
+                attachments: [{filename: "newman-report.html", content: $b64}]}')" \
+          && echo "Alert email sent" || echo "Alert email failed"
