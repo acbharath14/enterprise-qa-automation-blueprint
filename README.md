@@ -92,7 +92,7 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | Dashboard | `tests/dashboard.spec.ts` | Data-driven UI assertions from `test-data/metrics.json` |
 | Accessibility | `tests/accessibility.spec.ts` | axe-core scan, WCAG 2A/2AA (`@a11y` tag) + committed aria snapshot of the feedback form |
 | Keyboard | `tests/keyboard.spec.ts` | Tab order, focus, Enter/Space activation — what axe-core can't check |
-| Mobile | `tests/mobile.spec.ts` | `@mobile` tag: viewport meta tag, no horizontal overflow at mobile width, touch-tap actions, form usability — on the Pixel 7 `mobile` project (`npm run test:mobile`) or a real device via the opt-in `browserstack` project (see below) |
+| Mobile | `tests/mobile.spec.ts` | `@mobile` tag: viewport meta tag, no horizontal overflow at mobile width, touch-tap actions, form usability — on the Pixel 7 `mobile` project (`npm run test:mobile`) or a real iPhone via the opt-in `browserstack` project (see below) |
 | API | `tests/api.spec.ts` | Contract shape, value sanity, JSON error responses, committed contract file (`test-data/metrics-snapshot.json`) |
 | API mocking | `tests/api-mocked.spec.ts` | UI behavior when the backend returns 500s or slow responses |
 | Integration | `tests/integration.spec.ts` | UI calls the right API and renders its response (`waitForResponse`); attaches the raw response to the report |
@@ -140,25 +140,29 @@ npx playwright test --debug tests/smoke.spec.ts      # step-through debugging
 
 The `mobile` project is emulation. For a real device, the framework ships an
 opt-in `browserstack` project — the specs run unchanged; Playwright just
-connects to a real phone over CDP instead of launching a local browser.
+connects to a real iPhone over CDP instead of launching a local browser.
 
 ```bash
 # 1. Start the BrowserStack Local tunnel (the device reaches your
 #    localhost sample app through it):
 ./BrowserStackLocal --key $BROWSERSTACK_ACCESS_KEY
 
-# 2. In another terminal, run the mobile specs on a real device:
+# 2. In another terminal, run the mobile specs on a real iPhone:
 BROWSERSTACK_USERNAME=you BROWSERSTACK_ACCESS_KEY=xxx npm run test:browserstack
 ```
 
 - The project only exists when both env vars are set — without them,
   `npx playwright test` behaves exactly as before.
-- Device is configurable: `BROWSERSTACK_DEVICE='iPhone 15' BROWSERSTACK_OS_VERSION=17`.
+- It targets an iPhone via WebKit (`browser: 'safari'` caps). Device and OS
+  are configurable: `BROWSERSTACK_DEVICE='iPhone 14' BROWSERSTACK_OS_VERSION=16`.
+- Real Android needs Playwright's experimental `_android` API, which can't be
+  expressed in config — so the project is iOS-only for now.
 - The project only runs `@mobile`-tagged specs — enforced in the config, so
   even a bare `npx playwright test --project=browserstack` can't accidentally
   burn device minutes on the desktop suite.
 - CI: add the two values as repository secrets and start the Local tunnel
   (BrowserStack's `setup-local` GitHub Action) before `npm run test:browserstack`.
+  See `.github/workflows/browserstack.yml`.
 
 **Regenerating the visual baseline** (after an intentional UI change):
 

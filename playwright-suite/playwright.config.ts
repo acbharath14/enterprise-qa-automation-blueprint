@@ -7,11 +7,22 @@ import { defineConfig, devices } from '@playwright/test';
  * `browserstack` project — without them the project does not exist, so a
  * plain `npx playwright test` never tries to reach BrowserStack.
  *
- * Specs run unchanged; only the browser launch changes: instead of a local
- * browser, Playwright connects over CDP to a real mobile device. Because the
- * device lives in BrowserStack's cloud, it reaches the sample app through
- * the BrowserStack Local tunnel — start the Local binary before running
- * (see README "Real devices").
+ * Real-device constraints (verified against BrowserStack's Playwright
+ * behavior — get these wrong and the CDP handshake returns no browser,
+ * surfacing as Playwright's "Malformed endpoint" error):
+ * - Real iOS works with `webkit.connect()` and flat caps
+ *   (`browser: 'safari'` + `realMobile: 'true'` + `deviceName` +
+ *   `osVersion`). The iPhone device descriptor below selects the WebKit
+ *   client via `defaultBrowserType`, so this fits Playwright's config
+ *   `connectOptions` model — specs run unchanged.
+ * - Real Android needs Playwright's experimental `_android` API, which can't
+ *   be expressed in config `connectOptions`; Android real devices are out of
+ *   scope for this project.
+ * - Caps use BrowserStack's flat Playwright style — NOT the Selenium/Appium
+ *   `bstack:options` nesting, and NOT snake_case (`deviceName`, not `device`).
+ *
+ * The device reaches the sample app through the BrowserStack Local tunnel —
+ * start the Local binary before running (see README "Real devices").
  */
 const bsUser = process.env.BROWSERSTACK_USERNAME;
 const bsKey = process.env.BROWSERSTACK_ACCESS_KEY;
@@ -20,9 +31,10 @@ const browserstackCaps = {
   'browserstack.accessKey': bsKey,
   // Tunnel the local sample-app server to the device.
   'browserstack.local': 'true',
-  device: process.env.BROWSERSTACK_DEVICE ?? 'Samsung Galaxy S23',
-  os_version: process.env.BROWSERSTACK_OS_VERSION ?? '13.0',
-  real_mobile: true,
+  browser: 'safari',
+  realMobile: 'true',
+  deviceName: process.env.BROWSERSTACK_DEVICE ?? 'iPhone 15',
+  osVersion: process.env.BROWSERSTACK_OS_VERSION ?? '17',
   project: 'enterprise-qa-automation-blueprint',
   build: process.env.GITHUB_RUN_ID ?? `local-${new Date().toISOString().slice(0, 10)}`,
   name: 'mobile specs on real device',
@@ -66,8 +78,8 @@ export default defineConfig({
       dependencies: ['setup'],
       use: { ...devices['Desktop Chrome'], storageState: 'playwright/.auth/user.json' },
     },
-    // Real mobile device via BrowserStack. Only registered when credentials
-    // are present — see the comment at the top of this file.
+    // Real iPhone via BrowserStack. Only registered when credentials are
+    // present — see the comment at the top of this file.
     ...(bsUser && bsKey
       ? [
           {
@@ -75,7 +87,14 @@ export default defineConfig({
             // Real-device minutes are billed: only mobile-tagged specs run
             // here, no matter how the project is invoked.
             grep: /@mobile/,
+            // Device allocation over the network is slower than a local
+            // launch; give the session room to start.
+            timeout: 60_000,
             use: {
+              // The iPhone descriptor selects the WebKit client via
+              // `defaultBrowserType`; `connectOptions` then attaches it to
+              // the real device over CDP instead of launching locally.
+              ...devices['iPhone 15'],
               connectOptions: {
                 wsEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(
                   JSON.stringify(browserstackCaps),
