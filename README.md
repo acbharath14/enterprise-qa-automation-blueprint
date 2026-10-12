@@ -103,6 +103,7 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | Upload | `tests/upload.spec.ts` | File upload round-trip, server echoes the filename |
 | Dialogs | `tests/dialogs.spec.ts` | Native confirm: message content, accept and dismiss paths |
 | Table | `tests/table.spec.ts` | Column sorting ascending/descending |
+| Tabs | `tests/tabs.spec.ts` | ARIA tablist: selection, panel switching, arrow-key navigation |
 | Search | `tests/search.spec.ts` | Autocomplete combobox: debounced results, keyboard selection, ARIA states |
 | Date picker | `tests/datepicker.spec.ts` | Date input fill and schedule confirmation |
 | Wizard | `tests/wizard.spec.ts` | Multi-step flow: per-step validation, back/next, review and submit (`test.step` structure) |

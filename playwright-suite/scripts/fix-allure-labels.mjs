@@ -36,6 +36,7 @@ const SUITES = {
   'security.spec.ts': ['Security', 'Security checks'],
   'shadowdom.spec.ts': ['UI components', 'Shadow DOM'],
   'smoke.spec.ts': ['Smoke', 'Critical paths'],
+  'tabs.spec.ts': ['UI components', 'Tabs'],
   'table.spec.ts': ['UI components', 'Releases table'],
   'theme.spec.ts': ['UI components', 'Theme'],
   'toast.spec.ts': ['UI components', 'Toast'],
