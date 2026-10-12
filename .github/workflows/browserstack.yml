@@ -52,13 +52,16 @@ jobs:
       # No `playwright install` — the browserstack project connects to a
       # remote device over CDP; no local browser binaries needed.
 
+      - name: Set up BrowserStack environment
+        uses: browserstack/github-actions/setup-env@master
+        with:
+          username: ${{ secrets.BROWSERSTACK_USERNAME }}
+          access-key: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+
       - name: Start BrowserStack Local tunnel
         uses: browserstack/github-actions/setup-local@master
         with:
           local-testing: start
-        env:
-          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
-          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
 
       - name: Run mobile specs on real device
         working-directory: playwright-suite
