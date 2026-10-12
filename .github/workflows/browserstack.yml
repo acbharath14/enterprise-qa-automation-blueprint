@@ -1,0 +1,64 @@
+name: browserstack
+
+# Real-device runs are billed per minute, so this does NOT run on every push.
+on:
+  workflow_dispatch:
+    inputs:
+      device:
+        description: 'BrowserStack device (overrides default)'
+        required: false
+        default: ''
+  schedule:
+    # Weekly Monday 07:00 UTC — real-device sanity check
+    - cron: '0 7 * * 1'
+
+jobs:
+  real-device:
+    runs-on: ubuntu-latest
+    # Skip silently when credentials aren't configured. Note: `secrets.*`
+    # can't be referenced directly in a job `if`, so it's copied to env first.
+    env:
+      BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+      BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+    if: ${{ env.BROWSERSTACK_USERNAME != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: playwright-suite/package-lock.json
+
+      - name: Install dependencies
+        working-directory: playwright-suite
+        run: npm ci
+
+      # No `playwright install` — the browserstack project connects to a
+      # remote device over CDP; no local browser binaries needed.
+
+      - name: Start BrowserStack Local tunnel
+        uses: browserstack/github-actions/setup-local@master
+        with:
+          local-testing: start
+
+      - name: Run mobile specs on real device
+        working-directory: playwright-suite
+        run: npm run test:browserstack
+        env:
+          CI: true
+          BROWSERSTACK_DEVICE: ${{ inputs.device || 'Samsung Galaxy S23' }}
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-browserstack
+          path: playwright-suite/playwright-report/
+          retention-days: 14
+
+      - name: Stop BrowserStack Local tunnel
+        if: always()
+        uses: browserstack/github-actions/setup-local@master
+        with:
+          local-testing: stop
