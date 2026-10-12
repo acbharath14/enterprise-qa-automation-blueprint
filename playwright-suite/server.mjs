@@ -8,7 +8,7 @@ const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const appPath = path.join(rootDir, 'sample-app', 'index.html');
 
 const metrics = { coverage: 82, apiHealth: 'Green', p95LatencyMs: 640 };
-const securityHeaders = { 'X-Content-Type-Options': 'nosniff' };
+const securityHeaders = { 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN' };
 
 function readBody(req) {
   return new Promise((resolve) => {
@@ -62,7 +62,10 @@ const server = http.createServer(async (req, res) => {
   if (url === '/api/upload' && method === 'POST') {
     const raw = await readBody(req);
     const match = /filename="([^"]+)"/.exec(raw);
-    json(res, 200, { ok: true, filename: match ? match[1] : 'unknown' });
+    // Neutralize HTML-significant characters before reflecting the name —
+    // a stored filename rendered as HTML would otherwise be an XSS vector.
+    const filename = match ? match[1].replace(/[<>"']/g, '') : 'unknown';
+    json(res, 200, { ok: true, filename });
     return;
   }
   if (url === '/api/search' && method === 'GET') {

@@ -51,6 +51,7 @@ const ALLURE_SUITES: Record<string, [parentSuite: string, suite: string]> = {
   'keyboard.spec.ts': ['Accessibility', 'Keyboard navigation'],
   'mobile.spec.ts': ['Mobile', 'Responsive and touch'],
   'offline.spec.ts': ['UI components', 'Offline mode'],
+  'pentest.spec.ts': ['Security', 'Penetration tests'],
   'performance.spec.ts': ['Performance', 'Timings and budgets'],
   'popup.spec.ts': ['UI components', 'Popup'],
   'search.spec.ts': ['UI components', 'Release search'],
