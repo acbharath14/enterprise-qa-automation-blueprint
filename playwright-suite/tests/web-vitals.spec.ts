@@ -1,5 +1,14 @@
 import { test, expect } from '../fixtures/test';
 
+// Chromium-only suite: CLS (layout-shift entries) and INP (event timing)
+// are Chromium-exclusive APIs. Skipped on Firefox/WebKit.
+test.beforeEach(async ({ browserName }) => {
+  test.skip(
+    browserName !== 'chromium',
+    'Core Web Vitals APIs are Chromium-only',
+  );
+});
+
 /**
  * Core Web Vitals — Google's user-perceived performance metrics.
  * Thresholds are Google's "good" ratings:
