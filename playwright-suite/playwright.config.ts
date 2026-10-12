@@ -15,6 +15,9 @@ import { defineConfig, devices } from '@playwright/test';
  *   `osVersion`). The iPhone device descriptor below selects the WebKit
  *   client via `defaultBrowserType`, so this fits Playwright's config
  *   `connectOptions` model — specs run unchanged.
+ * - Default device is BrowserStack docs' verbatim example
+ *   ('iPhone 15 Pro Max', iOS 17) — device allocation is the one thing
+ *   BrowserStack decides server-side, so stay on their tested path.
  * - Real Android needs Playwright's experimental `_android` API, which can't
  *   be expressed in config `connectOptions`; Android real devices are out of
  *   scope for this project.
@@ -33,7 +36,7 @@ const browserstackCaps = {
   'browserstack.local': 'true',
   browser: 'safari',
   realMobile: 'true',
-  deviceName: process.env.BROWSERSTACK_DEVICE ?? 'iPhone 15',
+  deviceName: process.env.BROWSERSTACK_DEVICE ?? 'iPhone 15 Pro Max',
   osVersion: process.env.BROWSERSTACK_OS_VERSION ?? '17',
   project: 'enterprise-qa-automation-blueprint',
   build: process.env.GITHUB_RUN_ID ?? `local-${new Date().toISOString().slice(0, 10)}`,
@@ -94,7 +97,8 @@ export default defineConfig({
               // The iPhone descriptor selects the WebKit client via
               // `defaultBrowserType`; `connectOptions` then attaches it to
               // the real device over CDP instead of launching locally.
-              ...devices['iPhone 15'],
+              // Descriptor matches the caps device (iPhone 15 Pro Max).
+              ...devices['iPhone 15 Pro Max'],
               connectOptions: {
                 wsEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(
                   JSON.stringify(browserstackCaps),
