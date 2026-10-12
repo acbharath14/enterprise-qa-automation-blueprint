@@ -171,6 +171,21 @@ BROWSERSTACK_USERNAME=you BROWSERSTACK_ACCESS_KEY=xxx npm run test:browserstack
   which resolves through the tunnel to your machine. Keep the tunnel running;
   nothing else to configure.
 
+### Targeting other environments
+
+`TEST_ENV` selects which env file loads from `playwright-suite/env/`:
+
+```bash
+TEST_ENV=staging npx playwright test     # uses env/.env.staging
+TEST_ENV=prod npm run test:smoke         # smoke only against prod
+```
+
+- `dev` (default) points at the local sample app (`http://127.0.0.1:4173`).
+- `staging` / `prod` ship as placeholders — replace the URLs with yours.
+- Never run write-heavy specs (wizard, upload, feedback) against prod unless
+  prod is the intended target; `test:smoke` and `test:contract` are the safe
+  read-only choices there.
+
 **Regenerating the visual baseline** (after an intentional UI change):
 
 ```bash
