@@ -94,6 +94,7 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | Keyboard | `tests/keyboard.spec.ts` | Tab order, focus, Enter/Space activation — what axe-core can't check |
 | Mobile | `tests/mobile.spec.ts` | `@mobile` tag: viewport meta tag, no horizontal overflow at mobile width, touch-tap actions, form usability — on the Pixel 7 `mobile` project (`npm run test:mobile`) or a real iPhone via the opt-in `browserstack` project (see below) |
 | API | `tests/api.spec.ts` | Contract shape, value sanity, JSON error responses, committed contract file (`test-data/metrics-snapshot.json`) |
+| Contract | `contract/pact-metrics.spec.ts` | Pact consumer + provider verification for `GET /api/metrics` (`npm run test:contract`); the contract file is committed at `contract/pacts/` |
 | API mocking | `tests/api-mocked.spec.ts` | UI behavior when the backend returns 500s or slow responses |
 | Integration | `tests/integration.spec.ts` | UI calls the right API and renders its response (`waitForResponse`); attaches the raw response to the report |
 | Offline | `tests/offline.spec.ts` | Friendly message when the API is unreachable |
@@ -130,6 +131,7 @@ npm run test:smoke                 # only @smoke tagged tests — the fast relea
 npm run test:a11y                  # only @a11y tagged tests
 npm run test:headed                # watch chromium run in a visible browser
 npm run test:browserstack         # real device via BrowserStack (needs credentials + Local tunnel)
+npm run test:contract              # Pact contract tests (separate config, no browsers)
 npx playwright test tests/api.spec.ts                 # a single file
 npx playwright test --project=firefox                 # a single project
 npx playwright test --project=chromium --headed       # headed, one browser
@@ -251,7 +253,6 @@ Every push/PR touching `playwright-suite/` runs the suite split across 2 shards 
 
 ## Roadmap
 
-- Pact contract-test example for the `/api/metrics` endpoint
 - Multi-environment config (dev / staging / prod via env files)
 - Seedable test-data factory for larger data-driven suites
 
