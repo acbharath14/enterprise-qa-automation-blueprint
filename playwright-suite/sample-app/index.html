@@ -43,6 +43,20 @@
       [role='tab'] { border-radius: 8px; margin-right: 8px; }
       [role='tab'][aria-selected='true'] { outline: 2px solid var(--accent); }
       .topbar { display: flex; justify-content: space-between; align-items: center; }
+      /* Custom modal */
+      #modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: flex; align-items: center; justify-content: center; z-index: 100; }
+      #modal-backdrop[hidden] { display: none; }
+      #custom-modal { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 420px; width: calc(100% - 48px); }
+      /* Accordion */
+      #faq-accordion h4 { margin: 12px 0 0; }
+      #faq-accordion button[aria-expanded] { width: 100%; text-align: left; }
+      #faq-accordion [role='region'] { padding: 12px 4px; border-bottom: 1px solid var(--border); }
+      /* Pagination */
+      #archive-list { list-style: none; padding: 0; }
+      #archive-list li { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+      #page-numbers button { margin: 0 4px; padding: 8px 12px; }
+      #page-numbers button[aria-current='page'] { outline: 2px solid var(--accent); }
+      nav[aria-label='archive pagination'] { margin-top: 12px; }
     </style>
   </head>
   <body>
@@ -84,6 +98,24 @@
           <tbody id="releases-body"></tbody>
         </table>
 
+      </section>
+
+
+      <section class="card cat-dashboard" aria-label="paginated archive">
+        <h3>Release Archive</h3>
+        <label for="page-size">Page size</label>
+        <select id="page-size">
+          <option value="10">10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+        </select>
+        <ul id="archive-list"></ul>
+        <p id="page-info" aria-live="polite"></p>
+        <nav aria-label="archive pagination">
+          <button id="page-prev" type="button">Previous</button>
+          <span id="page-numbers"></span>
+          <button id="page-next" type="button">Next</button>
+        </nav>
       </section>
 
       <section class="card cat-dashboard" aria-label="search autocomplete">
@@ -189,6 +221,22 @@
         <p><button id="notify-button" type="button">Notify team</button></p>
         <div id="toast" role="status" aria-live="polite" hidden></div>
       </section>
+      <section class="card cat-overlays" aria-label="custom modal dialog">
+        <h3>Custom Modal</h3>
+        <p>A custom dialog with focus trap, ESC-to-close, and backdrop dismissal.</p>
+        <p><button id="open-modal" type="button">Open dialog</button></p>
+        <div id="modal-backdrop" hidden>
+          <div id="custom-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+            <h4 id="modal-title">Confirm archive</h4>
+            <p>Archiving moves this release to read-only storage.</p>
+            <p>
+              <button id="modal-confirm" type="button">Archive</button>
+              <button id="modal-cancel" type="button">Cancel</button>
+            </p>
+          </div>
+        </div>
+        <div class="status" id="modal-result" aria-live="polite"></div>
+      </section>
 
       <h2 class="category" data-cat="advanced">Advanced components</h2>
 
@@ -246,6 +294,17 @@
         <label for="volume">Volume</label>
         <input id="volume" type="range" min="0" max="100" value="50" />
         <output id="volume-value" for="volume">50</output>
+      </section>
+      <section class="card cat-advanced" aria-label="faq accordion">
+        <h3>FAQ Accordion</h3>
+        <div id="faq-accordion">
+          <h4><button id="acc-btn-1" type="button" aria-expanded="false" aria-controls="acc-panel-1">What is a release?</button></h4>
+          <div id="acc-panel-1" role="region" aria-labelledby="acc-btn-1" hidden><p>A release is a versioned snapshot of the application, validated by quality gates before deployment.</p></div>
+          <h4><button id="acc-btn-2" type="button" aria-expanded="false" aria-controls="acc-panel-2">How are gates evaluated?</button></h4>
+          <div id="acc-panel-2" role="region" aria-labelledby="acc-btn-2" hidden><p>Quality gates check test results, coverage thresholds, and security scans. All must pass for a GO signal.</p></div>
+          <h4><button id="acc-btn-3" type="button" aria-expanded="false" aria-controls="acc-panel-3">Where do reports go?</button></h4>
+          <div id="acc-panel-3" role="region" aria-labelledby="acc-btn-3" hidden><p>Reports publish to GitHub Pages after every main run, with Allure trends and the failure showcase.</p></div>
+        </div>
       </section>
     </main>
 
@@ -531,6 +590,100 @@
         }
       }
       customElements.define('qa-counter', QaCounter);
+
+      // Custom modal dialog (focus trap, ESC, backdrop click, focus return)
+      const modalBackdrop = document.getElementById('modal-backdrop');
+      const customModal = document.getElementById('custom-modal');
+      const openModalBtn = document.getElementById('open-modal');
+      let lastFocused = null;
+      function openModal() {
+        lastFocused = document.activeElement;
+        modalBackdrop.hidden = false;
+        document.getElementById('modal-confirm').focus();
+      }
+      function closeModal() {
+        modalBackdrop.hidden = true;
+        if (lastFocused) lastFocused.focus();
+      }
+      openModalBtn.addEventListener('click', openModal);
+      document.getElementById('modal-cancel').addEventListener('click', closeModal);
+      document.getElementById('modal-confirm').addEventListener('click', () => {
+        document.getElementById('modal-result').textContent = 'Release archived.';
+        closeModal();
+      });
+      modalBackdrop.addEventListener('click', (e) => {
+        if (e.target === modalBackdrop) closeModal();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (modalBackdrop.hidden) return;
+        if (e.key === 'Escape') closeModal();
+        if (e.key === 'Tab') {
+          const focusable = [...customModal.querySelectorAll('button')];
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      });
+
+      // Accordion (single-open)
+      const accButtons = [...document.querySelectorAll('#faq-accordion button[aria-expanded]')];
+      accButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const isOpen = btn.getAttribute('aria-expanded') === 'true';
+          accButtons.forEach((b) => {
+            b.setAttribute('aria-expanded', 'false');
+            document.getElementById(b.getAttribute('aria-controls')).hidden = true;
+          });
+          if (!isOpen) {
+            btn.setAttribute('aria-expanded', 'true');
+            document.getElementById(btn.getAttribute('aria-controls')).hidden = false;
+          }
+        });
+      });
+
+      // Paginated release archive
+      const archiveItems = Array.from({ length: 47 }, (_, i) => `Release ${String(i + 1).padStart(3, '0')}`);
+      let pageSize = 10;
+      let currentPage = 1;
+      function renderArchive() {
+        const totalPages = Math.ceil(archiveItems.length / pageSize);
+        currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+        const start = (currentPage - 1) * pageSize;
+        const end = Math.min(start + pageSize, archiveItems.length);
+        document.getElementById('archive-list').innerHTML = archiveItems
+          .slice(start, end)
+          .map((name) => `<li>${name}</li>`)
+          .join('');
+        document.getElementById('page-info').textContent =
+          `Showing ${start + 1}\u2013${end} of ${archiveItems.length}`;
+        const nums = document.getElementById('page-numbers');
+        nums.innerHTML = '';
+        for (let p = 1; p <= totalPages; p++) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.textContent = String(p);
+          b.setAttribute('aria-label', `Page ${p}`);
+          if (p === currentPage) b.setAttribute('aria-current', 'page');
+          b.addEventListener('click', () => { currentPage = p; renderArchive(); });
+          nums.appendChild(b);
+        }
+        document.getElementById('page-prev').disabled = currentPage === 1;
+        document.getElementById('page-next').disabled = currentPage === totalPages;
+      }
+      document.getElementById('page-size').addEventListener('change', (e) => {
+        pageSize = Number(e.target.value);
+        currentPage = 1;
+        renderArchive();
+      });
+      document.getElementById('page-prev').addEventListener('click', () => { currentPage--; renderArchive(); });
+      document.getElementById('page-next').addEventListener('click', () => { currentPage++; renderArchive(); });
+      renderArchive();
 
       // Restore session
       if (localStorage.getItem('qa-demo-token')) {

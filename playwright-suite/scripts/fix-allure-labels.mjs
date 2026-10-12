@@ -13,6 +13,7 @@ import { join } from 'node:path';
 // parentSuite = test area, suite = spec focus. Keys are spec file names.
 const SUITES = {
   'accessibility.spec.ts': ['Accessibility', 'WCAG scans'],
+  'accordion.spec.ts': ['UI components', 'Accordion'],
   'api-mocked.spec.ts': ['API', 'Mocked API'],
   'api.spec.ts': ['API', 'Metrics API'],
   'auth.spec.ts': ['Authentication', 'Sign in'],
@@ -29,7 +30,9 @@ const SUITES = {
   'iframe.spec.ts': ['UI components', 'IFrame'],
   'integration.spec.ts': ['UI components', 'End-to-end flows'],
   'keyboard.spec.ts': ['Accessibility', 'Keyboard navigation'],
+  'modal.spec.ts': ['UI components', 'Modal dialog'],
   'offline.spec.ts': ['UI components', 'Offline mode'],
+  'pagination.spec.ts': ['UI components', 'Pagination'],
   'performance.spec.ts': ['Performance', 'Timings and budgets'],
   'popup.spec.ts': ['UI components', 'Popup'],
   'search.spec.ts': ['UI components', 'Release search'],
