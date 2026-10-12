@@ -1,0 +1,58 @@
+name: zap-baseline
+
+# OWASP ZAP baseline scan of the sample app.
+# Runs weekly (Mondays 08:00 UTC) and on manual trigger.
+#
+# Report-only: fail_action is false, so the step does not fail when ZAP
+# reports findings. Triage the artifact report first; once the baseline is
+# clean (or the accepted findings are recorded in .zap/rules.tsv), flip
+# fail_action to true to gate on new alerts.
+#
+# NOTE: paste this file as .github/workflows/zap-baseline.yml via the
+# GitHub web UI (the GitHub App cannot write workflow files).
+#
+# "on": is quoted deliberately — a bare `on:` parses as boolean true in
+# some YAML validators, which is what silently killed the Cheapsk8 digest
+# schedule on 2026-10-12. Cron sits at :23 to dodge GitHub's top-of-the-hour
+# scheduler rush.
+
+"on":
+  workflow_dispatch:
+  schedule:
+    - cron: '23 8 * * 1' # Mondays 08:23 UTC
+
+jobs:
+  zap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: playwright-suite/package-lock.json
+
+      - name: Install dependencies
+        working-directory: playwright-suite
+        run: npm ci
+
+      - name: Start sample app
+        working-directory: playwright-suite
+        run: |
+          (node server.mjs > /tmp/app.log 2>&1 &)
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4173/api/metrics >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:4173/api/metrics >/dev/null
+
+      - name: OWASP ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          # ZAP runs inside Docker. If the scan cannot reach the app on
+          # localhost, switch the target to http://host.docker.internal:4173
+          target: 'http://localhost:4173'
+          fail_action: false
+          allow_issue_writing: false
+          artifact_name: zap-baseline-report
