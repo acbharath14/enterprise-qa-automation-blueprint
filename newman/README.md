@@ -53,13 +53,11 @@ The workflow in `health-check.yml`:
 
 | Secret | Example |
 |---|---|
-| `SMTP_HOST` | `smtp.gmail.com` |
-| `SMTP_PORT` | `587` |
-| `SMTP_USER` | `alerts@example.com` |
-| `SMTP_PASS` | app-specific password |
+| `RESEND_API_KEY` | `re_...` ([resend.com](https://resend.com) API key) |
 | `ALERT_TO` | `team@example.com` |
+| `ALERT_FROM` | `API Health Check <alerts@example.com>` (optional; defaults to Resend onboarding address) |
 
-For Gmail, use an [app password](https://support.google.com/accounts/answer/185833) — not your regular password.
+Note: the default `onboarding@resend.dev` sender only delivers to the Resend account's signup email. For team alerts, verify a sending domain in Resend and set `ALERT_FROM` accordingly.
 
 ## Adapting to your API
 
