@@ -94,6 +94,7 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | Keyboard | `tests/keyboard.spec.ts` | Tab order, focus, Enter/Space activation — what axe-core can't check |
 | Mobile | `tests/mobile.spec.ts` | `@mobile` tag: viewport meta tag, no horizontal overflow at mobile width, touch-tap actions, form usability — on the Pixel 7 `mobile` project (`npm run test:mobile`) or a real iPhone via the opt-in `browserstack` project (see below) |
 | API | `tests/api.spec.ts` | Contract shape, value sanity, JSON error responses, committed contract file (`test-data/metrics-snapshot.json`) |
+| Contract | `contract/pact-metrics.spec.ts` | Pact consumer + provider verification for `GET /api/metrics` (`npm run test:contract`); the contract file is committed at `contract/pacts/` |
 | API mocking | `tests/api-mocked.spec.ts` | UI behavior when the backend returns 500s or slow responses |
 | Integration | `tests/integration.spec.ts` | UI calls the right API and renders its response (`waitForResponse`); attaches the raw response to the report |
 | Offline | `tests/offline.spec.ts` | Friendly message when the API is unreachable |
@@ -119,6 +120,7 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | Load / stress | `k6/` | k6 smoke, load (50 VUs, SLO thresholds), and stress (to 300 VUs) tests against the sample app API — see `k6/README.md` |
 | API health checks | `newman/` | Postman collection (7 requests, 15 assertions) run hourly via Newman in CI; HTML report + email alert on failure — see `newman/README.md` |
 | Security | `tests/security.spec.ts`, `tests/pentest.spec.ts` | Security headers, JSON 404s, no reflection of untrusted input; attack simulations (`npm run test:pentest`): SQLi/NoSQLi/XSS/traversal payload batteries, auth attacks, upload sanitization, clickjacking headers |
+| Test data | `test-data/factory.ts` (+ `tests/factory.spec.ts`) | Seedable data factory (mulberry32 PRNG): `makeReleases(n, seed)` is identical on every run, varied across seeds; generates releases/feedback/metrics matching the app's data shapes |
 
 **Understanding the test types:** each spec file focuses on one quality attribute so failures point at the *kind* of problem, not just the page. `smoke.spec.ts` answers "is the app up?"; `api.spec.ts` answers "is the contract intact?"; `visual.spec.ts` answers "did the layout change?". When you add coverage for your app, follow the same rule — one file per question.
 
@@ -130,6 +132,7 @@ npm run test:smoke                 # only @smoke tagged tests — the fast relea
 npm run test:a11y                  # only @a11y tagged tests
 npm run test:headed                # watch chromium run in a visible browser
 npm run test:browserstack         # real device via BrowserStack (needs credentials + Local tunnel)
+npm run test:contract              # Pact contract tests (separate config, no browsers)
 npx playwright test tests/api.spec.ts                 # a single file
 npx playwright test --project=firefox                 # a single project
 npx playwright test --project=chromium --headed       # headed, one browser
