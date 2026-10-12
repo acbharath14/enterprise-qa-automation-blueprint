@@ -3,17 +3,9 @@ import { test, expect } from '../fixtures/test';
 /**
  * Mobile-specific checks. These run on mobile projects only — the `mobile`
  * project (Pixel 7 emulation) and the opt-in `browserstack` project (real
- * device). The assertions are meaningless at desktop widths, so every other
- * project skips them.
+ * device). The assertions are meaningless at desktop widths, so desktop
+ * projects filter this file out via `testIgnore` in playwright.config.ts.
  */
-const MOBILE_PROJECTS = ['mobile', 'browserstack'];
-
-test.beforeEach(async ({}, testInfo) => {
-  test.skip(
-    !MOBILE_PROJECTS.includes(testInfo.project.name),
-    'mobile assertions require a mobile project (Pixel 7 emulation or BrowserStack real device)',
-  );
-});
 
 test('viewport meta tag enables proper mobile scaling @mobile', async ({ dashboardPage }) => {
   const viewport = dashboardPage.page.locator('meta[name="viewport"]');
