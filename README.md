@@ -163,6 +163,10 @@ BROWSERSTACK_USERNAME=you BROWSERSTACK_ACCESS_KEY=xxx npm run test:browserstack
 - CI: add the two values as repository secrets and start the Local tunnel
   (BrowserStack's `setup-local` GitHub Action) before `npm run test:browserstack`.
   See `.github/workflows/browserstack.yml`.
+- iOS quirk, handled in the config: iPhones resolve `localhost`/`127.0.0.1` on
+  the device itself, so the project navigates via `http://bs-local.com:4173`,
+  which resolves through the tunnel to your machine. Keep the tunnel running;
+  nothing else to configure.
 
 **Regenerating the visual baseline** (after an intentional UI change):
 

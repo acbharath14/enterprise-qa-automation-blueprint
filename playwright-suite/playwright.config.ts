@@ -99,6 +99,12 @@ export default defineConfig({
               // the real device over CDP instead of launching locally.
               // Descriptor matches the caps device (iPhone 15 Pro Max).
               ...devices['iPhone 15 Pro Max'],
+              // iOS resolves localhost/127.0.0.1 on the device itself — the
+              // request never reaches the Local tunnel. bs-local.com resolves
+              // via the tunnel to this machine instead. (BrowserStack support:
+              // "Why is my localhost URL redirected to bs-local.com on
+              // iOS/iPadOS devices?")
+              baseURL: 'http://bs-local.com:4173',
               connectOptions: {
                 wsEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(
                   JSON.stringify(browserstackCaps),
