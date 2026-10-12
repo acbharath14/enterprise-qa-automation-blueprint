@@ -49,6 +49,7 @@ const ALLURE_SUITES: Record<string, [parentSuite: string, suite: string]> = {
   'iframe.spec.ts': ['UI components', 'IFrame'],
   'integration.spec.ts': ['UI components', 'End-to-end flows'],
   'keyboard.spec.ts': ['Accessibility', 'Keyboard navigation'],
+  'mobile.spec.ts': ['Mobile', 'Responsive and touch'],
   'offline.spec.ts': ['UI components', 'Offline mode'],
   'performance.spec.ts': ['Performance', 'Timings and budgets'],
   'popup.spec.ts': ['UI components', 'Popup'],
