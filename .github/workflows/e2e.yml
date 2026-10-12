@@ -210,13 +210,38 @@ jobs:
           const body = {
             from: 'QA Automation <onboarding@resend.dev>',
             to: ['acbharath14@gmail.com'],
-            subject: \`E2E summary: \${summary.passed}/\${summary.total} passed\`,
-            html: \`<p>E2E run finished: <b>\${summary.passed}/\${summary.total}</b> passed, \${summary.failed} failed, \${summary.skipped} skipped.</p><p><a href='\${runUrl}'>View run</a></p>\`,
+            subject: \`E2E summary: \${summary.passed} passed, \${summary.failed} failed, \${summary.skipped} skipped (run #${{ github.run_number }})\`,
+            html: \`
+              <h2>Playwright E2E — execution summary</h2>
+              <p>Repo: ${{ github.repository }} · Branch: main · <a href=\"\${runUrl}\">workflow run #${{ github.run_number }}</a></p>
+              <ul>
+                <li>Total: \${summary.total}</li>
+                <li>Passed: \${summary.passed}</li>
+                <li>Failed: \${summary.failed} (2 are intentional showcase failures)</li>
+                <li>Skipped: \${summary.skipped}</li>
+                <li>Broken: \${summary.broken}</li>
+              </ul>
+              <p><a href=\"https://acbharath14.github.io/enterprise-qa-automation-blueprint/allure/\">Allure report</a> ·
+              <a href=\"https://acbharath14.github.io/enterprise-qa-automation-blueprint/playwright-report-showcase/\">Failure showcase (HTML)</a> ·
+              <a href=\"https://acbharath14.github.io/enterprise-qa-automation-blueprint/\">All reports</a></p>\`,
           };
+          const data = JSON.stringify(body);
           const req = https.request('https://api.resend.com/emails', {
             method: 'POST',
-            headers: { Authorization: 'Bearer ' + process.env.RESEND_API_KEY, 'Content-Type': 'application/json' },
-          }, (res) => { res.resume(); res.on('end', () => process.exit(res.statusCode < 300 ? 0 : 1)); });
-          req.on('error', (e) => { console.error(e.message); process.exit(1); });
-          req.end(JSON.stringify(body));
+            headers: {
+              'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(data),
+            },
+          }, (res) => {
+            let out = '';
+            res.on('data', (c) => out += c);
+            res.on('end', () => {
+              console.log('Resend status:', res.statusCode, out);
+              if (res.statusCode >= 300) process.exit(1);
+            });
+          });
+          req.on('error', (e) => { console.error(e); process.exit(1); });
+          req.write(data);
+          req.end();
           "
