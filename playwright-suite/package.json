@@ -4,6 +4,7 @@
     "@axe-core/playwright": "^4.10.0",
     "@playwright/test": "^1.54.1",
     "allure-playwright": "^3.2.0",
+    "dotenv": "^16.4.5",
     "typescript": "^5.6.3"
   },
   "name": "enterprise-qa-playwright-suite",
@@ -16,7 +17,6 @@
     "test:browserstack": "playwright test --project=browserstack",
     "test:headed": "playwright test --headed --project=chromium",
     "test:mobile": "playwright test --grep @mobile",
-    "test:pentest": "playwright test --grep @pentest",
     "test:smoke": "playwright test --grep @smoke",
     "baseline:update": "node scripts/update-baseline.mjs"
   },
