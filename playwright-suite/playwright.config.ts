@@ -1,15 +1,15 @@
 import { defineConfig, devices } from '@playwright/test';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 // Multi-environment config: TEST_ENV selects which env file loads
 // (dev | staging | prod). Defaults to dev — the local sample app.
 // Usage: TEST_ENV=staging npx playwright test
-// Uses Node's built-in process.loadEnvFile (no dotenv dependency needed;
-// dotenv's CJS entry breaks Playwright's ESM config loading on some Node versions).
+// Uses Node's built-in process.loadEnvFile (no dotenv dependency needed).
+// NOTE: uses __dirname, not import.meta.url — Playwright transpiles this
+// config to CJS but leaves import.meta intact, and import.meta in CJS output
+// breaks loading on Node 20.19+ ("exports is not defined in ES module scope").
 const testEnv = process.env.TEST_ENV ?? 'dev';
-const configDir = path.dirname(fileURLToPath(import.meta.url));
-process.loadEnvFile(path.join(configDir, 'env', `.env.${testEnv}`));
+process.loadEnvFile(path.join(__dirname, 'env', `.env.${testEnv}`));
 
 /**
  * Optional real-device project via BrowserStack Automate.
