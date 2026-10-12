@@ -43,6 +43,22 @@
       [role='tab'] { border-radius: 8px; margin-right: 8px; }
       [role='tab'][aria-selected='true'] { outline: 2px solid var(--accent); }
       .topbar { display: flex; justify-content: space-between; align-items: center; }
+      /* Dropdown menu */
+      #menu-wrapper { position: relative; display: inline-block; }
+      #actions-menu { position: absolute; top: 100%; left: 0; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 8px; margin: 4px 0 0; list-style: none; min-width: 180px; z-index: 50; }
+      #actions-menu[hidden] { display: none; }
+      #actions-menu [role='menuitem'] { padding: 10px 12px; border-radius: 8px; cursor: pointer; }
+      #actions-menu [role='menuitem']:hover, #actions-menu [role='menuitem']:focus { background: var(--metric); outline: none; }
+      /* Tooltip */
+      #tooltip-text { background: var(--metric); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 0.9em; margin-left: 8px; }
+      #tooltip-text[hidden] { display: none; }
+      /* Skeletons */
+      .skeleton { background: var(--metric); border-radius: 8px; height: 20px; margin: 8px 0; animation: pulse 1.2s ease-in-out infinite; }
+      @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+      /* Empty state */
+      #member-empty { border: 1px dashed var(--border); border-radius: 12px; padding: 24px; text-align: center; margin-top: 12px; }
+      #member-empty[hidden] { display: none; }
+      input[type='radio'] { display: inline-block; width: auto; margin-right: 8px; }
     </style>
   </head>
   <body>
@@ -70,6 +86,13 @@
         <button id="load-metrics" type="button">Load live metrics</button>
         <div id="live-metrics" class="status" aria-live="polite"></div>
       </section>
+      <section class="card cat-dashboard" aria-label="loading skeletons">
+        <h3>Activity Feed</h3>
+        <p><button id="load-feed" type="button">Load activity</button></p>
+        <div id="feed-content" aria-live="polite">
+          <p>Click &quot;Load activity&quot; to fetch the latest events.</p>
+        </div>
+      </section>
 
       <section class="card cat-dashboard" aria-label="releases table">
         <h3>Releases</h3>
@@ -92,6 +115,22 @@
         <input id="search-input" type="text" role="combobox" aria-expanded="false" aria-controls="search-results" aria-autocomplete="list" autocomplete="off" placeholder="Type to search…" />
         <ul id="search-results" role="listbox" aria-label="matching releases" hidden></ul>
         <div class="status" id="search-selection" aria-live="polite"></div>
+      </section>
+
+
+      <section class="card cat-dashboard" aria-label="empty state demo">
+        <h3>Team Members</h3>
+        <label for="member-filter">Filter by name</label>
+        <input id="member-filter" type="text" placeholder="Type to filter…" />
+        <ul id="member-list">
+          <li>Alice Chen</li>
+          <li>Bob Martinez</li>
+          <li>Carol Johnson</li>
+        </ul>
+        <div id="member-empty" hidden>
+          <p><strong>No team members found.</strong></p>
+          <p>Try a different search term.</p>
+        </div>
       </section>
 
       <section class="card cat-dashboard" aria-label="schedule release">
@@ -174,6 +213,19 @@
         </form>
         <div class="status" id="upload-result" aria-live="polite"></div>
       </section>
+      <section class="card cat-forms" aria-label="notification preferences">
+        <h3>Notification Preferences</h3>
+        <form id="notify-form">
+          <fieldset>
+            <legend>How should we notify you?</legend>
+            <p><label><input type="radio" name="notify-pref" value="email" checked /> Email</label></p>
+            <p><label><input type="radio" name="notify-pref" value="sms" /> SMS</label></p>
+            <p><label><input type="radio" name="notify-pref" value="none" /> None</label></p>
+          </fieldset>
+          <p><button type="submit">Save preferences</button></p>
+        </form>
+        <div class="status" id="notify-pref-result" aria-live="polite"></div>
+      </section>
 
       <h2 class="category" data-cat="overlays">Overlays</h2>
 
@@ -188,6 +240,19 @@
         <h3>Notifications</h3>
         <p><button id="notify-button" type="button">Notify team</button></p>
         <div id="toast" role="status" aria-live="polite" hidden></div>
+      </section>
+      <section class="card cat-overlays" aria-label="dropdown menu">
+        <h3>Actions Menu</h3>
+        <p>Custom dropdown menu with keyboard navigation.</p>
+        <div id="menu-wrapper">
+          <button id="menu-button" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="actions-menu">Actions</button>
+          <ul id="actions-menu" role="menu" aria-labelledby="menu-button" hidden>
+            <li role="menuitem" tabindex="-1" data-action="edit">Edit release</li>
+            <li role="menuitem" tabindex="-1" data-action="duplicate">Duplicate</li>
+            <li role="menuitem" tabindex="-1" data-action="archive">Archive</li>
+          </ul>
+        </div>
+        <div class="status" id="menu-result" aria-live="polite"></div>
       </section>
 
       <h2 class="category" data-cat="advanced">Advanced components</h2>
@@ -246,6 +311,13 @@
         <label for="volume">Volume</label>
         <input id="volume" type="range" min="0" max="100" value="50" />
         <output id="volume-value" for="volume">50</output>
+      </section>
+      <section class="card cat-advanced" aria-label="tooltips">
+        <h3>Tooltips</h3>
+        <p>
+          <button id="tooltip-btn" type="button" aria-describedby="tooltip-text">Hover or focus me</button>
+          <span id="tooltip-text" role="tooltip" hidden>Releases are snapshotted every Monday at 06:00 UTC.</span>
+        </p>
       </section>
     </main>
 
@@ -531,6 +603,89 @@
         }
       }
       customElements.define('qa-counter', QaCounter);
+
+      // Dropdown menu (arrow keys, ESC, click-outside)
+      const menuButton = document.getElementById('menu-button');
+      const actionsMenu = document.getElementById('actions-menu');
+      const menuItems = [...actionsMenu.querySelectorAll('[role="menuitem"]')];
+      let menuOpen = false;
+      function openMenu() {
+        menuOpen = true;
+        actionsMenu.hidden = false;
+        menuButton.setAttribute('aria-expanded', 'true');
+        menuItems[0].focus();
+      }
+      function closeMenu(returnFocus) {
+        menuOpen = false;
+        actionsMenu.hidden = true;
+        menuButton.setAttribute('aria-expanded', 'false');
+        if (returnFocus) menuButton.focus();
+      }
+      menuButton.addEventListener('click', () => (menuOpen ? closeMenu(false) : openMenu()));
+      menuItems.forEach((item) => {
+        item.addEventListener('click', () => {
+          document.getElementById('menu-result').textContent = `Action: ${item.dataset.action}`;
+          closeMenu(true);
+        });
+        item.addEventListener('keydown', (e) => {
+          const idx = menuItems.indexOf(item);
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            menuItems[(idx + 1) % menuItems.length].focus();
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            menuItems[(idx - 1 + menuItems.length) % menuItems.length].focus();
+          } else if (e.key === 'Escape') {
+            closeMenu(true);
+          }
+        });
+      });
+      document.addEventListener('click', (e) => {
+        if (menuOpen && !document.getElementById('menu-wrapper').contains(e.target)) closeMenu(false);
+      });
+
+      // Empty state demo
+      const memberFilter = document.getElementById('member-filter');
+      const memberList = document.getElementById('member-list');
+      const memberEmpty = document.getElementById('member-empty');
+      const memberNames = [...memberList.querySelectorAll('li')].map((li) => li.textContent);
+      memberFilter.addEventListener('input', () => {
+        const q = memberFilter.value.trim().toLowerCase();
+        let visible = 0;
+        memberNames.forEach((name, i) => {
+          const show = name.toLowerCase().includes(q);
+          memberList.children[i].hidden = !show;
+          if (show) visible++;
+        });
+        memberEmpty.hidden = visible > 0;
+      });
+
+      // Radio group preferences
+      document.getElementById('notify-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const val = document.querySelector('input[name="notify-pref"]:checked').value;
+        document.getElementById('notify-pref-result').textContent = `Preference saved: ${val}.`;
+      });
+
+      // Tooltip (hover, focus, ESC)
+      const tooltipBtn = document.getElementById('tooltip-btn');
+      const tooltipText = document.getElementById('tooltip-text');
+      tooltipBtn.addEventListener('mouseenter', () => (tooltipText.hidden = false));
+      tooltipBtn.addEventListener('mouseleave', () => (tooltipText.hidden = true));
+      tooltipBtn.addEventListener('focus', () => (tooltipText.hidden = false));
+      tooltipBtn.addEventListener('blur', () => (tooltipText.hidden = true));
+      tooltipBtn.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') tooltipText.hidden = true;
+      });
+
+      // Loading skeletons
+      document.getElementById('load-feed').addEventListener('click', () => {
+        const feed = document.getElementById('feed-content');
+        feed.innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
+        setTimeout(() => {
+          feed.innerHTML = '<ul><li>Deploy finished (2m ago)</li><li>Tests passed (15m ago)</li><li>Release cut (1h ago)</li></ul>';
+        }, 1200);
+      });
 
       // Restore session
       if (localStorage.getItem('qa-demo-token')) {
