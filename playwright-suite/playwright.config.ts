@@ -43,6 +43,12 @@ const browserstackCaps = {
   name: 'mobile specs on real device',
 };
 
+// Mobile-only specs are meaningless at desktop widths. Desktop projects filter
+// this file out here so the tests never get collected there — a per-test
+// test.skip() in a beforeEach would render as a "beforeEach hook failed"
+// exception on every skipped test in Allure.
+const ignoreMobileSpecs = { testIgnore: /mobile\.spec\.ts/ };
+
 export default defineConfig({
   testDir: './tests',
   // Materializes the committed visual baseline (stored as base64 text) before tests run.
@@ -66,13 +72,14 @@ export default defineConfig({
   projects: [
     // Authenticates once via the UI; the 'authed' project reuses the session.
     { name: 'setup', testMatch: /.*\.setup\.ts/ },
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    { name: 'chromium', ...ignoreMobileSpecs, use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox', ...ignoreMobileSpecs, use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit', ...ignoreMobileSpecs, use: { ...devices['Desktop Safari'] } },
     { name: 'mobile', use: { ...devices['Pixel 7'] } },
-    { name: 'dark', use: { ...devices['Desktop Chrome'], colorScheme: 'dark' } },
+    { name: 'dark', ...ignoreMobileSpecs, use: { ...devices['Desktop Chrome'], colorScheme: 'dark' } },
     {
       name: 'tz',
+      ...ignoreMobileSpecs,
       use: { ...devices['Desktop Chrome'], locale: 'en-NZ', timezoneId: 'Pacific/Auckland' },
     },
     {
