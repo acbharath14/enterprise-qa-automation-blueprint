@@ -1,15 +1,17 @@
 import { test, expect } from '../fixtures/test';
 
 /**
- * Mobile-specific checks. These run only on the `mobile` project
- * (Pixel 7 emulation: mobile viewport, touch, mobile UA) — the
- * assertions are meaningless at desktop widths, so every other
+ * Mobile-specific checks. These run on mobile projects only — the `mobile`
+ * project (Pixel 7 emulation) and the opt-in `browserstack` project (real
+ * device). The assertions are meaningless at desktop widths, so every other
  * project skips them.
  */
+const MOBILE_PROJECTS = ['mobile', 'browserstack'];
+
 test.beforeEach(async ({}, testInfo) => {
   test.skip(
-    testInfo.project.name !== 'mobile',
-    'mobile assertions require the Pixel 7 emulation project',
+    !MOBILE_PROJECTS.includes(testInfo.project.name),
+    'mobile assertions require a mobile project (Pixel 7 emulation or BrowserStack real device)',
   );
 });
 

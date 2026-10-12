@@ -13,6 +13,7 @@
     "start": "node server.mjs",
     "test": "playwright test",
     "test:a11y": "playwright test --grep @a11y",
+    "test:browserstack": "playwright test --project=browserstack --grep @mobile",
     "test:headed": "playwright test --headed --project=chromium",
     "test:mobile": "playwright test --grep @mobile",
     "test:smoke": "playwright test --grep @smoke",

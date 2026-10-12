@@ -92,7 +92,7 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | Dashboard | `tests/dashboard.spec.ts` | Data-driven UI assertions from `test-data/metrics.json` |
 | Accessibility | `tests/accessibility.spec.ts` | axe-core scan, WCAG 2A/2AA (`@a11y` tag) + committed aria snapshot of the feedback form |
 | Keyboard | `tests/keyboard.spec.ts` | Tab order, focus, Enter/Space activation — what axe-core can't check |
-| Mobile | `tests/mobile.spec.ts` | Pixel 7 emulation project: viewport meta tag, no horizontal overflow at mobile width, touch-tap actions, form usability (`@mobile` tag; `npm run test:mobile`) |
+| Mobile | `tests/mobile.spec.ts` | `@mobile` tag: viewport meta tag, no horizontal overflow at mobile width, touch-tap actions, form usability — on the Pixel 7 `mobile` project (`npm run test:mobile`) or a real device via the opt-in `browserstack` project (see below) |
 | API | `tests/api.spec.ts` | Contract shape, value sanity, JSON error responses, committed contract file (`test-data/metrics-snapshot.json`) |
 | API mocking | `tests/api-mocked.spec.ts` | UI behavior when the backend returns 500s or slow responses |
 | Integration | `tests/integration.spec.ts` | UI calls the right API and renders its response (`waitForResponse`); attaches the raw response to the report |
@@ -129,11 +129,35 @@ npm test                          # everything: 8 projects (chromium/firefox/web
 npm run test:smoke                 # only @smoke tagged tests — the fast release signal
 npm run test:a11y                  # only @a11y tagged tests
 npm run test:headed                # watch chromium run in a visible browser
+npm run test:browserstack         # real device via BrowserStack (needs credentials + Local tunnel)
 npx playwright test tests/api.spec.ts                 # a single file
 npx playwright test --project=firefox                 # a single project
 npx playwright test --project=chromium --headed       # headed, one browser
 npx playwright test --debug tests/smoke.spec.ts      # step-through debugging
 ```
+
+### Real devices (BrowserStack)
+
+The `mobile` project is emulation. For a real device, the framework ships an
+opt-in `browserstack` project — the specs run unchanged; Playwright just
+connects to a real phone over CDP instead of launching a local browser.
+
+```bash
+# 1. Start the BrowserStack Local tunnel (the device reaches your
+#    localhost sample app through it):
+./BrowserStackLocal --key $BROWSERSTACK_ACCESS_KEY
+
+# 2. In another terminal, run the mobile specs on a real device:
+BROWSERSTACK_USERNAME=you BROWSERSTACK_ACCESS_KEY=xxx npm run test:browserstack
+```
+
+- The project only exists when both env vars are set — without them,
+  `npx playwright test` behaves exactly as before.
+- Device is configurable: `BROWSERSTACK_DEVICE='iPhone 15' BROWSERSTACK_OS_VERSION=17`.
+- Real-device minutes are billed, so `test:browserstack` targets the `@mobile`
+  specs by default; drop `--grep @mobile` to run the whole suite.
+- CI: add the two values as repository secrets and start the Local tunnel
+  (BrowserStack's `setup-local` GitHub Action) before `npm run test:browserstack`.
 
 **Regenerating the visual baseline** (after an intentional UI change):
 

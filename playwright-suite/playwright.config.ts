@@ -1,5 +1,33 @@
 import { defineConfig, devices } from '@playwright/test';
 
+/**
+ * Optional real-device project via BrowserStack Automate.
+ *
+ * Set BROWSERSTACK_USERNAME and BROWSERSTACK_ACCESS_KEY to register the
+ * `browserstack` project — without them the project does not exist, so a
+ * plain `npx playwright test` never tries to reach BrowserStack.
+ *
+ * Specs run unchanged; only the browser launch changes: instead of a local
+ * browser, Playwright connects over CDP to a real mobile device. Because the
+ * device lives in BrowserStack's cloud, it reaches the sample app through
+ * the BrowserStack Local tunnel — start the Local binary before running
+ * (see README "Real devices").
+ */
+const bsUser = process.env.BROWSERSTACK_USERNAME;
+const bsKey = process.env.BROWSERSTACK_ACCESS_KEY;
+const browserstackCaps = {
+  'browserstack.username': bsUser,
+  'browserstack.accessKey': bsKey,
+  // Tunnel the local sample-app server to the device.
+  'browserstack.local': 'true',
+  device: process.env.BROWSERSTACK_DEVICE ?? 'Samsung Galaxy S23',
+  os_version: process.env.BROWSERSTACK_OS_VERSION ?? '13.0',
+  real_mobile: true,
+  project: 'enterprise-qa-automation-blueprint',
+  build: process.env.GITHUB_RUN_ID ?? `local-${new Date().toISOString().slice(0, 10)}`,
+  name: 'mobile specs on real device',
+};
+
 export default defineConfig({
   testDir: './tests',
   // Materializes the committed visual baseline (stored as base64 text) before tests run.
@@ -38,5 +66,21 @@ export default defineConfig({
       dependencies: ['setup'],
       use: { ...devices['Desktop Chrome'], storageState: 'playwright/.auth/user.json' },
     },
+    // Real mobile device via BrowserStack. Only registered when credentials
+    // are present — see the comment at the top of this file.
+    ...(bsUser && bsKey
+      ? [
+          {
+            name: 'browserstack',
+            use: {
+              connectOptions: {
+                wsEndpoint: `wss://cdp.browserstack.com/playwright?caps=${encodeURIComponent(
+                  JSON.stringify(browserstackCaps),
+                )}`,
+              },
+            },
+          },
+        ]
+      : []),
   ],
 });
