@@ -2,6 +2,7 @@
   "description": "Playwright + TypeScript UI test framework for the enterprise QA blueprint",
   "devDependencies": {
     "@axe-core/playwright": "^4.10.0",
+    "@pact-foundation/pact": "^17.1.4",
     "@playwright/test": "^1.54.1",
     "allure-playwright": "^3.2.0",
     "dotenv": "^16.4.5",
@@ -15,6 +16,7 @@
     "test": "playwright test",
     "test:a11y": "playwright test --grep @a11y",
     "test:browserstack": "playwright test --project=browserstack",
+    "test:contract": "playwright test --config=playwright.contract.config.ts",
     "test:headed": "playwright test --headed --project=chromium",
     "test:mobile": "playwright test --grep @mobile",
     "test:smoke": "playwright test --grep @smoke",
