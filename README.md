@@ -119,6 +119,7 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | Load / stress | `k6/` | k6 smoke, load (50 VUs, SLO thresholds), and stress (to 300 VUs) tests against the sample app API — see `k6/README.md` |
 | API health checks | `newman/` | Postman collection (7 requests, 15 assertions) run hourly via Newman in CI; HTML report + email alert on failure — see `newman/README.md` |
 | Security | `tests/security.spec.ts`, `tests/pentest.spec.ts` | Security headers, JSON 404s, no reflection of untrusted input; attack simulations (`npm run test:pentest`): SQLi/NoSQLi/XSS/traversal payload batteries, auth attacks, upload sanitization, clickjacking headers |
+| Test data | `test-data/factory.ts` (+ `tests/factory.spec.ts`) | Seedable data factory (mulberry32 PRNG): `makeReleases(n, seed)` is identical on every run, varied across seeds; generates releases/feedback/metrics matching the app's data shapes |
 
 **Understanding the test types:** each spec file focuses on one quality attribute so failures point at the *kind* of problem, not just the page. `smoke.spec.ts` answers "is the app up?"; `api.spec.ts` answers "is the contract intact?"; `visual.spec.ts` answers "did the layout change?". When you add coverage for your app, follow the same rule — one file per question.
 
@@ -253,7 +254,6 @@ Every push/PR touching `playwright-suite/` runs the suite split across 2 shards 
 
 - Pact contract-test example for the `/api/metrics` endpoint
 - Multi-environment config (dev / staging / prod via env files)
-- Seedable test-data factory for larger data-driven suites
 
 ## License
 
