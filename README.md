@@ -92,6 +92,7 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | Dashboard | `tests/dashboard.spec.ts` | Data-driven UI assertions from `test-data/metrics.json` |
 | Accessibility | `tests/accessibility.spec.ts` | axe-core scan, WCAG 2A/2AA (`@a11y` tag) + committed aria snapshot of the feedback form |
 | Keyboard | `tests/keyboard.spec.ts` | Tab order, focus, Enter/Space activation — what axe-core can't check |
+| Mobile | `tests/mobile.spec.ts` | Pixel 7 emulation project: viewport meta tag, no horizontal overflow at mobile width, touch-tap actions, form usability (`@mobile` tag; `npm run test:mobile`) |
 | API | `tests/api.spec.ts` | Contract shape, value sanity, JSON error responses, committed contract file (`test-data/metrics-snapshot.json`) |
 | API mocking | `tests/api-mocked.spec.ts` | UI behavior when the backend returns 500s or slow responses |
 | Integration | `tests/integration.spec.ts` | UI calls the right API and renders its response (`waitForResponse`); attaches the raw response to the report |
