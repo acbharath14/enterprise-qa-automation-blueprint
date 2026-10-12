@@ -267,10 +267,6 @@ Every push/PR touching `playwright-suite/` runs the suite split across 2 shards 
 | Tests pass locally but fail in CI | check for timing assumptions and unmasked dynamic content; open the trace from the CI artifact |
 | `npm test` feels slow | run a slice: `npm run test:smoke` or `--project=chromium` while developing |
 
-## Roadmap
-
-- Multi-environment config (dev / staging / prod via env files)
-
 ## License
 
 MIT — see [LICENSE](LICENSE).
