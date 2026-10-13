@@ -56,6 +56,35 @@ jobs:
         env:
           CI: true
 
+      - name: Summarize failures
+        if: always()
+        working-directory: playwright-suite
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = require('path');
+          const dir = 'allure-results';
+          const failures = [];
+          if (fs.existsSync(dir)) {
+            for (const f of fs.readdirSync(dir)) {
+              if (!f.endsWith('-result.json')) continue;
+              const r = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+              if (r.status === 'failed') {
+                const err = (r.statusDetails?.message || 'Unknown error').split('\n')[0].slice(0, 180);
+                failures.push({ name: r.name, err: err.replace(/\|/g, '\\\\|') });
+              }
+            }
+          }
+          let md = '## Test Failures (shard ${{ matrix.shard }})\n\n';
+          if (!failures.length) md += 'No failures.\n';
+          else {
+            md += '| Test | Error |\n|------|-------|\n';
+            for (const f of failures.slice(0, 50)) md += '| ' + f.name + ' | ' + f.err + ' |\n';
+            if (failures.length > 50) md += '\n_Showing 50 of ' + failures.length + '._\n';
+          }
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
+          "
+
       - name: Apply friendly Allure suite names
         working-directory: playwright-suite
         run: node scripts/fix-allure-labels.mjs
@@ -247,12 +276,16 @@ jobs:
           node -e "
           const https = require('https');
           const summary = {
-            total: '${{ steps.summary.outputs.total }}',
-            passed: '${{ steps.summary.outputs.passed }}',
-            failed: '${{ steps.summary.outputs.failed }}',
-            skipped: '${{ steps.summary.outputs.skipped }}',
-            broken: '${{ steps.summary.outputs.broken }}',
+            total: parseInt('${{ steps.summary.outputs.total }}') || 0,
+            passed: parseInt('${{ steps.summary.outputs.passed }}') || 0,
+            failed: parseInt('${{ steps.summary.outputs.failed }}') || 0,
+            skipped: parseInt('${{ steps.summary.outputs.skipped }}') || 0,
+            broken: parseInt('${{ steps.summary.outputs.broken }}') || 0,
           };
+          const pct = (n) => summary.total ? (n / summary.total * 100).toFixed(1) : 0;
+          const bar = (n, color) => summary.total && n > 0
+            ? '<div style=\"height:18px;background:' + color + ';width:' + pct(n) + '%;display:inline-block;\" title=\"' + n + '\"></div>'
+            : '';
           const runUrl = '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}';
           const body = {
             from: 'QA Automation <onboarding@resend.dev>',
@@ -261,12 +294,13 @@ jobs:
             html: \`
               <h2>Playwright E2E — execution summary</h2>
               <p>Repo: ${{ github.repository }} · Branch: main · <a href=\"\${runUrl}\">workflow run #${{ github.run_number }}</a></p>
+              <div style=\"width:100%;max-width:500px;background:#eee;border-radius:4px;overflow:hidden;white-space:nowrap;font-size:0;\">\${bar(summary.passed, '#22c55e')}\${bar(summary.failed, '#ef4444')}\${bar(summary.skipped, '#f59e0b')}\${bar(summary.broken, '#a855f7')}</div>
               <ul>
                 <li>Total: \${summary.total}</li>
-                <li>Passed: \${summary.passed}</li>
-                <li>Failed: \${summary.failed} (2 are intentional showcase failures)</li>
-                <li>Skipped: \${summary.skipped}</li>
-                <li>Broken: \${summary.broken}</li>
+                <li><span style=\"color:#22c55e;\">■</span> Passed: \${summary.passed} (\${pct(summary.passed)}%)</li>
+                <li><span style=\"color:#ef4444;\">■</span> Failed: \${summary.failed} (\${pct(summary.failed)}%) — 2 are intentional showcase failures</li>
+                <li><span style=\"color:#f59e0b;\">■</span> Skipped: \${summary.skipped} (\${pct(summary.skipped)}%)</li>
+                <li><span style=\"color:#a855f7;\">■</span> Broken: \${summary.broken}</li>
               </ul>
               <p><a href=\"https://acbharath14.github.io/enterprise-qa-automation-blueprint/allure/\">Allure report</a> ·
               <a href=\"https://acbharath14.github.io/enterprise-qa-automation-blueprint/playwright-report-showcase/\">Failure showcase (HTML)</a> ·
