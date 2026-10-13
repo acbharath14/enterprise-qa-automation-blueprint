@@ -1,7 +1,7 @@
 name: browserstack
 
 # Real-device runs are billed per minute, so this does NOT run on every push.
-on:
+"on":  # quoted: bare `on:` parses as boolean true in some YAML validators
   workflow_dispatch:
     inputs:
       device:
@@ -53,13 +53,13 @@ jobs:
       # remote device over CDP; no local browser binaries needed.
 
       - name: Set up BrowserStack environment
-        uses: browserstack/github-actions/setup-env@master
+        uses: browserstack/github-actions/setup-env@1fad39ae4755588f7fc6854da6c3efba2bf5d08f # master @ 2026-09-25 (no semver tags on this repo)
         with:
           username: ${{ secrets.BROWSERSTACK_USERNAME }}
           access-key: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
 
       - name: Start BrowserStack Local tunnel
-        uses: browserstack/github-actions/setup-local@master
+        uses: browserstack/github-actions/setup-local@1fad39ae4755588f7fc6854da6c3efba2bf5d08f # master @ 2026-09-25 (no semver tags on this repo)
         with:
           local-testing: start
 
@@ -82,6 +82,6 @@ jobs:
 
       - name: Stop BrowserStack Local tunnel
         if: always()
-        uses: browserstack/github-actions/setup-local@master
+        uses: browserstack/github-actions/setup-local@1fad39ae4755588f7fc6854da6c3efba2bf5d08f # master @ 2026-09-25 (no semver tags on this repo)
         with:
           local-testing: stop
