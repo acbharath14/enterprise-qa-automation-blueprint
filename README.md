@@ -104,7 +104,7 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | Dialogs | `tests/dialogs.spec.ts` | Native confirm: message content, accept and dismiss paths |
 | Modal | `tests/modal.spec.ts` | Custom dialog: focus trap, ESC/backdrop close, focus return, confirm/cancel |
 | Table | `tests/table.spec.ts` | Column sorting ascending/descending |
-| Pagination | `tests/pagination.spec.ts` | Client-side paging: page size (10/25/50), prev/next, page numbers, "Showing X–Y of Z" |
+| Tabs | `tests/tabs.spec.ts` | ARIA tablist: selection, panel switching, arrow-key navigation |
 | Search | `tests/search.spec.ts` | Autocomplete combobox: debounced results, keyboard selection, ARIA states |
 | Date picker | `tests/datepicker.spec.ts` | Date input fill and schedule confirmation |
 | Wizard | `tests/wizard.spec.ts` | Multi-step flow: per-step validation, back/next, review and submit (`test.step` structure) |
