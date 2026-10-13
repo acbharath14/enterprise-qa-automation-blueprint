@@ -102,12 +102,15 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | Auth | `tests/auth.spec.ts` + `auth.setup.ts` | Login success/failure; setup project saves `storageState` reused by `authed.spec.ts` |
 | Upload | `tests/upload.spec.ts` | File upload round-trip, server echoes the filename |
 | Dialogs | `tests/dialogs.spec.ts` | Native confirm: message content, accept and dismiss paths |
+| Modal | `tests/modal.spec.ts` | Custom dialog: focus trap, ESC/backdrop close, focus return, confirm/cancel |
 | Table | `tests/table.spec.ts` | Column sorting ascending/descending |
+| Pagination | `tests/pagination.spec.ts` | Client-side paging: page size (10/25/50), prev/next, page numbers, "Showing X–Y of Z" |
 | Search | `tests/search.spec.ts` | Autocomplete combobox: debounced results, keyboard selection, ARIA states |
 | Date picker | `tests/datepicker.spec.ts` | Date input fill and schedule confirmation |
 | Wizard | `tests/wizard.spec.ts` | Multi-step flow: per-step validation, back/next, review and submit (`test.step` structure) |
 | Drag & drop | `tests/dragdrop.spec.ts` | Reorder the priority list with `dragTo` |
 | Toast | `tests/toast.spec.ts` | Notification appears and auto-dismisses |
+| Accordion | `tests/accordion.spec.ts` | Single-open collapsible sections: aria-expanded, click + Enter/Space keyboard |
 | Download | `tests/download.spec.ts` | CSV export: filename and file content assertions |
 | iFrame | `tests/iframe.spec.ts` | Same-origin frame interaction via `frameLocator` |
 | Shadow DOM | `tests/shadowdom.spec.ts` | Counter inside an open shadow root (Playwright pierces it automatically) |
