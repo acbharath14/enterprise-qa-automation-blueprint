@@ -102,6 +102,7 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | Auth | `tests/auth.spec.ts` + `auth.setup.ts` | Login success/failure; setup project saves `storageState` reused by `authed.spec.ts` |
 | Upload | `tests/upload.spec.ts` | File upload round-trip, server echoes the filename |
 | Dialogs | `tests/dialogs.spec.ts` | Native confirm: message content, accept and dismiss paths |
+| Modal | `tests/modal.spec.ts` | Custom dialog: focus trap, ESC/backdrop close, focus return, confirm/cancel |
 | Table | `tests/table.spec.ts` | Column sorting ascending/descending |
 | Tabs | `tests/tabs.spec.ts` | ARIA tablist: selection, panel switching, arrow-key navigation |
 | Search | `tests/search.spec.ts` | Autocomplete combobox: debounced results, keyboard selection, ARIA states |
@@ -109,6 +110,7 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | Wizard | `tests/wizard.spec.ts` | Multi-step flow: per-step validation, back/next, review and submit (`test.step` structure) |
 | Drag & drop | `tests/dragdrop.spec.ts` | Reorder the priority list with `dragTo` |
 | Toast | `tests/toast.spec.ts` | Notification appears and auto-dismisses |
+| Accordion | `tests/accordion.spec.ts` | Single-open collapsible sections: aria-expanded, click + Enter/Space keyboard |
 | Download | `tests/download.spec.ts` | CSV export: filename and file content assertions |
 | iFrame | `tests/iframe.spec.ts` | Same-origin frame interaction via `frameLocator` |
 | Shadow DOM | `tests/shadowdom.spec.ts` | Counter inside an open shadow root (Playwright pierces it automatically) |
@@ -118,6 +120,7 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | Visual | `tests/visual.spec.ts` | Layout regression vs. committed baseline (dynamic regions masked) |
 | Theme | `tests/theme.spec.ts` | Dark/light toggle flips design tokens |
 | Performance | `tests/performance.spec.ts` | Load budgets, API latency budget, zero console/page errors |
+| Web Vitals | `tests/web-vitals.spec.ts` | Core Web Vitals via PerformanceObserver: LCP < 2.5s, CLS < 0.1, INP < 200ms (Google's "good" thresholds) |
 | Load / stress | `k6/` | k6 smoke, load (50 VUs, SLO thresholds), and stress (to 300 VUs) tests against the sample app API — see `k6/README.md` |
 | API health checks | `newman/` | Postman collection (7 requests, 15 assertions) run hourly via Newman in CI; HTML report + email alert on failure — see `newman/README.md` |
 | Security | `tests/security.spec.ts`, `tests/pentest.spec.ts` | Security headers, JSON 404s, no reflection of untrusted input; attack simulations (`npm run test:pentest`): SQLi/NoSQLi/XSS/traversal payload batteries, auth attacks, upload sanitization, clickjacking headers |

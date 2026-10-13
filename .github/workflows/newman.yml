@@ -1,0 +1,87 @@
+name: newman-health-check
+
+# Hourly API health check via Newman (Postman collection runner).
+# Runs newman/health-check.postman_collection.json (7 requests) against the
+# sample app; uploads an HTML report and emails an alert on failure.
+#
+# NOTE: paste this file as .github/workflows/newman.yml via the GitHub
+# web UI (the GitHub App cannot write workflow files).
+#
+# "on": is quoted deliberately — a bare `on:` parses as boolean true in
+# some YAML validators. Cron sits at :17 to dodge GitHub's top-of-the-hour
+# scheduler rush.
+
+"on":
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *' # hourly
+
+jobs:
+  newman:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: playwright-suite/package-lock.json
+
+      - name: Install dependencies
+        working-directory: playwright-suite
+        run: npm ci
+
+      - name: Install Newman
+        run: npm install -g newman newman-reporter-htmlextra
+
+      - name: Start sample app
+        working-directory: playwright-suite
+        run: |
+          (node server.mjs > /tmp/app.log 2>&1 &)
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4173/api/metrics >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:4173/api/metrics >/dev/null
+
+      - name: Run Newman health check
+        id: newman
+        continue-on-error: true
+        run: |
+          newman run newman/health-check.postman_collection.json \
+            -e newman/local.postman_environment.json \
+            -r htmlextra \
+            --reporter-htmlextra-export newman-report.html \
+            --reporter-htmlextra-title "Blueprint API Health Check"
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-report
+          path: newman-report.html
+          retention-days: 14
+
+      - name: Send email alert on failure
+        if: steps.newman.outcome == 'failure'
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          node -e "
+          const https = require('https');
+          const runUrl = '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}';
+          const body = {
+            from: 'QA Automation <onboarding@resend.dev>',
+            to: ['acbharath14@gmail.com'],
+            subject: 'ALERT: Newman API health check FAILED (run #${{ github.run_number }})',
+            html: \`<p>The hourly Newman API health check failed.</p><p><a href='\${runUrl}'>View run</a> · <a href='https://github.com/${{ github.repository }}/actions/workflows/newman.yml'>All runs</a></p>\`,
+          };
+          const req = https.request('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { Authorization: 'Bearer ' + process.env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+          }, (res) => { res.resume(); res.on('end', () => process.exit(res.statusCode < 300 ? 0 : 1)); });
+          req.on('error', (e) => { console.error(e.message); process.exit(1); });
+          req.end(JSON.stringify(body));
+          "
