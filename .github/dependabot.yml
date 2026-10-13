@@ -1,0 +1,11 @@
+version: 2
+updates:
+  # Weekly dependency updates for the Playwright suite.
+  # Dependabot opens PRs for vulnerable/outdated packages — it never fails
+  # the build (unlike `npm audit` as a CI step, which exits non-zero on any
+  # advisory and turns every new CVE into a red build).
+  - package-ecosystem: "npm"
+    directory: "/playwright-suite"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5

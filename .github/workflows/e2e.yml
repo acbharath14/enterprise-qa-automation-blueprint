@@ -1,5 +1,12 @@
 name: e2e
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
@@ -13,6 +20,7 @@ on:
 
 jobs:
   test:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -30,6 +38,13 @@ jobs:
       - name: Install dependencies
         working-directory: playwright-suite
         run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('playwright-suite/package-lock.json') }}
+          restore-keys: playwright-${{ runner.os }}-
 
       - name: Install Playwright browsers
         working-directory: playwright-suite
@@ -62,6 +77,7 @@ jobs:
           retention-days: 14
 
   quality-gate:
+    timeout-minutes: 10
     # Release signal: renders an explicit GO / NO-GO verdict on the run summary.
     # if: always() so the NO-GO decision shows even when tests fail.
     needs: [test]
@@ -79,9 +95,33 @@ jobs:
       - name: Evaluate quality gate
         run: node playwright-suite/scripts/quality-gate.mjs gate-results
 
+  contract:
+    # Pact consumer + provider verification (no browsers needed).
+    needs: test
+    if: always()
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: playwright-suite/package-lock.json
+
+      - name: Install dependencies
+        working-directory: playwright-suite
+        run: npm ci
+
+      - name: Run Pact contract tests
+        working-directory: playwright-suite
+        run: npm run test:contract
+
   publish-report:
     needs: test
-    if: github.ref == 'refs/heads/main'
+    if: always() && github.ref == 'refs/heads/main'
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -144,6 +184,12 @@ jobs:
           node playwright-suite/scripts/fix-allure-labels.mjs allure-results
           node playwright-suite/scripts/fix-allure-labels.mjs showcase-allure-results
 
+      - name: Restore previous Allure history
+        run: |
+          mkdir -p allure-results/history
+          curl -sf https://acbharath14.github.io/enterprise-qa-automation-blueprint/allure/history/history.json \
+            -o allure-results/history/history.json || echo "No previous history (first run)"
+
       - name: Generate Allure report (suite + showcase merged)
         run: |
           npm install -g allure-commandline
@@ -165,6 +211,7 @@ jobs:
       - uses: actions/deploy-pages@v4
 
   notify:
+    timeout-minutes: 10
     # Email execution summary after every main run (push, schedule, manual).
     needs: [test, publish-report]
     if: always() && github.ref == 'refs/heads/main'

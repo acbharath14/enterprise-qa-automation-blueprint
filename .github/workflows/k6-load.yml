@@ -1,0 +1,64 @@
+name: k6-load
+
+# Weekly k6 load + stress tests against the sample app.
+# Load ramps to 50 VUs and asserts SLO thresholds (p95/p99 latency, error rate).
+# Stress ramps higher to find the breaking point (no pass/fail thresholds).
+# The per-push k6-smoke.yml stays the fast binary signal; these are the deep runs.
+#
+# NOTE: paste this file as .github/workflows/k6-load.yml via the GitHub
+# web UI (the GitHub App cannot write workflow files).
+#
+# "on": is quoted deliberately — a bare `on:` parses as boolean true in
+# some YAML validators.
+
+"on":
+  workflow_dispatch:
+  schedule:
+    # Weekly Sunday 03:00 UTC — off-peak deep performance signal
+    - cron: '0 3 * * 0'
+
+jobs:
+  k6-load-stress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: playwright-suite/package-lock.json
+
+      - name: Install dependencies
+        working-directory: playwright-suite
+        run: npm ci
+
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Start sample app
+        working-directory: playwright-suite
+        run: |
+          (node server.mjs > /tmp/app.log 2>&1 &)
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4173/api/metrics >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:4173/api/metrics >/dev/null
+
+      - name: k6 load test (50 VUs, SLO thresholds)
+        run: k6 run --summary-export=load-summary.json k6/load-test.js
+
+      - name: k6 stress test (breaking-point exploration)
+        run: k6 run --summary-export=stress-summary.json k6/stress-test.js
+
+      - name: Upload k6 summaries
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-load-stress-summaries
+          path: |
+            load-summary.json
+            stress-summary.json
+          retention-days: 30
