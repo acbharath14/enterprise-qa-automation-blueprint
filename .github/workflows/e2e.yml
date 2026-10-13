@@ -64,15 +64,24 @@ jobs:
           const fs = require('fs');
           const path = require('path');
           const dir = 'allure-results';
-          const failures = [];
+          // Deduplicate by testCaseId, keep last (final retry outcome)
+          const byTest = new Map();
           if (fs.existsSync(dir)) {
-            for (const f of fs.readdirSync(dir)) {
-              if (!f.endsWith('-result.json')) continue;
+            const files = fs.readdirSync(dir)
+              .filter(f => f.endsWith('-result.json'))
+              .map(f => ({ f, mtime: fs.statSync(path.join(dir, f)).mtimeMs }))
+              .sort((a, b) => a.mtime - b.mtime);
+            for (const { f } of files) {
               const r = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
-              if (r.status === 'failed') {
-                const err = (r.statusDetails?.message || 'Unknown error').split('\n')[0].slice(0, 180);
-                failures.push({ name: r.name, err: err.replace(/\|/g, '\\\\|') });
-              }
+              const key = r.testCaseId || r.historyId || (r.fullName + '|' + r.name);
+              byTest.set(key, r);
+            }
+          }
+          const failures = [];
+          for (const r of byTest.values()) {
+            if (r.status === 'failed') {
+              const err = (r.statusDetails?.message || 'Unknown error').split('\n')[0].slice(0, 180);
+              failures.push({ name: r.name, err: err.replace(/\|/g, '\\\\|') });
             }
           }
           let md = '## Test Failures (shard ${{ matrix.shard }})\n\n';
@@ -258,11 +267,21 @@ jobs:
           node -e "
           const fs = require('fs');
           const path = require('path');
-          const counts = { passed: 0, failed: 0, skipped: 0, broken: 0 };
-          for (const f of fs.readdirSync('notify-results')) {
-            if (!f.endsWith('-result.json')) continue;
+          // Deduplicate: group by testCaseId (stable across retries), keep the LAST result
+          // (Allure writes one file per attempt; the final attempt is the true outcome).
+          const byTest = new Map();
+          const files = fs.readdirSync('notify-results')
+            .filter(f => f.endsWith('-result.json'))
+            .map(f => ({ f, mtime: fs.statSync(path.join('notify-results', f)).mtimeMs }))
+            .sort((a, b) => a.mtime - b.mtime);
+          for (const { f } of files) {
             const r = JSON.parse(fs.readFileSync(path.join('notify-results', f), 'utf8'));
-            if (counts[r.status] !== undefined) counts[r.status]++;
+            const key = r.testCaseId || r.historyId || (r.fullName + '|' + r.name);
+            byTest.set(key, r.status);
+          }
+          const counts = { passed: 0, failed: 0, skipped: 0, broken: 0 };
+          for (const status of byTest.values()) {
+            if (counts[status] !== undefined) counts[status]++;
           }
           const total = Object.values(counts).reduce((a, b) => a + b, 0);
           for (const [k, v] of Object.entries({ total, ...counts }))
