@@ -2,12 +2,11 @@ import { test, expect } from '../fixtures/test';
 
 // Chromium-only suite: CLS (layout-shift entries) and INP (event timing)
 // are Chromium-exclusive APIs. Skipped on Firefox/WebKit.
-test.beforeEach(async ({ browserName }) => {
-  test.skip(
-    browserName !== 'chromium',
-    'Core Web Vitals APIs are Chromium-only',
-  );
-});
+// File-level skip: cleaner Allure reporting than beforeEach skip
+test.skip(
+  ({ browserName }) => browserName !== 'chromium',
+  'Core Web Vitals APIs are Chromium-only',
+);
 
 /**
  * Core Web Vitals — Google's user-perceived performance metrics.
@@ -85,7 +84,7 @@ test('INP: interaction responds within 200ms', async ({ page }) => {
   if (await refreshButton.isVisible()) {
     await refreshButton.click();
   }
-  const searchBox = page.getByRole('combobox').first();
+  const searchBox = page.getByRole('textbox').first();
   if (await searchBox.isVisible()) {
     await searchBox.fill('test');
   }
