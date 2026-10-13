@@ -66,6 +66,7 @@ export default defineConfig({
   globalSetup: './global-setup.ts',
   timeout: 30_000,
   fullyParallel: true,
+  workers: process.env.CI ? 4 : 8,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI
     ? [['list'], ['html', { open: 'never' }], ['allure-playwright']]
