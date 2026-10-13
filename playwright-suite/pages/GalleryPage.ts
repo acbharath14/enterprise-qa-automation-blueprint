@@ -70,7 +70,7 @@ export class GalleryPage {
     this.page = page;
     this.feedbackHeading = page.getByRole('heading', { name: 'Feedback Form' });
     this.nameInput = page.getByLabel('Name', { exact: true });
-    this.emailInput = page.getByLabel('Email', { exact: true });
+    this.emailInput = page.getByRole('textbox', { name: 'Email' });
     this.ratingSelect = page.getByLabel('Rating');
     this.messageInput = page.getByLabel('Message');
     this.subscribeCheckbox = page.getByLabel('Email me about this release');
