@@ -84,6 +84,13 @@
         <button id="load-metrics" type="button">Load live metrics</button>
         <div id="live-metrics" class="status" aria-live="polite"></div>
       </section>
+      <section class="card cat-dashboard" aria-label="loading skeletons">
+        <h3>Activity Feed</h3>
+        <p><button id="load-feed" type="button">Load activity</button></p>
+        <div id="feed-content" aria-live="polite">
+          <p>Click &quot;Load activity&quot; to fetch the latest events.</p>
+        </div>
+      </section>
 
       <section class="card cat-dashboard" aria-label="releases table">
         <h3>Releases</h3>
@@ -124,6 +131,22 @@
         <input id="search-input" type="text" role="combobox" aria-expanded="false" aria-controls="search-results" aria-autocomplete="list" autocomplete="off" placeholder="Type to search…" />
         <ul id="search-results" role="listbox" aria-label="matching releases" hidden></ul>
         <div class="status" id="search-selection" aria-live="polite"></div>
+      </section>
+
+
+      <section class="card cat-dashboard" aria-label="empty state demo">
+        <h3>Team Members</h3>
+        <label for="member-filter">Filter by name</label>
+        <input id="member-filter" type="text" placeholder="Type to filter…" />
+        <ul id="member-list">
+          <li>Alice Chen</li>
+          <li>Bob Martinez</li>
+          <li>Carol Johnson</li>
+        </ul>
+        <div id="member-empty" hidden>
+          <p><strong>No team members found.</strong></p>
+          <p>Try a different search term.</p>
+        </div>
       </section>
 
       <section class="card cat-dashboard" aria-label="schedule release">
@@ -205,6 +228,19 @@
           <p><button type="submit">Upload</button></p>
         </form>
         <div class="status" id="upload-result" aria-live="polite"></div>
+      </section>
+      <section class="card cat-forms" aria-label="notification preferences">
+        <h3>Notification Preferences</h3>
+        <form id="notify-form">
+          <fieldset>
+            <legend>How should we notify you?</legend>
+            <p><label><input type="radio" name="notify-pref" value="email" checked /> Email</label></p>
+            <p><label><input type="radio" name="notify-pref" value="sms" /> SMS</label></p>
+            <p><label><input type="radio" name="notify-pref" value="none" /> None</label></p>
+          </fieldset>
+          <p><button type="submit">Save preferences</button></p>
+        </form>
+        <div class="status" id="notify-pref-result" aria-live="polite"></div>
       </section>
 
       <h2 class="category" data-cat="overlays">Overlays</h2>

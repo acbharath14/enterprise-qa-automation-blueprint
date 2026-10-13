@@ -99,6 +99,7 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | Integration | `tests/integration.spec.ts` | UI calls the right API and renders its response (`waitForResponse`); attaches the raw response to the report |
 | Offline | `tests/offline.spec.ts` | Friendly message when the API is unreachable |
 | Forms | `tests/forms.spec.ts` | Inline validation errors (soft assertions); valid submit sends the exact expected POST payload; `test.step` structure |
+| Radio group | `tests/radio.spec.ts` | Fieldset/legend semantics, single selection, arrow-key navigation |
 | Auth | `tests/auth.spec.ts` + `auth.setup.ts` | Login success/failure; setup project saves `storageState` reused by `authed.spec.ts` |
 | Upload | `tests/upload.spec.ts` | File upload round-trip, server echoes the filename |
 | Dialogs | `tests/dialogs.spec.ts` | Native confirm: message content, accept and dismiss paths |
@@ -106,12 +107,14 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | Table | `tests/table.spec.ts` | Column sorting ascending/descending |
 | Tabs | `tests/tabs.spec.ts` | ARIA tablist: selection, panel switching, arrow-key navigation |
 | Search | `tests/search.spec.ts` | Autocomplete combobox: debounced results, keyboard selection, ARIA states |
+| Loading skeletons | `tests/skeletons.spec.ts` | Async load shows skeleton placeholders, then real content replaces them |
 | Date picker | `tests/datepicker.spec.ts` | Date input fill and schedule confirmation |
 | Wizard | `tests/wizard.spec.ts` | Multi-step flow: per-step validation, back/next, review and submit (`test.step` structure) |
 | Drag & drop | `tests/dragdrop.spec.ts` | Reorder the priority list with `dragTo` |
 | Toast | `tests/toast.spec.ts` | Notification appears and auto-dismisses |
 | Accordion | `tests/accordion.spec.ts` | Single-open collapsible sections: aria-expanded, click + Enter/Space keyboard |
 | Download | `tests/download.spec.ts` | CSV export: filename and file content assertions |
+| Empty states | `tests/empty-states.spec.ts` | Zero-match filter shows friendly empty-state message; clearing restores the list |
 | iFrame | `tests/iframe.spec.ts` | Same-origin frame interaction via `frameLocator` |
 | Shadow DOM | `tests/shadowdom.spec.ts` | Counter inside an open shadow root (Playwright pierces it automatically) |
 | Controls | `tests/controls.spec.ts` | ARIA switch toggles `aria-checked`; range slider updates its output |
