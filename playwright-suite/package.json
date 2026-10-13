@@ -3,7 +3,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.10.0",
     "@pact-foundation/pact": "^17.1.4",
-    "@playwright/test": "^1.54.1",
+    "@playwright/test": "^1.64.0",
     "allure-playwright": "^3.2.0",
     "typescript": "^7.0.2"
   },
