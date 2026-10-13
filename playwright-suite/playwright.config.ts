@@ -60,6 +60,11 @@ const browserstackCaps = {
 // exception on every skipped test in Allure.
 const ignoreMobileSpecs = { testIgnore: /mobile\.spec\.ts/ };
 
+// Local macOS workaround: Playwright 1.64+ does not ship Chromium for macOS 13.
+// Set USE_SYSTEM_CHROME=1 to drive the installed Google Chrome instead.
+// (CI uses Playwright's bundled Chromium and does not set this.)
+const chromeChannel = process.env.USE_SYSTEM_CHROME === '1' ? { channel: 'chrome' } : {};
+
 export default defineConfig({
   testDir: './tests',
   // Materializes the committed visual baseline (stored as base64 text) before tests run.
@@ -84,21 +89,21 @@ export default defineConfig({
   projects: [
     // Authenticates once via the UI; the 'authed' project reuses the session.
     { name: 'setup', testMatch: /.*\.setup\.ts/ },
-    { name: 'chromium', ...ignoreMobileSpecs, use: { ...devices['Desktop Chrome'] } },
+    { name: 'chromium', ...ignoreMobileSpecs, use: { ...devices['Desktop Chrome'], ...chromeChannel } },
     { name: 'firefox', ...ignoreMobileSpecs, use: { ...devices['Desktop Firefox'] } },
     { name: 'webkit', ...ignoreMobileSpecs, use: { ...devices['Desktop Safari'] } },
-    { name: 'mobile', use: { ...devices['Pixel 7'] } },
-    { name: 'dark', ...ignoreMobileSpecs, use: { ...devices['Desktop Chrome'], colorScheme: 'dark' } },
+    { name: 'mobile', use: { ...devices['Pixel 7'], ...chromeChannel } },
+    { name: 'dark', ...ignoreMobileSpecs, use: { ...devices['Desktop Chrome'], colorScheme: 'dark', ...chromeChannel } },
     {
       name: 'tz',
       ...ignoreMobileSpecs,
-      use: { ...devices['Desktop Chrome'], locale: 'en-NZ', timezoneId: 'Pacific/Auckland' },
+      use: { ...devices['Desktop Chrome'], locale: 'en-NZ', timezoneId: 'Pacific/Auckland', ...chromeChannel },
     },
     {
       name: 'authed',
       testMatch: /.*authed\.spec\.ts/,
       dependencies: ['setup'],
-      use: { ...devices['Desktop Chrome'], storageState: 'playwright/.auth/user.json' },
+      use: { ...devices['Desktop Chrome'], storageState: 'playwright/.auth/user.json', ...chromeChannel },
     },
     // Real iPhone via BrowserStack. Only registered when credentials are
     // present — see the comment at the top of this file.
