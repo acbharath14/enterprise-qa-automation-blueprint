@@ -113,8 +113,11 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | Drag & drop | `tests/dragdrop.spec.ts` | Reorder the priority list with `dragTo` |
 | Toast | `tests/toast.spec.ts` | Notification appears and auto-dismisses |
 | Accordion | `tests/accordion.spec.ts` | Single-open collapsible sections: aria-expanded, click + Enter/Space keyboard |
+| Pagination | `tests/pagination.spec.ts` | Page navigation: next/prev, page numbers, page-size control, disabled states |
+| Dropdown | `tests/dropdown.spec.ts` | Menu button toggles, arrow-key navigation with wraparound, ESC/outside-click close, focus return |
 | Download | `tests/download.spec.ts` | CSV export: filename and file content assertions |
 | Empty states | `tests/empty-states.spec.ts` | Zero-match filter shows friendly empty-state message; clearing restores the list |
+| Tooltips | `tests/tooltips.spec.ts` | Hover/focus reveals tooltip, ESC dismisses, aria-describedby association |
 | iFrame | `tests/iframe.spec.ts` | Same-origin frame interaction via `frameLocator` |
 | Shadow DOM | `tests/shadowdom.spec.ts` | Counter inside an open shadow root (Playwright pierces it automatically) |
 | Controls | `tests/controls.spec.ts` | ARIA switch toggles `aria-checked`; range slider updates its output |
@@ -145,6 +148,13 @@ npx playwright test --project=firefox                 # a single project
 npx playwright test --project=chromium --headed       # headed, one browser
 npx playwright test --debug tests/smoke.spec.ts      # step-through debugging
 ```
+
+> **macOS note:** Playwright 1.64+ no longer ships Chromium for macOS 13 (Ventura).
+> If `npx playwright install chromium` fails with "Playwright does not support chromium on mac13",
+> use your installed Chrome instead:
+> ```bash
+> USE_SYSTEM_CHROME=1 npx playwright test --project=chromium
+> ```
 
 ### Real devices (BrowserStack)
 
@@ -262,7 +272,9 @@ Tag it (`@smoke`, `@a11y`) if it belongs in a filtered run, data-drive it from `
 
 ## How CI Works
 
-Every push/PR touching `playwright-suite/` runs the suite split across 2 shards covering all 8 projects. HTML and Allure reports are uploaded as artifacts per shard. On `main`, the merged report publishes to [GitHub Pages](https://acbharath14.github.io/enterprise-qa-automation-blueprint/). A scheduled run every Monday keeps the badge honest.
+Every push/PR touching `playwright-suite/` runs the suite split across 2 shards (4 workers each) covering all 8 projects. HTML and Allure reports are uploaded as artifacts per shard. On `main`, the merged report publishes to [GitHub Pages](https://acbharath14.github.io/enterprise-qa-automation-blueprint/). A scheduled run every Monday keeps the badge honest.
+
+**Failure debugging:** Each shard writes a failure summary table (test name + first error line) to the GitHub Step Summary on the run page — no artifact download needed for triage. The email notification includes a visual pass/fail bar and deduplicated counts (retries count once, by final outcome).
 
 ## Troubleshooting
 
@@ -273,6 +285,9 @@ Every push/PR touching `playwright-suite/` runs the suite split across 2 shards 
 | Visual test fails after you changed the UI | intentional — regenerate the baseline (see above) and commit it |
 | Tests pass locally but fail in CI | check for timing assumptions and unmasked dynamic content; open the trace from the CI artifact |
 | `npm test` feels slow | run a slice: `npm run test:smoke` or `--project=chromium` while developing |
+| Page shows raw text instead of rendering | `index.html` was pushed base64-encoded — push raw HTML content via the API, not base64 |
+| `getByLabel` matches multiple elements | another component uses the same label text — use `getByRole` with a specific role, or scope to a region |
+| Allure shows skips as failures | use `testIgnore` in the Playwright config for browser-exclusive tests instead of `test.skip()` |
 
 ## License
 
