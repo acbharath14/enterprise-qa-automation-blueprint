@@ -1,0 +1,44 @@
+# Mirror main to the GitLab project on every push.
+#
+# Why this exists: GitLab pull-mirroring (GitLab polling GitHub) requires a
+# Premium tier, so on the free tier the GitLab project cannot pull from GitHub
+# by itself. Instead GitHub pushes to GitLab here. GitLab stays a pure CI
+# mirror — never commit there directly.
+#
+# Setup (one time):
+#   1. GitLab -> User Settings -> Access Tokens -> create a token with the
+#      `write_repository` scope. (A project access token scoped to the GitLab
+#      project works too and is safer.)
+#   2. GitHub repo -> Settings -> Secrets and variables -> Actions ->
+#      New repository secret named GITLAB_TOKEN = the token from step 1.
+#   3. Add THIS file via the GitHub web UI at
+#      .github/workflows/mirror-to-gitlab.yml  (paste it in the browser —
+#      the GitHub App cannot push workflow files via API).
+#   4. Confirm GITLAB_PROJECT_PATH below matches your GitLab project path,
+#      then push any commit to main and watch the GitLab pipeline trigger.
+#
+# Cost: runs on ubuntu-latest, a few seconds per push. Public repos have
+# unlimited Actions minutes, so this is effectively free.
+
+"name": Mirror to GitLab
+
+"on":
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Push main and tags to GitLab
+        env:
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+        run: |
+          GITLAB_PROJECT_PATH="acbharath14/enterprise-qa-automation-blueprint"  # <-- verify this path
+          git remote add gitlab "https://oauth2:${GITLAB_TOKEN}@gitlab.com/${GITLAB_PROJECT_PATH}.git"
+          git push gitlab main:main
+          git push gitlab --tags
