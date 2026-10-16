@@ -79,9 +79,17 @@ test:
   script:
     - cd playwright-suite
     - npm ci
-    # Capture the exit code instead of failing fast: the failure-summary and
-    # artifact steps below must run even when tests fail (GitHub `if: always()`).
-    - npx playwright test --shard=$SHARD/2; echo $? > /tmp/test-exit-code
+    # Capture the exit code without failing fast: GitLab aborts the script on
+    # the first failing command (set -e), so a bare `npx playwright test`
+    # would skip the failure-summary and artifact steps below when tests fail.
+    # `if` conditions are exempt from set -e — this mirrors GitHub's
+    # `if: always()` on the summary/upload steps.
+    - |
+      if npx playwright test --shard=$SHARD/2; then
+        echo 0 > /tmp/test-exit-code
+      else
+        echo 1 > /tmp/test-exit-code
+      fi
     - |
       node <<'NODEEOF'
       const fs = require('fs');
