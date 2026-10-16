@@ -38,7 +38,7 @@ jobs:
         env:
           GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
         run: |
-          GITLAB_PROJECT_PATH="acbharath14/enterprise-qa-automation-blueprint"  # <-- verify this path
+          GITLAB_PROJECT_PATH="hexaware-technologies-group4/enterprise-qa-automation-blueprint"
           git remote add gitlab "https://oauth2:${GITLAB_TOKEN}@gitlab.com/${GITLAB_PROJECT_PATH}.git"
           git push gitlab main:main
           git push gitlab --tags
