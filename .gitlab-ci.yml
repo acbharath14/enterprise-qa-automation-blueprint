@@ -1,0 +1,350 @@
+# =============================================================================
+# GitLab CI port of .github/workflows/e2e.yml
+# Repo: hexaware-technologies-group4/enterprise-qa-automation-blueprint
+# (GitHub source of truth: acbharath14/enterprise-qa-automation-blueprint)
+# Status: DRAFT — review before committing. Do NOT treat as live until a
+#         pipeline has gone green on the GitLab mirror.
+#
+# --- Setup this file assumes -------------------------------------------------
+# 1. MIRROR: GitHub pushes to GitLab on every main push via the
+#    `mirror-to-gitlab.yml` GitHub Actions workflow (reference copy at
+#    ~/workspace/your_files/mirror-to-gitlab.yml — paste it into the GitHub
+#    repo via the web UI). GitLab pull-mirroring needs a Premium tier, so it
+#    is NOT used here. GitHub stays the source of truth; this file lives in
+#    the GitHub repo too (GitHub Actions ignores it) and reaches GitLab
+#    through the push mirror.
+# 2. RUNNER: a self-hosted GitLab Runner on the 2017 Intel iMac, Docker
+#    executor, registered with tags [imac, docker]. EVERY job below uses
+#    `extends: .imac-runner` — if your runner was registered with different
+#    tags, change them in one place (.imac-runner).
+#    Intel iMac => linux/amd64 containers run natively, no emulation.
+# 3. VARIABLES (GitLab -> Settings -> CI/CD -> Variables, masked):
+#      RESEND_API_KEY  - Resend API key for the notify job
+#      ALERT_TO        - recipient email for the execution summary
+# 4. SCHEDULES: the weekly Monday 06:00 UTC run and any manual/nightly runs are
+#    configured as Pipeline Schedules in the GitLab UI (schedules are not
+#    defined in YAML). The "Run pipeline" button covers workflow_dispatch.
+# 5. PAGES: GitLab Pages serves the `public/` artifact of the `pages` job at
+#    $CI_PAGES_URL (e.g. https://hexaware-technologies-group4.gitlab.io/enterprise-qa-automation-blueprint).
+#
+# --- Deliberately NOT ported here (follow-ups) --------------------------------
+# - newman.yml (hourly Postman health check)
+# - k6-smoke.yml / k6-load.yml
+# - zap-baseline.yml (report-only template)
+# - GitHub's `paths:` push filter (playwright-suite/**) — this pipeline runs
+#   on every main push and every MR. Add `rules:changes:` later if needed.
+# =============================================================================
+
+stages:
+  - test
+  - verify
+  - report
+  - notify
+
+# Playwright Docker image pinned to the @playwright/test version in
+# playwright-suite/package.json (^1.64.0). Browsers are pre-installed in the
+# image, so `npx playwright install --with-deps` is not needed.
+# Bump the tag when package.json moves to a new Playwright minor.
+
+.imac-runner:
+  tags: [imac, docker]
+
+.npm-cache:
+  cache:
+    key:
+      files:
+        - playwright-suite/package-lock.json
+    paths:
+      - .npm/
+
+variables:
+  NPM_CONFIG_CACHE: "$CI_PROJECT_DIR/.npm"
+
+# =============================================================================
+# 1. test — Playwright suite, 2 shards (mirrors GitHub `strategy.matrix`)
+# =============================================================================
+test:
+  extends: [.imac-runner, .npm-cache]
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.64.0
+  timeout: 30m
+  interruptible: true # cancels redundant pipelines; needs the project setting
+                      # "Auto-cancel redundant pipelines" enabled to take effect
+  parallel:
+    matrix:
+      - SHARD: ["1", "2"]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - cd playwright-suite
+    - npm ci
+    # Capture the exit code instead of failing fast: the failure-summary and
+    # artifact steps below must run even when tests fail (GitHub `if: always()`).
+    - npx playwright test --shard=$SHARD/2; echo $? > /tmp/test-exit-code
+    - |
+      node <<'NODEEOF'
+      const fs = require('fs');
+      const path = require('path');
+      const dir = 'allure-results';
+      // Deduplicate by testCaseId, keep last (final retry outcome)
+      const byTest = new Map();
+      if (fs.existsSync(dir)) {
+        const files = fs.readdirSync(dir)
+          .filter(f => f.endsWith('-result.json'))
+          .map(f => ({ f, mtime: fs.statSync(path.join(dir, f)).mtimeMs }))
+          .sort((a, b) => a.mtime - b.mtime);
+        for (const { f } of files) {
+          const r = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+          const key = r.testCaseId || r.historyId || (r.fullName + '|' + r.name);
+          byTest.set(key, r);
+        }
+      }
+      const failures = [];
+      for (const r of byTest.values()) {
+        if (r.status === 'failed') {
+          const err = (r.statusDetails?.message || 'Unknown error').split('\n')[0].slice(0, 180);
+          failures.push({ name: r.name, err: err.replace(/\|/g, '\\|') });
+        }
+      }
+      let md = '## Test Failures (shard ' + process.env.SHARD + ')\n\n';
+      if (!failures.length) md += 'No failures.\n';
+      else {
+        md += '| Test | Error |\n|------|-------|\n';
+        for (const f of failures.slice(0, 50)) md += '| ' + f.name + ' | ' + f.err + ' |\n';
+        if (failures.length > 50) md += '\n_Showing 50 of ' + failures.length + '._\n';
+      }
+      console.log(md);
+      // GitHub Actions appends this to the run summary; no-op on GitLab.
+      if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
+      NODEEOF
+    # Mirror GitHub: friendly Allure labels are only applied when the run
+    # itself succeeded (the pages job re-applies them to the merged results).
+    - if [ "$(cat /tmp/test-exit-code)" = "0" ]; then node scripts/fix-allure-labels.mjs; fi
+    # Namespace the result dirs per shard so the two parallel jobs' artifacts
+    # don't overwrite each other when downloaded downstream.
+    - if [ -d playwright-report ]; then mv playwright-report "playwright-report-shard-$SHARD"; fi
+    - if [ -d allure-results ]; then mv allure-results "allure-results-shard-$SHARD"; fi
+    - exit $(cat /tmp/test-exit-code)
+  artifacts:
+    when: always
+    paths:
+      - playwright-suite/playwright-report-shard-$SHARD/
+      - playwright-suite/allure-results-shard-$SHARD/
+    expire_in: 14 days
+
+# =============================================================================
+# 2. quality-gate — GO / NO-GO release signal (mirrors GitHub `quality-gate`)
+# =============================================================================
+quality-gate:
+  extends: .imac-runner
+  stage: verify
+  image: node:20
+  timeout: 10m
+  interruptible: true
+  needs:
+    - job: test
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: always # run even when test failed — NO-GO must be visible
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+  script:
+    - mkdir -p gate-results
+    - cp -r playwright-suite/allure-results-shard-1/. gate-results/ 2>/dev/null || true
+    - cp -r playwright-suite/allure-results-shard-2/. gate-results/ 2>/dev/null || true
+    - node playwright-suite/scripts/quality-gate.mjs gate-results
+    # quality-gate.mjs exits 0 on GO, 1 on NO-GO, and prints the verdict table
+    # to stdout (its GITHUB_STEP_SUMMARY append is already guarded upstream).
+
+# =============================================================================
+# 3. contract — Pact consumer + provider verification (mirrors GitHub `contract`)
+#    No separate start-app step: playwright.contract.config.ts has a webServer
+#    block that launches `node server.mjs` and waits for 127.0.0.1:4173 itself.
+# =============================================================================
+contract:
+  extends: [.imac-runner, .npm-cache]
+  stage: verify
+  image: node:20
+  timeout: 10m
+  interruptible: true
+  needs:
+    - job: test
+      artifacts: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: always
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+  script:
+    - cd playwright-suite
+    - npm ci
+    - npm run test:contract
+
+# =============================================================================
+# 4. pages — assemble + publish reports (mirrors GitHub `publish-report`).
+#    Must be named exactly `pages`; GitLab Pages serves its `public/` artifact.
+#    Main branch only, runs even when tests failed (showcase is intentional).
+# =============================================================================
+pages:
+  extends: [.imac-runner, .npm-cache]
+  stage: report
+  image: mcr.microsoft.com/playwright:v1.64.0
+  timeout: 20m
+  interruptible: true
+  needs:
+    - job: test
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: always
+  script:
+    - cd playwright-suite
+    - npm ci
+    # Failure showcase: two deliberately wrong assertions. `|| true` keeps the
+    # job alive so the published reports demonstrate failure capture
+    # (assertion diff, screenshot, video, trace) without breaking the build.
+    - SHOWCASE=1 npx playwright test tests/failure-showcase.spec.ts --project=chromium --reporter=allure-playwright,html || true
+    - mv allure-results ../showcase-allure-results
+    - mv playwright-report ../showcase-playwright-report
+    - cd "$CI_PROJECT_DIR"
+    # Assemble the site from the shard artifacts downloaded via `needs`.
+    - mkdir -p public
+    - mv playwright-suite/playwright-report-shard-1 public/ 2>/dev/null || true
+    - mv playwright-suite/playwright-report-shard-2 public/ 2>/dev/null || true
+    - mkdir -p allure-results
+    - cp -r playwright-suite/allure-results-shard-1/. allure-results/ 2>/dev/null || true
+    - cp -r playwright-suite/allure-results-shard-2/. allure-results/ 2>/dev/null || true
+    - node playwright-suite/scripts/fix-allure-labels.mjs allure-results
+    - node playwright-suite/scripts/fix-allure-labels.mjs showcase-allure-results
+    - mkdir -p allure-results/history
+    - curl -sf "$CI_PAGES_URL/allure/history/history.json" -o allure-results/history/history.json || echo "No previous history (first run)"
+    # allure-commandline is a Java app; the Playwright image ships no JRE.
+    - apt-get update -qq && apt-get install -y -qq default-jre-headless
+    - npm install -g allure-commandline
+    - allure generate allure-results showcase-allure-results -o public/allure --clean
+    - mkdir -p public/playwright-report-showcase
+    - cp -r showcase-playwright-report/. public/playwright-report-showcase/
+    - |
+      cat > public/index.html <<'HTMLEOF'
+      <!doctype html><html><body><h1>Test Reports</h1><p>The <b>failure showcase</b> holds two intentional failures, demonstrating failure capture (assertion diff, screenshot, video, trace).</p><ul><li><a href="allure/">Allure report</a> (failures under <b>Showcase › Intentional failures</b>)</li><li><a href="playwright-report-showcase/">Playwright HTML — Failure showcase</a></li><li><a href="playwright-report-shard-1/">Playwright HTML — Shard 1</a></li><li><a href="playwright-report-shard-2/">Playwright HTML — Shard 2</a></li></ul></body></html>
+      HTMLEOF
+    # Merged results for the notify job (kept out of public/).
+    - mkdir -p notify-results
+    - cp -r allure-results/. notify-results/
+    - cp -r showcase-allure-results/. notify-results/
+  artifacts:
+    paths:
+      - public/ # required: this is what GitLab Pages publishes
+      - notify-results/
+    expire_in: 14 days
+
+# =============================================================================
+# 5. notify — Resend email execution summary (mirrors GitHub `notify`).
+#    Main branch only, runs even when earlier jobs failed.
+#    Requires CI/CD variables: RESEND_API_KEY, ALERT_TO.
+# =============================================================================
+notify:
+  extends: .imac-runner
+  stage: notify
+  image: node:20
+  timeout: 10m
+  interruptible: true
+  needs:
+    - job: test
+      artifacts: false
+    - job: pages
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: always
+  script:
+    # Step 1: build the summary. GitHub used GITHUB_OUTPUT to pass counts
+    # between steps; here we write a dotenv file and source it in the same job.
+    - |
+      node <<'NODEEOF'
+      const fs = require('fs');
+      const path = require('path');
+      // Deduplicate: group by testCaseId (stable across retries), keep the LAST result
+      // (Allure writes one file per attempt; the final attempt is the true outcome).
+      const byTest = new Map();
+      const files = fs.readdirSync('notify-results')
+        .filter(f => f.endsWith('-result.json'))
+        .map(f => ({ f, mtime: fs.statSync(path.join('notify-results', f)).mtimeMs }))
+        .sort((a, b) => a.mtime - b.mtime);
+      for (const { f } of files) {
+        const r = JSON.parse(fs.readFileSync(path.join('notify-results', f), 'utf8'));
+        const key = r.testCaseId || r.historyId || (r.fullName + '|' + r.name);
+        byTest.set(key, r.status);
+      }
+      const counts = { passed: 0, failed: 0, skipped: 0, broken: 0 };
+      for (const status of byTest.values()) {
+        if (counts[status] !== undefined) counts[status]++;
+      }
+      const total = Object.values(counts).reduce((a, b) => a + b, 0);
+      const env = { TOTAL: total, PASSED: counts.passed, FAILED: counts.failed, SKIPPED: counts.skipped, BROKEN: counts.broken };
+      fs.writeFileSync('summary.env', Object.entries(env).map(([k, v]) => k + '=' + v).join('\n') + '\n');
+      console.log('Summary: ' + JSON.stringify({ total, ...counts }));
+      NODEEOF
+    # Step 2: send via Resend.
+    - set -a; . ./summary.env; set +a
+    - |
+      node <<'NODEEOF'
+      const https = require('https');
+      if (!process.env.RESEND_API_KEY || !process.env.ALERT_TO) {
+        console.error('Missing RESEND_API_KEY or ALERT_TO CI/CD variable');
+        process.exit(1);
+      }
+      const summary = {
+        total: parseInt(process.env.TOTAL) || 0,
+        passed: parseInt(process.env.PASSED) || 0,
+        failed: parseInt(process.env.FAILED) || 0,
+        skipped: parseInt(process.env.SKIPPED) || 0,
+        broken: parseInt(process.env.BROKEN) || 0,
+      };
+      const pct = (n) => summary.total ? (n / summary.total * 100).toFixed(1) : 0;
+      const bar = (n, color) => summary.total && n > 0
+        ? '<div style="height:18px;background:' + color + ';width:' + pct(n) + '%;display:inline-block;" title="' + n + '"></div>'
+        : '';
+      const runUrl = process.env.CI_PIPELINE_URL;
+      const pagesUrl = process.env.CI_PAGES_URL;
+      const body = {
+        from: 'QA Automation <onboarding@resend.dev>',
+        to: [process.env.ALERT_TO],
+        subject: `E2E summary: ${summary.passed} passed, ${summary.failed} failed, ${summary.skipped} skipped (pipeline #${process.env.CI_PIPELINE_ID})`,
+        html: `
+          <h2>Playwright E2E — execution summary</h2>
+          <p>Repo: ${process.env.CI_PROJECT_PATH} · Branch: main · <a href="${runUrl}">pipeline #${process.env.CI_PIPELINE_ID}</a></p>
+          <div style="width:100%;max-width:500px;background:#eee;border-radius:4px;overflow:hidden;white-space:nowrap;font-size:0;">${bar(summary.passed, '#22c55e')}${bar(summary.failed, '#ef4444')}${bar(summary.skipped, '#f59e0b')}${bar(summary.broken, '#a855f7')}</div>
+          <ul>
+            <li>Total: ${summary.total}</li>
+            <li><span style="color:#22c55e;">■</span> Passed: ${summary.passed} (${pct(summary.passed)}%)</li>
+            <li><span style="color:#ef4444;">■</span> Failed: ${summary.failed} (${pct(summary.failed)}%) — 2 are intentional showcase failures</li>
+            <li><span style="color:#f59e0b;">■</span> Skipped: ${summary.skipped} (${pct(summary.skipped)}%)</li>
+            <li><span style="color:#a855f7;">■</span> Broken: ${summary.broken}</li>
+          </ul>
+          <p><a href="${pagesUrl}/allure/">Allure report</a> ·
+          <a href="${pagesUrl}/playwright-report-showcase/">Failure showcase (HTML)</a> ·
+          <a href="${pagesUrl}/">All reports</a></p>`,
+      };
+      const data = JSON.stringify(body);
+      const req = https.request('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(data),
+        },
+      }, (res) => {
+        let out = '';
+        res.on('data', (c) => out += c);
+        res.on('end', () => {
+          console.log('Resend status:', res.statusCode, out);
+          if (res.statusCode >= 300) process.exit(1);
+        });
+      });
+      req.on('error', (e) => { console.error(e); process.exit(1); });
+      req.write(data);
+      req.end();
+      NODEEOF
