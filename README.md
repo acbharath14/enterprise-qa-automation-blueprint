@@ -42,6 +42,10 @@ flowchart LR
 │   ├── test-data/visual-baseline.b64.partN   # the visual baseline, versioned as base64 text
 │   ├── test-data/metrics.json       # data file driving the dashboard specs (edit data, not code)
 │   ├── test-data/metrics-snapshot.json # committed API contract: /api/metrics must equal this
+│   ├── test-data/openapi.sample.json   # committed OpenAPI document for the JSON API —
+│   │                                    # tests/api-schema.spec.ts validates every response against it
+│   ├── test-data/schema-validator.ts   # reusable AJV helper: validates a response against the
+│   │                                    # OpenAPI document (local $refs, {param} path templates)
 │   ├── playwright.config.ts         # projects (chromium/firefox/webkit/mobile/dark/tz/authed + auth
 │   │                                # setup), retries, reporters, trace+video-on-failure, auto-started webServer
 │   └── package.json                 # scripts: test, test:smoke, test:a11y, test:headed, report,
@@ -94,6 +98,7 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | Keyboard | `tests/keyboard.spec.ts` | Tab order, focus, Enter/Space activation — what axe-core can't check |
 | Mobile | `tests/mobile.spec.ts` | `@mobile` tag: viewport meta tag, no horizontal overflow at mobile width, touch-tap actions, form usability — on the Pixel 7 `mobile` project (`npm run test:mobile`) or a real iPhone via the opt-in `browserstack` project (see below) |
 | API | `tests/api.spec.ts` | Contract shape, value sanity, JSON error responses, committed contract file (`test-data/metrics-snapshot.json`) |
+| API schema validation | `tests/api-schema.spec.ts` | Every JSON response validated against the committed OpenAPI document (`test-data/openapi.sample.json`) via `test-data/schema-validator.ts` (AJV, local `$ref`s, `{param}` path templates); undocumented responses fail loudly |
 | Contract | `contract/pact-metrics.spec.ts`, `contract/pact-api.spec.ts` | Pact consumer + provider verification for all 6 API endpoints (`GET /api/metrics`, `POST /api/feedback`, `POST /api/login`, `POST /api/upload`, `GET /api/search`, `GET /api/export`) via `npm run test:contract`; contract files are committed at `contract/pacts/` |
 | API mocking | `tests/api-mocked.spec.ts` | UI behavior when the backend returns 500s or slow responses |
 | Integration | `tests/integration.spec.ts` | UI calls the right API and renders its response (`waitForResponse`); attaches the raw response to the report |

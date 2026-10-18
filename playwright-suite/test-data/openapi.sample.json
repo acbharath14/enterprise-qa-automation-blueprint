@@ -1,0 +1,215 @@
+{
+  "components": {
+    "schemas": {
+      "Error": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "FeedbackReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok",
+          "id"
+        ],
+        "type": "object"
+      },
+      "Metrics": {
+        "additionalProperties": false,
+        "properties": {
+          "apiHealth": {
+            "type": "string"
+          },
+          "coverage": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number"
+          },
+          "p95LatencyMs": {
+            "exclusiveMinimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "coverage",
+          "apiHealth",
+          "p95LatencyMs"
+        ],
+        "type": "object"
+      },
+      "Session": {
+        "additionalProperties": false,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "token": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "token"
+        ],
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Committed OpenAPI document for the sample app's JSON endpoints. tests/api-schema.spec.ts validates every JSON response against this document via test-data/schema-validator.ts. When the API changes, update this file first \u2014 the schema tests will tell you what drifted.",
+    "title": "Sample App API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/api/feedback": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackReceipt"
+                }
+              }
+            },
+            "description": "Feedback accepted"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Name or valid email missing"
+          }
+        },
+        "summary": "Submit feedback from the component gallery"
+      }
+    },
+    "/api/login": {
+      "post": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            },
+            "description": "Authenticated"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Invalid credentials"
+          }
+        },
+        "summary": "Authenticate and receive a session token"
+      }
+    },
+    "/api/metrics": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Metrics"
+                }
+              }
+            },
+            "description": "Current metrics snapshot"
+          }
+        },
+        "summary": "Release quality metrics shown on the dashboard"
+      }
+    },
+    "/api/search": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Matching release names"
+          }
+        },
+        "summary": "Case-insensitive release-name search"
+      }
+    },
+    "/api/{unknown}": {
+      "description": "Catch-all: the sample app returns { error } with 404 for any undeclared /api/* route.",
+      "get": {
+        "responses": {
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unknown API route"
+          }
+        }
+      },
+      "post": {
+        "responses": {
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unknown API route"
+          }
+        }
+      }
+    }
+  }
+}

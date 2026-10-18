@@ -34,6 +34,7 @@ export { expect };
 const ALLURE_SUITES: Record<string, [parentSuite: string, suite: string]> = {
   'accessibility.spec.ts': ['Accessibility', 'WCAG scans'],
   'api-mocked.spec.ts': ['API', 'Mocked API'],
+  'api-schema.spec.ts': ['API', 'Schema validation'],
   'api.spec.ts': ['API', 'Metrics API'],
   'auth.spec.ts': ['Authentication', 'Sign in'],
   'authed.spec.ts': ['Authentication', 'Signed-in state'],
