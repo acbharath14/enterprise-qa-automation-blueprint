@@ -59,6 +59,7 @@ const ALLURE_SUITES: Record<string, [parentSuite: string, suite: string]> = {
   'security.spec.ts': ['Security', 'Security checks'],
   'shadowdom.spec.ts': ['UI components', 'Shadow DOM'],
   'smoke.spec.ts': ['Smoke', 'Critical paths'],
+  'store-smoke.spec.ts': ['Store', 'Smoke'],
   'table.spec.ts': ['UI components', 'Releases table'],
   'theme.spec.ts': ['UI components', 'Theme'],
   'toast.spec.ts': ['UI components', 'Toast'],
