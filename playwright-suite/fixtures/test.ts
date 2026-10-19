@@ -116,6 +116,7 @@ const ALLURE_SUITES: Record<string, [parentSuite: string, suite: string]> = {
   'accessibility.spec.ts': ['Accessibility', 'WCAG scans'],
   'accordion.spec.ts': ['UI components', 'Accordion'],
   'api-mocked.spec.ts': ['API', 'Mocked API'],
+  'api-schema.spec.ts': ['API', 'Schema validation'],
   'api.spec.ts': ['API', 'Store API'],
   'auth.setup.ts': ['Authentication', 'Setup'],
   'auth.spec.ts': ['Authentication', 'Sign in'],

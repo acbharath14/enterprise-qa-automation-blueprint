@@ -4,6 +4,8 @@
     "@axe-core/playwright": "^4.10.0",
     "@pact-foundation/pact": "^17.1.4",
     "@playwright/test": "^1.64.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
     "allure-playwright": "^3.2.0",
     "typescript": "^7.0.2"
   },

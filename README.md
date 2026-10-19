@@ -49,6 +49,8 @@ flowchart LR
 │   ├── test-data/visual-baseline.b64.partN   # the visual baseline, versioned as base64 text
 │   ├── test-data/factory.ts         # seedable data factory (mulberry32 PRNG): makeProducts(n, seed)
 │   │                                # is identical on every run, varied across seeds
+│   ├── test-data/schema-validator.ts   # reusable AJV helper: validates a response against the
+│   │                                    # OpenAPI document (local $refs, {param} path templates)
 │   ├── playwright.config.ts         # projects (chromium/firefox/webkit/mobile/dark/tz/authed + auth
 │   │                                # setup), retries, reporters, trace+video-on-failure, auto-started webServer
 │   └── package.json                 # scripts: test, test:smoke, test:a11y, test:headed, report,
