@@ -5,7 +5,7 @@ test.describe('Order Receipt Popup', () => {
 
   test('View receipt opens the receipt in a new tab', async ({ Given, When, Then, And, bdd, page, request }) => { 
     await Given('I have placed an order for "Aurora Wireless Headphones"', null, { bdd, page, request }); 
-    await When('I click "View receipt"', null, { page }); 
+    await When('I click "View receipt"', null, { bdd, page }); 
     await Then('a new tab opens at the receipt URL', null, { page }); 
     await And('the receipt tab shows CSV content with a "product,quantity" header', null, { page }); 
   });

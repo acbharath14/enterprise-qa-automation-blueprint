@@ -190,17 +190,24 @@ When('I enter valid shipping details', async ({ page }) => {
 
 When('I enter valid payment details', async ({ page, bdd }) => {
   bdd.cardNumber = VALID_CARD.cardNumber;
-  await new CheckoutPage(page).fillPayment(VALID_CARD);
+  const checkout = new CheckoutPage(page);
+  await checkout.next();
+  await expect(checkout.step2).toBeVisible();
+  await checkout.fillPayment(VALID_CARD);
 });
+
 
 When('I place the order', async ({ page, bdd }) => {
   const checkout = new CheckoutPage(page);
+  await checkout.next();
+  await expect(checkout.step3).toBeVisible();
   const orderRequest = page.waitForRequest(
     (req) => req.url().includes('/api/orders') && req.method() === 'POST'
   );
   await checkout.placeOrder();
   bdd.orderPayload = (await orderRequest).postDataJSON();
 });
+
 
 Then('the order confirmation is shown', async ({ page }) => {
   await expect(new CheckoutPage(page).confirmation).toBeVisible();
@@ -279,10 +286,15 @@ Then(
 
 
 Then('each full page shows exactly 6 product cards', async ({ bdd }) => {
-  for (const count of bdd.cardsPerPage || []) {
-    expect(count).toBe(6);
+  const counts = bdd.cardsPerPage || [];
+  for (let i = 0; i < counts.length - 1; i++) {
+    expect(counts[i]).toBe(6);
   }
+  const last = counts[counts.length - 1];
+  expect(last).toBeGreaterThan(0);
+  expect(last).toBeLessThanOrEqual(6);
 });
+
 
 Then(
   /^the (\S+) card shows (name|price|category|rating) "([^"]+)"$/,
