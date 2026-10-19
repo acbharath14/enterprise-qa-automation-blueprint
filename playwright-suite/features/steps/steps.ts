@@ -1992,12 +1992,6 @@ async function apiSend(
   return res;
 }
 
-function toPattern(pattern: string): RegExp {
-  // "ord-<number>" -> /^ord-\d+$/
-  const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace('<number>', '\\d+').replace('<n>', '\\d+');
-  return new RegExp(`^${escaped}$`);
-}
-
 // ---------------------------------------------------------------------------
 // accessibility.feature
 // ---------------------------------------------------------------------------
