@@ -6,9 +6,14 @@ test.describe('keyboard navigation', () => {
     catalogPage,
     page,
   }) => {
+    // On mobile (<=768px) the hamburger toggle is visible and first in DOM
+    // order, while nav-catalog hides inside the collapsed nav. On desktop
+    // the toggle is display:none and nav-catalog is visible.
+    const navToggleVisible = await page.getByTestId('nav-toggle').isVisible();
     const expectedOrder = [
+      ...(navToggleVisible ? ['nav-toggle'] : []),
       'store-logo',
-      'nav-catalog',
+      ...(navToggleVisible ? [] : ['nav-catalog']),
       'nav-cart',
       'theme-toggle',
       'login-button',
