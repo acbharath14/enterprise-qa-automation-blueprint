@@ -2753,3 +2753,34 @@ Then('the slowest interaction duration is under 200 milliseconds', async ({ page
   });
   expect(maxDuration).toBeLessThan(200);
 });
+
+Given('the browser emulates Pacific\\/Auckland \\(en-NZ)', async () => {
+  // Timezone/locale is emulated at the project level (tz project in playwright.config.ts).
+  // This step documents the precondition; no runtime action needed.
+});
+
+Then('the body is exactly {string}', async ({ bdd }, expected: string) => {
+  const body = await bdd.lastResponse?.text();
+  expect(body?.trim()).toBe(expected);
+});
+
+Then('the cumulative layout shift \\(excluding input-driven shifts) is under {float}', async ({ page }, threshold: number) => {
+  const cls = await page.evaluate(() => {
+    return new Promise<number>((resolve) => {
+      let clsValue = 0;
+      const observer = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          if (!(entry as any).hadRecentInput) {
+            clsValue += (entry as any).value;
+          }
+        }
+      });
+      observer.observe({ type: 'layout-shift', buffered: true });
+      setTimeout(() => {
+        observer.disconnect();
+        resolve(clsValue);
+      }, 1000);
+    });
+  });
+  expect(cls).toBeLessThan(threshold);
+});
