@@ -328,7 +328,7 @@ notify:
           <ul>
             <li>Total: ${summary.total}</li>
             <li><span style="color:#22c55e;">■</span> Passed: ${summary.passed} (${pct(summary.passed)}%)</li>
-            <li><span style="color:#ef4444;">■</span> Failed: ${summary.failed} (${pct(summary.failed)}%) — 2 are intentional showcase failures</li>
+            <li><span style="color:#ef4444;">■</span> Failed: ${summary.failed} (${pct(summary.failed)}%)</li>
             <li><span style="color:#f59e0b;">■</span> Skipped: ${summary.skipped} (${pct(summary.skipped)}%)</li>
             <li><span style="color:#a855f7;">■</span> Broken: ${summary.broken}</li>
           </ul>
