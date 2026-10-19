@@ -2533,10 +2533,6 @@ When('I upload a product image with a script-tag filename', async ({ request, bd
   bdd.lastJson = await res.json();
 });
 
-Then('the response status is 200', async ({ bdd }) => {
-  expect(bdd.lastResponse?.status()).toBe(200);
-});
-
 Then('the stored filename contains no {string} or {string}', async ({ bdd }, a: string, b: string) => {
   const filename = (bdd.lastJson as any)?.filename as string;
   expect(filename).not.toContain(a);
@@ -2549,10 +2545,6 @@ When('I submit an order', async ({ request, bdd }) => {
     data: { name: 'Mallory', email: 'mallory@example.com', address: '1 Evil St', payment: { cardLast4: '0000' } }
   });
   bdd.lastResponse = res;
-});
-
-Then('the response status is 422', async ({ bdd }) => {
-  expect(bdd.lastResponse?.status()).toBe(422);
 });
 
 When('I request the homepage, the payment frame, and the products API', async ({ request, bdd }) => {
