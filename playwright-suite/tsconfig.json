@@ -1,0 +1,1 @@
+{"compilerOptions":{"esModuleInterop":true,"lib":["ES2022","DOM","DOM.Iterable"],"module":"NodeNext","moduleResolution":"NodeNext","noEmit":true,"skipLibCheck":true,"strict":true,"target":"ES2022","types":[]},"include":["tests/**/*.ts","pages/**/*.ts","fixtures/**/*.ts","scripts/**/*.ts","types/**/*.d.ts","playwright.config.ts","playwright.contract.config.ts","global-setup.ts"]}

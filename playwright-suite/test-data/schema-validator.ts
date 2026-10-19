@@ -14,11 +14,11 @@ declare const __dirname: string;
  * - contract/ (Pact) pins the consumer<->provider agreement for the
  *   dashboard UI's endpoints.
  * - This helper pins every JSON response against the published OpenAPI
- *   document (test-data/openapi.sample.json): field names, types, required
+ *   document (test-data/openapi.store.json): field names, types, required
  *   fields, ranges, formats. A response can satisfy a Pact contract yet drift
  *   from the documented API — schema validation is what catches that drift.
  *
- * To adapt it to a real service: replace openapi.sample.json with the
+ * To adapt it to a real service: replace openapi.store.json with the
  * service's OpenAPI document (exported from the gateway or codegen) and
  * point loadApiSpec() at it. The path-template matching ({id}) and local
  * $ref resolution already handle typical microservice documents.
@@ -51,7 +51,7 @@ let cached: { doc: OpenApiDocument; ajv: Ajv } | undefined;
 export function loadApiSpec(): { doc: OpenApiDocument; ajv: Ajv } {
   if (!cached) {
     const doc = JSON.parse(
-      readFileSync(join(__dirname, 'openapi.sample.json'), 'utf8'),
+      readFileSync(join(__dirname, 'openapi.store.json'), 'utf8'),
     ) as OpenApiDocument;
     const ajv = new Ajv({ allErrors: true, strict: false });
     addFormats(ajv);

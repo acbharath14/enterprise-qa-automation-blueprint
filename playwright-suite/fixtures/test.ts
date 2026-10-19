@@ -1,27 +1,108 @@
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect, APIRequestContext } from '@playwright/test';
 import { allure } from 'allure-playwright';
-import { DashboardPage } from '../pages/DashboardPage';
-import { GalleryPage } from '../pages/GalleryPage';
+import { CatalogPage } from '../pages/CatalogPage';
+import { ProductPage } from '../pages/ProductPage';
+import { CartPage } from '../pages/CartPage';
+import { CheckoutPage } from '../pages/CheckoutPage';
+import { LoginPage } from '../pages/LoginPage';
+
+/**
+ * Mints a uniquely-named product for the test and returns its id.
+ *
+ * Cart isolation: the server keys carts by the X-Cart-Id header, so every
+ * test gets a private cart. Fixtures pin the page's session cart to a known
+ * id via addInitScript (before first navigation) and expose it as `headers`
+ * for direct API calls — UI steps and API calls then address the same cart.
+ * Stock is generous on purpose so cart repairs never 400 on the stock cap.
+ */
+async function mintTestProduct(request: APIRequestContext, tag: string): Promise<string> {
+  const res = await request.post('/api/products', {
+    data: { name: `Fixture ${tag} ${Date.now()}`, price: 42.5, category: 'test', stock: 100000 },
+  });
+  expect(res.status()).toBe(201);
+  return ((await res.json()).id as string);
+}
+
+async function cleanupTestProduct(
+  request: APIRequestContext,
+  productId: string,
+  headers: Record<string, string> = {},
+) {
+  await request.delete(`/api/cart/items/${productId}`, { headers });
+  await request.delete(`/api/products/${productId}`);
+}
 
 type Fixtures = {
-  /** Dashboard page, already navigated and ready to interact with. */
-  dashboardPage: DashboardPage;
-  /** Component gallery, already navigated and ready to interact with. */
-  galleryPage: GalleryPage;
+  /** DemoMart catalog, already loaded and ready to interact with. */
+  catalogPage: CatalogPage;
+  /** DemoMart product detail for prod-1, already opened. */
+  productPage: ProductPage;
+  /** DemoMart cart with one line of the fixture's own product, already opened. */
+  cart: { cartPage: CartPage; productId: string; headers: Record<string, string> };
+  /** DemoMart checkout wizard (step 1) with the fixture's own product in the cart. */
+  checkout: { checkoutPage: CheckoutPage; productId: string; headers: Record<string, string> };
+  /** DemoMart login view, already opened. */
+  loginPage: LoginPage;
 };
 
 export const test = base.extend<Fixtures>({
-  dashboardPage: async ({ page }, use) => {
-    const dashboardPage = new DashboardPage(page);
-    await dashboardPage.goto();
-    await expect(dashboardPage.heading).toBeVisible();
-    await use(dashboardPage);
+  catalogPage: async ({ page }, use) => {
+    const catalogPage = new CatalogPage(page);
+    await catalogPage.goto();
+    await expect(catalogPage.heading).toBeVisible();
+    await use(catalogPage);
   },
-  galleryPage: async ({ page }, use) => {
-    const galleryPage = new GalleryPage(page);
-    await galleryPage.goto();
-    await expect(galleryPage.feedbackHeading).toBeVisible();
-    await use(galleryPage);
+  productPage: async ({ page }, use) => {
+    const catalogPage = new CatalogPage(page);
+    await catalogPage.goto();
+    await catalogPage.openProduct('prod-1');
+    const productPage = new ProductPage(page);
+    await expect(productPage.name).toBeVisible();
+    await use(productPage);
+  },
+  cart: async ({ page, request }, use, testInfo) => {
+    const cartId = `fixture-${testInfo.workerIndex}-${Date.now()}`;
+    const headers = { 'X-Cart-Id': cartId };
+    const productId = await mintTestProduct(request, 'cart');
+    // Pin the page's session cart to our known id *before* first navigation,
+    // so UI steps and our direct API calls address the same isolated cart.
+    await page.addInitScript((id: string) => {
+      try {
+        sessionStorage.setItem('demomart-cart-id', id);
+      } catch {
+        /* ignore */
+      }
+    }, cartId);
+    await request.post('/api/cart/items', { headers, data: { productId, qty: 1 } });
+    const cartPage = new CartPage(page);
+    await cartPage.goto();
+    await expect(cartPage.heading).toBeVisible();
+    await expect(cartPage.page.getByTestId(`cart-item-${productId}`)).toBeVisible();
+    await use({ cartPage, productId, headers });
+    await cleanupTestProduct(request, productId, headers);
+  },
+  checkout: async ({ page, request }, use, testInfo) => {
+    const cartId = `fixture-${testInfo.workerIndex}-${Date.now()}`;
+    const headers = { 'X-Cart-Id': cartId };
+    const productId = await mintTestProduct(request, 'checkout');
+    await page.addInitScript((id: string) => {
+      try {
+        sessionStorage.setItem('demomart-cart-id', id);
+      } catch {
+        /* ignore */
+      }
+    }, cartId);
+    await request.post('/api/cart/items', { headers, data: { productId, qty: 1 } });
+    const checkoutPage = new CheckoutPage(page);
+    await checkoutPage.goto();
+    await expect(checkoutPage.step1).toBeVisible({ timeout: 5000 });
+    await use({ checkoutPage, productId, headers });
+    await cleanupTestProduct(request, productId, headers);
+  },
+  loginPage: async ({ page }, use) => {
+    const loginPage = new LoginPage(page);
+    await loginPage.goto();
+    await use(loginPage);
   },
 });
 
@@ -33,39 +114,50 @@ export { expect };
 // a test already carries parentSuite/suite labels.
 const ALLURE_SUITES: Record<string, [parentSuite: string, suite: string]> = {
   'accessibility.spec.ts': ['Accessibility', 'WCAG scans'],
+  'accordion.spec.ts': ['UI components', 'Accordion'],
   'api-mocked.spec.ts': ['API', 'Mocked API'],
   'api-schema.spec.ts': ['API', 'Schema validation'],
-  'api.spec.ts': ['API', 'Metrics API'],
+  'api.spec.ts': ['API', 'Store API'],
+  'auth.setup.ts': ['Authentication', 'Setup'],
   'auth.spec.ts': ['Authentication', 'Sign in'],
   'authed.spec.ts': ['Authentication', 'Signed-in state'],
+  'catalog.spec.ts': ['Store', 'Catalog'],
   'controls.spec.ts': ['UI components', 'Form controls'],
-  'dashboard.spec.ts': ['UI components', 'Release dashboard'],
   'datepicker.spec.ts': ['UI components', 'Date picker'],
   'datetime.spec.ts': ['UI components', 'Date and time'],
   'dialogs.spec.ts': ['UI components', 'Dialogs'],
   'download.spec.ts': ['UI components', 'File download'],
-  'dragdrop.spec.ts': ['UI components', 'Drag and drop'],
+  'dropdown.spec.ts': ['UI components', 'Category filter'],
+  'empty-states.spec.ts': ['UI components', 'Empty states'],
+  'factory.spec.ts': ['Test data', 'Factory'],
   'failure-showcase.spec.ts': ['Showcase', 'Intentional failures'],
-  'forms.spec.ts': ['UI components', 'Feedback form'],
+  'forms.spec.ts': ['UI components', 'Checkout form'],
   'iframe.spec.ts': ['UI components', 'IFrame'],
-  'integration.spec.ts': ['UI components', 'End-to-end flows'],
+  'integration.spec.ts': ['Store', 'End-to-end flows'],
   'keyboard.spec.ts': ['Accessibility', 'Keyboard navigation'],
   'mobile.spec.ts': ['Mobile', 'Responsive and touch'],
+  'modal.spec.ts': ['UI components', 'Quick-view modal'],
   'offline.spec.ts': ['UI components', 'Offline mode'],
-  'pact-metrics.spec.ts': ['API', 'Contract tests'],
+  'pact-store.spec.ts': ['API', 'Contract tests'],
+  'pagination.spec.ts': ['UI components', 'Pagination'],
   'pentest.spec.ts': ['Security', 'Penetration tests'],
   'performance.spec.ts': ['Performance', 'Timings and budgets'],
   'popup.spec.ts': ['UI components', 'Popup'],
-  'search.spec.ts': ['UI components', 'Release search'],
+  'radio.spec.ts': ['UI components', 'Radio groups'],
+  'search.spec.ts': ['UI components', 'Product search'],
   'security.spec.ts': ['Security', 'Security checks'],
   'shadowdom.spec.ts': ['UI components', 'Shadow DOM'],
-  'smoke.spec.ts': ['Smoke', 'Critical paths'],
-  'table.spec.ts': ['UI components', 'Releases table'],
+  'skeletons.spec.ts': ['UI components', 'Loading skeletons'],
+  'store-smoke.spec.ts': ['Store', 'Smoke'],
+  'table.spec.ts': ['UI components', 'Sort control'],
+  'tabs.spec.ts': ['UI components', 'Tabs'],
   'theme.spec.ts': ['UI components', 'Theme'],
   'toast.spec.ts': ['UI components', 'Toast'],
+  'tooltips.spec.ts': ['UI components', 'Tooltips'],
   'upload.spec.ts': ['UI components', 'File upload'],
   'visual.spec.ts': ['Visual', 'Visual regression'],
-  'wizard.spec.ts': ['UI components', 'Release wizard'],
+  'web-vitals.spec.ts': ['Performance', 'Web vitals'],
+  'wizard.spec.ts': ['UI components', 'Checkout wizard'],
 };
 
 test.beforeEach(async ({}, testInfo) => {

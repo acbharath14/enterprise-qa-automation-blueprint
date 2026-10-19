@@ -2,21 +2,42 @@ import { test, expect } from '../fixtures/test';
 
 /** What axe-core cannot check: the app must be fully operable by keyboard. */
 test.describe('keyboard navigation', () => {
-  test('tab reaches the refresh button and enter activates it', async ({ dashboardPage, page }) => {
-    for (let i = 0; i < 12; i++) {
-      if (await dashboardPage.refreshButton.evaluate((el) => el === document.activeElement)) break;
+  test('tab order follows the header nav then the catalog toolbar', async ({
+    catalogPage,
+    page,
+  }) => {
+    // On mobile (<=768px) the hamburger toggle is visible and first in DOM
+    // order, while nav-catalog hides inside the collapsed nav. On desktop
+    // the toggle is display:none and nav-catalog is visible.
+    const navToggleVisible = await page.getByTestId('nav-toggle').isVisible();
+    const expectedOrder = [
+      ...(navToggleVisible ? ['nav-toggle'] : []),
+      'store-logo',
+      ...(navToggleVisible ? [] : ['nav-catalog']),
+      'nav-cart',
+      'theme-toggle',
+      'login-button',
+      'search-input',
+      'category-filter',
+      'sort-select',
+      'price-max-slider',
+    ];
+    for (const testid of expectedOrder) {
       await page.keyboard.press('Tab');
+      const focused = await page.evaluate(
+        () => (document.activeElement as HTMLElement | null)?.dataset?.testid,
+      );
+      expect(focused, `expected focus on ${testid}`).toBe(testid);
     }
-    await expect(dashboardPage.refreshButton).toBeFocused();
-    await page.keyboard.press('Enter');
-    await expect(dashboardPage.status).toContainText('Snapshot refreshed successfully at');
   });
 
-  test('tabs are keyboard operable', async ({ galleryPage, page }) => {
-    await galleryPage.detailsTab.focus();
-    await expect(galleryPage.detailsTab).toBeFocused();
+  test('enter on nav-cart opens the cart view', async ({ page }) => {
+    await page.goto('/');
+    await page.getByTestId('nav-cart').focus();
+    await expect(page.getByTestId('nav-cart')).toBeFocused();
     await page.keyboard.press('Enter');
-    await expect(galleryPage.detailsPanel).toBeVisible();
-    await expect(galleryPage.detailsTab).toHaveAttribute('aria-selected', 'true');
+    await expect(
+      page.getByRole('heading', { name: 'Your Cart' }),
+    ).toBeVisible();
   });
 });

@@ -48,10 +48,10 @@ jobs:
         run: |
           (node server.mjs > /tmp/app.log 2>&1 &)
           for i in $(seq 1 30); do
-            curl -sf http://127.0.0.1:4173/api/metrics >/dev/null && break
+            curl -sf http://127.0.0.1:4173/api/products >/dev/null && break
             sleep 1
           done
-          curl -sf http://127.0.0.1:4173/api/metrics >/dev/null
+          curl -sf http://127.0.0.1:4173/api/products >/dev/null
 
       - name: k6 smoke test
         run: k6 run k6/smoke-test.js

@@ -42,10 +42,10 @@ jobs:
         run: |
           (node server.mjs > /tmp/app.log 2>&1 &)
           for i in $(seq 1 30); do
-            curl -sf http://127.0.0.1:4173/api/metrics >/dev/null && break
+            curl -sf http://127.0.0.1:4173/api/products >/dev/null && break
             sleep 1
           done
-          curl -sf http://127.0.0.1:4173/api/metrics >/dev/null
+          curl -sf http://127.0.0.1:4173/api/products >/dev/null
 
       - name: k6 load test (50 VUs, SLO thresholds)
         run: k6 run --summary-export=load-summary.json k6/load-test.js

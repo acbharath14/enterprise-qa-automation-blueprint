@@ -1,841 +1,1175 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark light" />
-    <title>Enterprise QA Demo</title>
+    <title>DemoMart — Sample Store</title>
     <style>
-      :root, [data-theme='dark'] {
-        --bg: #0f172a; --fg: #e2e8f0; --card: #111827;
-        --border: #334155; --metric: #1e293b; --accent: #38bdf8;
-        --accent-fg: #082f49; --ok: #86efac; --err: #fca5a5; --link: #7dd3fc; --cat-dashboard: #38bdf8; --cat-forms: #86efac; --cat-overlays: #fbbf24; --cat-advanced: #c084fc;
+      :root {
+        --bg: #f6f7f9; --fg: #1a202c; --card: #ffffff;
+        --border: #e2e8f0; --accent: #4f46e5; --accent-hover: #4338ca; --accent-fg: #ffffff;
+        --ok: #15803d; --err: #b91c1c; --muted: #475569;
+        --star: #d97706;
+        --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+        --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.08);
+        --shadow-lg: 0 12px 32px rgba(16, 24, 40, 0.18);
+        --radius: 12px; --radius-sm: 8px;
       }
-      [data-theme='light'] {
-        --bg: #f1f5f9; --fg: #0f172a; --card: #ffffff;
-        --border: #cbd5e1; --metric: #e2e8f0; --accent: #0284c7;
-        --accent-fg: #ffffff; --ok: #15803d; --err: #b91c1c; --link: #0369a1; --cat-dashboard: #0284c7; --cat-forms: #15803d; --cat-overlays: #b45309; --cat-advanced: #7c3aed;
+      [data-theme="dark"] {
+        --bg: #0f172a; --fg: #e2e8f0; --card: #1e293b;
+        --border: #334155; --accent: #818cf8; --accent-hover: #a5b4fc; --accent-fg: #0f172a;
+        --ok: #4ade80; --err: #f87171; --muted: #94a3b8;
+        --star: #fbbf24;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+        --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
       }
-      body { font-family: Arial, sans-serif; margin: 0; background: var(--bg); color: var(--fg); }
-      main { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
-      .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-top: 24px; }
-      button { background: var(--accent); color: var(--accent-fg); border: 0; padding: 12px 18px; border-radius: 999px; font-weight: 700; cursor: pointer; }
+      * { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+        margin: 0; background: var(--bg); color: var(--fg);
+        line-height: 1.5; font-size: 16px;
+      }
+      h1 { font-size: 1.75rem; margin: 0 0 0.5rem; letter-spacing: -0.01em; }
+      h2 { font-size: 1.25rem; margin: 1.25rem 0 0.5rem; }
+      :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+      /* ---- Header ---- */
+      header {
+        background: var(--card); border-bottom: 1px solid var(--border);
+        padding: 12px 24px; display: flex; align-items: center; gap: 12px;
+        position: sticky; top: 0; z-index: 10; box-shadow: var(--shadow-sm);
+      }
+      header .logo {
+        font-size: 1.4em; font-weight: 800; letter-spacing: -0.02em; color: var(--accent);
+        text-decoration: none; background: none; border: 0; cursor: pointer; padding: 0 4px;
+        min-height: 44px; display: inline-flex; align-items: center;
+      }
+      .nav-toggle { display: none; }
+      nav { display: flex; gap: 8px; margin-left: 8px; }
+      nav button {
+        background: none; border: 1px solid transparent; border-radius: 999px;
+        padding: 8px 16px; min-height: 44px; cursor: pointer; font-weight: 600; font-size: 0.95em; color: var(--fg);
+        transition: background 0.15s ease, border-color 0.15s ease;
+      }
+      nav button:hover { border-color: var(--border); background: var(--bg); }
+      nav button[aria-current='page'] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+      .badge {
+        display: inline-block; min-width: 22px; text-align: center; background: var(--accent);
+        color: var(--accent-fg); border-radius: 999px; font-size: 0.8em; font-weight: 700;
+        padding: 1px 6px; margin-left: 6px;
+      }
+      nav button[aria-current='page'] .badge { background: var(--accent-fg); color: var(--accent); }
+      .spacer { flex: 1; }
+      .switch {
+        display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+        background: none; border: 1px solid var(--border); border-radius: 999px;
+        padding: 8px 14px; min-height: 44px; color: var(--fg); font-weight: 600; font-size: 0.9em;
+        transition: border-color 0.15s ease, background 0.15s ease;
+      }
+      .switch:hover { border-color: var(--accent); }
+      main { max-width: 1080px; margin: 0 auto; padding: 24px; }
+
+      /* ---- Catalog toolbar ---- */
+      .toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin: 16px 0 20px; }
+      .toolbar input[type="search"], .toolbar select {
+        padding: 10px 12px; min-height: 44px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+        font-size: 1em; background: var(--card); color: var(--fg); transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      }
+      .toolbar input[type="search"] { flex: 1 1 200px; }
+      .toolbar input[type="search"]:focus, .toolbar select:focus {
+        border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+        outline: none;
+      }
+      .toolbar .slider-wrap { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 0.95em; }
+      .toolbar input[type="range"] { height: 44px; accent-color: var(--accent); }
+
+      /* ---- Product grid & cards ---- */
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+      .card {
+        background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 20px; display: flex; flex-direction: column; gap: 10px; position: relative;
+        box-shadow: var(--shadow-sm); transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+      .card h3 { margin: 0; font-size: 1.05em; line-height: 1.35; }
+      .price { font-size: 1.3em; font-weight: 800; color: var(--accent); margin: 0; letter-spacing: -0.01em; }
+      .meta { color: var(--muted); font-size: 0.9em; margin: 0; }
+      star-rating { color: var(--star); letter-spacing: 0.1em; }
+      .card .actions { margin-top: auto; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding-top: 4px; }
+      .icon-btn {
+        position: absolute; top: 10px; right: 10px; width: 44px; height: 44px; border-radius: 50%;
+        border: 1px solid var(--border); background: var(--card); color: var(--muted);
+        cursor: pointer; font-size: 1.1em; display: inline-flex; align-items: center; justify-content: center;
+        transition: color 0.15s ease, border-color 0.15s ease;
+      }
+      .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
+      .tooltip {
+        position: absolute; top: 60px; right: 8px; z-index: 20; background: #1a202c; color: #fff;
+        padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.85em; max-width: 240px;
+        box-shadow: var(--shadow-lg); line-height: 1.45;
+      }
+      [data-theme="dark"] .tooltip { background: #020617; border: 1px solid var(--border); }
+      .tooltip[hidden] { display: none; }
+
+      /* ---- Buttons ---- */
+      button.primary {
+        background: var(--accent); color: var(--accent-fg); border: 0; border-radius: var(--radius-sm);
+        padding: 10px 18px; min-height: 44px; font-weight: 700; font-size: 0.95em; cursor: pointer;
+        transition: background 0.15s ease, transform 0.05s ease; box-shadow: var(--shadow-sm);
+      }
+      button.primary:hover { background: var(--accent-hover); }
+      button.primary:active { transform: translateY(1px); }
+      button.secondary {
+        background: var(--card); color: var(--fg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+        padding: 10px 18px; min-height: 44px; font-weight: 600; font-size: 0.95em; cursor: pointer;
+        transition: border-color 0.15s ease, background 0.15s ease;
+      }
+      button.secondary:hover { border-color: var(--accent); background: var(--bg); }
+      button.link {
+        background: none; border: 0; color: var(--accent); cursor: pointer; font-weight: 600;
+        padding: 10px 8px; min-height: 44px; display: inline-flex; align-items: center; font-size: 0.95em;
+      }
+      button.link:hover { text-decoration: underline; }
       button:disabled { opacity: 0.5; cursor: default; }
-      .metric { display: inline-block; margin-right: 16px; margin-top: 12px; padding: 10px 14px; background: var(--metric); border-radius: 12px; }
-      .status { margin-top: 16px; font-weight: 700; color: var(--ok); }
-      .error { color: var(--err); font-size: 0.9em; margin-top: 4px; min-height: 1.2em; }
-      label { display: block; margin-top: 12px; font-weight: 700; }
-      a { color: var(--link); }
-      .category { margin: 36px 0 4px; font-size: 1.4em; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
-      .cat-dashboard { border-top: 4px solid var(--cat-dashboard); }
-      .cat-forms { border-top: 4px solid var(--cat-forms); }
-      .cat-overlays { border-top: 4px solid var(--cat-overlays); }
-      .cat-advanced { border-top: 4px solid var(--cat-advanced); }
-      h2.category[data-cat="dashboard"] { color: var(--cat-dashboard); border-color: var(--cat-dashboard); }
-      h2.category[data-cat="forms"] { color: var(--cat-forms); border-color: var(--cat-forms); }
-      h2.category[data-cat="overlays"] { color: var(--cat-overlays); border-color: var(--cat-overlays); }
-      h2.category[data-cat="advanced"] { color: var(--cat-advanced); border-color: var(--cat-advanced); }
-      input, select, textarea { display: block; margin-top: 4px; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--fg); width: 100%; max-width: 420px; box-sizing: border-box; }
-      input[type='checkbox'] { display: inline-block; width: auto; }
-      table { border-collapse: collapse; margin-top: 12px; width: 100%; }
-      th, td { border: 1px solid var(--border); padding: 10px 12px; text-align: left; }
-      th button { background: none; color: var(--fg); padding: 0; border-radius: 0; text-decoration: underline; }
-      [role='tab'] { border-radius: 8px; margin-right: 8px; }
-      [role='tab'][aria-selected='true'] { outline: 2px solid var(--accent); }
-      .topbar { display: flex; justify-content: space-between; align-items: center; }
-      /* Custom modal */
-      #modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: flex; align-items: center; justify-content: center; z-index: 100; }
-      #modal-backdrop[hidden] { display: none; }
-      #custom-modal { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 420px; width: calc(100% - 48px); }
-      /* Accordion */
-      #faq-accordion h4 { margin: 12px 0 0; }
-      #faq-accordion button[aria-expanded] { width: 100%; text-align: left; }
-      #faq-accordion [role='region'] { padding: 12px 4px; border-bottom: 1px solid var(--border); }
-      /* Pagination */
-      #archive-list { list-style: none; padding: 0; }
-      #archive-list li { padding: 8px 12px; border-bottom: 1px solid var(--border); }
-      #page-numbers button { margin: 0 4px; padding: 8px 12px; }
-      #page-numbers button[aria-current='page'] { outline: 2px solid var(--accent); }
-      nav[aria-label='archive pagination'] { margin-top: 12px; }
+
+      /* ---- Skeletons / empty / error ---- */
+      .skeleton {
+        border-radius: var(--radius); padding: 20px; background: var(--card);
+        border: 1px solid var(--border); min-height: 220px; box-shadow: var(--shadow-sm);
+      }
+      .skeleton .bar {
+        height: 14px; border-radius: 7px; margin: 10px 0;
+        background: linear-gradient(90deg, var(--border) 25%, var(--bg) 50%, var(--border) 75%);
+        background-size: 200% 100%; animation: shimmer 1.2s ease-in-out infinite;
+      }
+      @keyframes shimmer { to { background-position: -200% 0; } }
+      .pagination { display: flex; gap: 12px; align-items: center; justify-content: center; margin: 24px 0; flex-wrap: wrap; }
+
+      /* ---- Product detail ---- */
+      .detail {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 32px; background: var(--card);
+        border: 1px solid var(--border); border-radius: var(--radius); padding: 32px;
+        box-shadow: var(--shadow-sm);
+      }
+      .detail h2 { margin-top: 0; font-size: 1.5rem; letter-spacing: -0.01em; }
+      .stock-ok { color: var(--ok); font-weight: 700; }
+      .stock-out { color: var(--err); font-weight: 700; }
+      .qty-row { display: flex; align-items: center; gap: 8px; margin: 12px 0; }
+      .qty-row button {
+        width: 44px; height: 44px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+        background: var(--card); color: var(--fg); font-size: 1.2em; cursor: pointer;
+        transition: border-color 0.15s ease;
+      }
+      .qty-row button:hover { border-color: var(--accent); }
+      .qty-row input {
+        width: 72px; height: 44px; text-align: center; border: 1px solid var(--border);
+        border-radius: var(--radius-sm); font-size: 1em; background: var(--card); color: var(--fg);
+      }
+      .tabs { margin-top: 24px; }
+      [role="tablist"] { display: flex; gap: 4px; border-bottom: 2px solid var(--border); overflow-x: auto; }
+      [role="tab"] {
+        background: none; border: 0; padding: 12px 18px; min-height: 44px; font-weight: 600; font-size: 0.95em;
+        cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -2px;
+        white-space: nowrap; transition: color 0.15s ease;
+      }
+      [role="tab"]:hover { color: var(--fg); }
+      [role="tab"][aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+      [role="tabpanel"] { padding: 16px 4px; }
+      .accordion { margin-top: 24px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--card); }
+      .accordion button.acc-trigger {
+        width: 100%; min-height: 52px; text-align: left; background: var(--card); border: 0;
+        border-bottom: 1px solid var(--border); padding: 14px 18px; font-weight: 700; cursor: pointer;
+        color: var(--fg); font-size: 1em; display: flex; align-items: center; justify-content: space-between;
+      }
+      .accordion button.acc-trigger:hover { background: var(--bg); }
+      .accordion button.acc-trigger:last-of-type { border-bottom: 0; }
+      .accordion .acc-panel { padding: 0 18px 18px; background: var(--card); }
+      .accordion .acc-panel[hidden] { display: none; }
+
+      /* ---- Cart ---- */
+      .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow-sm); }
+      table.cart { width: 100%; min-width: 620px; border-collapse: collapse; }
+      table.cart th, table.cart td { padding: 14px 18px; border-bottom: 1px solid var(--border); text-align: left; }
+      table.cart thead th {
+        font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+        background: var(--bg); font-weight: 700;
+      }
+      table.cart tbody tr:last-child td { border-bottom: 0; }
+      table.cart tbody tr:hover { background: var(--bg); }
+      table.cart td .secondary { min-height: 44px; }
+      .totals { text-align: right; margin-top: 16px; font-size: 1.1em; }
+      .totals strong { font-size: 1.35em; }
+
+      /* ---- Checkout wizard ---- */
+      form.checkout {
+        background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 28px; max-width: 600px; box-shadow: var(--shadow-sm);
+      }
+      form.checkout fieldset { border: 0; padding: 0; margin: 0; }
+      form.checkout fieldset[hidden] { display: none; }
+      form.checkout label { display: block; margin-top: 14px; font-weight: 600; font-size: 0.95em; }
+      form.checkout input:not([type="radio"]):not([type="checkbox"]) {
+        display: block; width: 100%; margin-top: 6px; padding: 10px 12px; min-height: 44px;
+        border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 1em;
+        background: var(--card); color: var(--fg); transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      }
+      form.checkout input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); outline: none; }
+      .radio-group { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 18px; margin-top: 14px; }
+      .radio-group legend { font-weight: 700; padding: 0 8px; }
+      .radio-group label { display: flex; gap: 10px; align-items: center; margin-top: 4px; font-weight: 400; min-height: 44px; cursor: pointer; }
+      .radio-group input[type="radio"] { width: 20px; height: 20px; accent-color: var(--accent); }
+      .steps { display: flex; gap: 8px; flex-wrap: wrap; list-style: none; padding: 0; margin: 0 0 20px; }
+      .steps li {
+        padding: 10px 18px; min-height: 44px; display: inline-flex; align-items: center;
+        border-radius: 999px; border: 1px solid var(--border); color: var(--muted); font-weight: 600; font-size: 0.9em;
+      }
+      .steps li[aria-current="step"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+      .steps li.done { border-color: var(--ok); color: var(--ok); }
+      .error { color: var(--err); font-size: 0.9em; min-height: 1.2em; margin: 4px 0 0; }
+      .error-summary {
+        background: #fef2f2; border: 1px solid #fecaca; color: var(--err);
+        border-radius: var(--radius-sm); padding: 14px 18px; margin-bottom: 12px;
+      }
+      [data-theme="dark"] .error-summary { background: #3b1212; border-color: #7f1d1d; }
+
+      /* ---- Order confirmation ---- */
+      .confirm {
+        background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 32px; max-width: 640px; box-shadow: var(--shadow-sm);
+      }
+      .confirm h1 { color: var(--ok); }
+      .confirm .order-id { font-size: 1.2em; font-weight: 800; color: var(--ok); }
+      .confirm ul { padding-left: 1.25rem; }
+      a.secondary {
+        background: var(--card); color: var(--fg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+        padding: 10px 18px; min-height: 44px; display: inline-flex; align-items: center;
+        font-weight: 600; font-size: 0.95em; cursor: pointer; text-decoration: none;
+      }
+      a.secondary:hover { border-color: var(--accent); }
+
+      /* ---- Toast ---- */
+      #toast {
+        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+        background: #1a202c; color: #fff; padding: 14px 22px; border-radius: 999px;
+        font-weight: 600; z-index: 100; box-shadow: var(--shadow-lg); max-width: calc(100vw - 48px);
+        animation: toast-in 0.2s ease;
+      }
+      [data-theme="dark"] #toast { background: #020617; border: 1px solid var(--border); }
+      #toast[hidden] { display: none; }
+      @keyframes toast-in {
+        from { opacity: 0; transform: translate(-50%, 8px); }
+        to { opacity: 1; transform: translate(-50%, 0); }
+      }
+
+      /* ---- Login ---- */
+      .login-card {
+        background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 32px; max-width: 420px; box-shadow: var(--shadow-sm); margin: 24px auto;
+      }
+      .login-card h1 { margin-top: 0; }
+      .login-card input {
+        display: block; width: 100%; margin-top: 6px; padding: 10px 12px; min-height: 44px;
+        border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 1em;
+        background: var(--card); color: var(--fg);
+      }
+      .login-card input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); outline: none; }
+      .login-card label { display: block; margin-top: 14px; font-weight: 600; font-size: 0.95em; }
+      .hint { color: var(--muted); font-size: 0.9em; margin-top: 16px; }
+
+      /* ---- Quick-view modal ---- */
+      .modal-backdrop {
+        position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 50;
+        display: flex; align-items: center; justify-content: center; padding: 24px;
+      }
+      .modal-backdrop[hidden] { display: none; }
+      .modal {
+        background: var(--card); color: var(--fg); border-radius: var(--radius);
+        padding: 28px; max-width: 480px; width: 100%; box-shadow: var(--shadow-lg);
+      }
+      .modal h2 { margin-top: 0; }
+      iframe.payment-frame {
+        width: 100%; height: 120px; border: 1px solid var(--border);
+        border-radius: var(--radius-sm); margin-top: 12px; background: var(--card);
+      }
+
+      /* ---- Responsive ---- */
+      @media (max-width: 768px) {
+        /* Hamburger nav: the inline nav becomes a dropdown panel. */
+        .nav-toggle {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--border);
+          background: var(--card); color: var(--fg); font-size: 1.35em; cursor: pointer; flex: none;
+        }
+        .nav-toggle:hover { border-color: var(--accent); }
+        header { padding: 10px 16px; gap: 8px; }
+        header nav { display: none; }
+        header nav.open {
+          display: flex; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0;
+          background: var(--card); border-bottom: 1px solid var(--border); box-shadow: var(--shadow-md);
+          margin: 0; padding: 8px 16px 16px; gap: 4px; z-index: 11;
+        }
+        header nav.open button { text-align: left; border-radius: var(--radius-sm); }
+        main { padding: 16px; }
+        .detail { grid-template-columns: 1fr; gap: 20px; padding: 24px; }
+        form.checkout { padding: 20px; }
+        .confirm { padding: 24px; }
+      }
+      @media (max-width: 480px) {
+        body { font-size: 15px; }
+        h1 { font-size: 1.5rem; }
+        header { flex-wrap: wrap; row-gap: 8px; }
+        header .logo { font-size: 1.2em; }
+        .switch { padding: 8px 10px; font-size: 0.85em; }
+        .grid { grid-template-columns: 1fr; }
+        .toolbar input[type="search"] { flex: 1 1 100%; }
+        /* Quick-view becomes a bottom sheet on phones. */
+        .modal-backdrop { align-items: flex-end; padding: 0; }
+        .modal { border-radius: 16px 16px 0 0; max-height: 92vh; overflow-y: auto; }
+        #toast { bottom: 16px; }
+        .steps li { font-size: 0.8em; padding: 8px 14px; }
+      }
     </style>
   </head>
   <body>
+    <header data-testid="site-header">
+      <button class="nav-toggle" data-testid="nav-toggle" aria-expanded="false" aria-controls="store-nav" aria-label="Menu">☰</button>
+      <button class="logo" data-testid="store-logo">DemoMart</button>
+      <nav aria-label="Store" id="store-nav" data-testid="store-nav">
+        <button data-testid="nav-catalog" aria-current="page">Catalog</button>
+      </nav>
+      <button data-testid="nav-cart">Cart <span class="badge" data-testid="cart-badge">0</span></button>
+      <span class="spacer"></span>
+      <button class="switch" data-testid="theme-toggle" role="switch" aria-checked="false" aria-label="Dark mode">🌙 Dark</button>
+      <span data-testid="user-label" hidden></span>
+      <button class="secondary" data-testid="login-button">Log in</button>
+      <button class="secondary" data-testid="logout-button" hidden>Log out</button>
+    </header>
+
     <main>
-      <div class="topbar">
-        <h1>Enterprise QA Automation Blueprint</h1>
-        <button id="theme-toggle" type="button">Toggle theme</button>
-      </div>
-      <p>This sample application is a component gallery: every section below exercises a different UI pattern and backend interaction for the test suite to validate.</p>
-
-      <h2 class="category" data-cat="dashboard">Release dashboard</h2>
-
-      <section class="card cat-dashboard" aria-label="quality summary">
-        <h3>Release Snapshot</h3>
-        <div class="metric" id="coverage">Coverage: 82%</div>
-        <div class="metric" id="api">API Health: Green</div>
-        <div class="metric" id="perf">P95 Latency: 640 ms</div>
-        <div class="status" id="status">All critical checks are healthy.</div>
-        <button id="refresh-button" type="button">Refresh health snapshot</button>
-      </section>
-
-      <section class="card cat-dashboard" aria-label="live metrics">
-        <h3>Live Metrics</h3>
-        <p>Loads current metrics from the backend API.</p>
-        <button id="load-metrics" type="button">Load live metrics</button>
-        <div id="live-metrics" class="status" aria-live="polite"></div>
-      </section>
-      <section class="card cat-dashboard" aria-label="loading skeletons">
-        <h3>Activity Feed</h3>
-        <p><button id="load-feed" type="button">Load activity</button></p>
-        <div id="feed-content" aria-live="polite">
-          <p>Click &quot;Load activity&quot; to fetch the latest events.</p>
-        </div>
-      </section>
-
-      <section class="card cat-dashboard" aria-label="releases table">
-        <h3>Releases</h3>
-        <table id="releases-table">
-          <thead>
-            <tr>
-              <th><button type="button" data-sort="name">Release</button></th>
-              <th><button type="button" data-sort="coverage">Coverage</button></th>
-              <th><button type="button" data-sort="status">Status</button></th>
-            </tr>
-          </thead>
-          <tbody id="releases-body"></tbody>
-        </table>
-
-      </section>
-
-
-      <section class="card cat-dashboard" aria-label="paginated archive">
-        <h3>Release Archive</h3>
-        <label for="page-size">Page size</label>
-        <select id="page-size">
-          <option value="10">10</option>
-          <option value="25">25</option>
-          <option value="50">50</option>
-        </select>
-        <ul id="archive-list"></ul>
-        <p id="page-info" aria-live="polite"></p>
-        <nav aria-label="archive pagination">
-          <button id="page-prev" type="button">Previous</button>
-          <span id="page-numbers"></span>
-          <button id="page-next" type="button">Next</button>
-        </nav>
-      </section>
-
-      <section class="card cat-dashboard" aria-label="search autocomplete">
-        <h3>Release Search</h3>
-        <label for="search-input">Find a release</label>
-        <input id="search-input" type="text" role="combobox" aria-expanded="false" aria-controls="search-results" aria-autocomplete="list" autocomplete="off" placeholder="Type to search…" />
-        <ul id="search-results" role="listbox" aria-label="matching releases" hidden></ul>
-        <div class="status" id="search-selection" aria-live="polite"></div>
-      </section>
-
-      <section class="card cat-dashboard" aria-label="schedule release">
-        <h3>Schedule Release</h3>
-        <label for="release-date">Release date</label>
-        <input id="release-date" type="date" min="2026-01-01" max="2026-12-31" />
-        <p><button id="schedule-button" type="button">Schedule</button></p>
-        <div class="status" id="schedule-result" aria-live="polite"></div>
-      </section>
-
-      <section class="card cat-dashboard" aria-label="export">
-        <h3>Export</h3>
-        <p><a id="export-csv" href="/api/export" download="releases.csv">Export releases as CSV</a></p>
-        <p><a id="docs-link" href="/" target="_blank" rel="noopener">Open docs in new tab</a></p>
-      </section>
-
-      <section class="card cat-dashboard" aria-label="release notes tabs">
-        <h3>Release Notes</h3>
-        <div role="tablist" aria-label="release notes">
-          <button role="tab" id="tab-overview" aria-selected="true" aria-controls="panel-overview" type="button">Overview</button>
-          <button role="tab" id="tab-details" aria-selected="false" aria-controls="panel-details" type="button">Details</button>
-          <button role="tab" id="tab-activity" aria-selected="false" aria-controls="panel-activity" type="button">Activity</button>
-        </div>
-        <div role="tabpanel" id="panel-overview" aria-labelledby="tab-overview"><p>Shipped on schedule with all quality gates green.</p></div>
-        <div role="tabpanel" id="panel-details" aria-labelledby="tab-details" hidden><p>42 tests across 8 types, 4 browsers, 2 shards.</p></div>
-        <div role="tabpanel" id="panel-activity" aria-labelledby="tab-activity" hidden><p>Last run finished 3 minutes ago.</p></div>
-      </section>
-
-      <h2 class="category" data-cat="forms">Forms</h2>
-
-      <section class="card cat-forms" aria-label="feedback form">
-        <h3>Feedback Form</h3>
-        <form id="feedback-form" novalidate>
-          <label for="fb-name">Name</label>
-          <input id="fb-name" name="name" type="text" autocomplete="name" />
-          <div class="error" id="fb-name-error" aria-live="polite"></div>
-
-          <label for="fb-email">Email</label>
-          <input id="fb-email" name="email" type="email" autocomplete="email" />
-          <div class="error" id="fb-email-error" aria-live="polite"></div>
-
-          <label for="fb-rating">Rating</label>
-          <select id="fb-rating" name="rating">
-            <option value="5">5 — Excellent</option>
-            <option value="4">4 — Good</option>
-            <option value="3">3 — Okay</option>
-            <option value="2">2 — Poor</option>
-            <option value="1">1 — Broken</option>
+      <!-- Catalog -->
+      <section data-testid="catalog-view" data-view="catalog">
+        <h1>Catalog</h1>
+        <div class="toolbar">
+          <input data-testid="search-input" type="search" placeholder="Search products…" aria-label="Search products" />
+          <select data-testid="category-filter" aria-label="Filter by category">
+            <option value="">All categories</option>
           </select>
-
-          <label for="fb-message">Message</label>
-          <textarea id="fb-message" name="message" rows="3"></textarea>
-
-          <label><input id="fb-subscribe" name="subscribe" type="checkbox" /> Email me about this release</label>
-
-          <p><button type="submit">Send feedback</button></p>
-        </form>
-        <div class="status" id="fb-success" aria-live="polite"></div>
+          <select data-testid="sort-select" aria-label="Sort products">
+            <option value="">Sort: featured</option>
+            <option value="price_asc">Price: low to high</option>
+            <option value="price_desc">Price: high to low</option>
+            <option value="name">Name: A to Z</option>
+          </select>
+          <span class="slider-wrap">
+            <label for="price-max">Max price:</label>
+            <input data-testid="price-max-slider" id="price-max" type="range" min="0" max="400" step="10" value="400" aria-label="Maximum price" />
+            <output data-testid="price-max-output" for="price-max">$400</output>
+          </span>
+        </div>
+        <p data-testid="catalog-error" class="error" hidden></p>
+        <div class="grid" data-testid="product-grid" aria-busy="false"></div>
+        <p data-testid="no-results" hidden>No products match your filters.</p>
+        <div class="pagination" data-testid="catalog-pagination">
+          <button class="secondary" data-testid="catalog-prev">← Previous</button>
+          <span data-testid="catalog-page-info"></span>
+          <button class="secondary" data-testid="catalog-next">Next →</button>
+        </div>
       </section>
 
-      <section class="card cat-forms" aria-label="login form">
-        <h3>Sign In</h3>
-        <form id="login-form" novalidate>
-          <label for="login-username">Username</label>
-          <input id="login-username" name="username" type="text" autocomplete="username" />
-          <label for="login-password">Password</label>
-          <input id="login-password" name="password" type="password" autocomplete="current-password" />
-          <p><button type="submit">Sign in</button></p>
-        </form>
-        <div class="error" id="login-error" aria-live="polite"></div>
-        <div class="status" id="login-welcome" aria-live="polite"></div>
-      </section>
-
-      <section class="card cat-forms" aria-label="file upload">
-        <h3>Upload Evidence</h3>
-        <form id="upload-form">
-          <label for="upload-input">Choose a file</label>
-          <input id="upload-input" name="file" type="file" />
-          <p><button type="submit">Upload</button></p>
-        </form>
-        <div class="status" id="upload-result" aria-live="polite"></div>
-      </section>
-      <section class="card cat-forms" aria-label="notification preferences">
-        <h3>Notification Preferences</h3>
-        <form id="notify-form">
-          <fieldset>
-            <legend>How should we notify you?</legend>
-            <p><label><input type="radio" name="notify-pref" value="email" checked /> Email</label></p>
-            <p><label><input type="radio" name="notify-pref" value="sms" /> SMS</label></p>
-            <p><label><input type="radio" name="notify-pref" value="none" /> None</label></p>
-          </fieldset>
-          <p><button type="submit">Save preferences</button></p>
-        </form>
-        <div class="status" id="notify-pref-result" aria-live="polite"></div>
-      </section>
-
-      <h2 class="category" data-cat="overlays">Overlays</h2>
-
-      <section class="card cat-overlays" aria-label="confirm dialog">
-        <h3>Confirm Dialog</h3>
-        <p>Deleting a release asks for confirmation first.</p>
-        <p><button id="delete-release" type="button">Delete release</button></p>
-        <div class="status" id="delete-result" aria-live="polite"></div>
-      </section>
-
-      <section class="card cat-overlays" aria-label="notifications">
-        <h3>Notifications</h3>
-        <p><button id="notify-button" type="button">Notify team</button></p>
-        <div id="toast" role="status" aria-live="polite" hidden></div>
-      </section>
-      <section class="card cat-overlays" aria-label="custom modal dialog">
-        <h3>Custom Modal</h3>
-        <p>A custom dialog with focus trap, ESC-to-close, and backdrop dismissal.</p>
-        <p><button id="open-modal" type="button">Open dialog</button></p>
-        <div id="modal-backdrop" hidden>
-          <div id="custom-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-            <h4 id="modal-title">Confirm archive</h4>
-            <p>Archiving moves this release to read-only storage.</p>
-            <p>
-              <button id="modal-confirm" type="button">Archive</button>
-              <button id="modal-cancel" type="button">Cancel</button>
-            </p>
+      <!-- Product detail -->
+      <section data-testid="product-detail-view" data-view="detail" hidden>
+        <button class="secondary" data-testid="back-to-catalog">← Back to catalog</button>
+        <div class="detail" data-testid="product-detail" style="margin-top: 16px;">
+          <div>
+            <h2 data-testid="detail-name"></h2>
+            <p class="price" data-testid="detail-price"></p>
+            <p class="meta" data-testid="detail-meta"></p>
+            <p data-testid="detail-stock"></p>
+          </div>
+          <div>
+            <div class="qty-row">
+              <button data-testid="detail-qty-dec" aria-label="Decrease quantity">−</button>
+              <input data-testid="detail-qty" type="number" min="1" value="1" aria-label="Quantity" />
+              <button data-testid="detail-qty-inc" aria-label="Increase quantity">+</button>
+            </div>
+            <button class="primary" data-testid="detail-add-to-cart">Add to Cart</button>
           </div>
         </div>
-        <div class="status" id="modal-result" aria-live="polite"></div>
+        <div class="tabs" data-testid="detail-tabs">
+          <div role="tablist" aria-label="Product information">
+            <button role="tab" id="tab-description" data-testid="tab-description" aria-selected="true" aria-controls="panel-description">Description</button>
+            <button role="tab" id="tab-reviews" data-testid="tab-reviews" aria-selected="false" aria-controls="panel-reviews" tabindex="-1">Reviews</button>
+            <button role="tab" id="tab-shipping" data-testid="tab-shipping" aria-selected="false" aria-controls="panel-shipping" tabindex="-1">Shipping</button>
+          </div>
+          <div role="tabpanel" id="panel-description" data-testid="panel-description" aria-labelledby="tab-description">
+            <p data-testid="detail-description"></p>
+          </div>
+          <div role="tabpanel" id="panel-reviews" data-testid="panel-reviews" aria-labelledby="tab-reviews" hidden>
+            <ul>
+              <li><strong>Maya R.</strong> ★★★★★ — Exactly as described, fast delivery.</li>
+              <li><strong>Leo K.</strong> ★★★★☆ — Good value for the price.</li>
+            </ul>
+          </div>
+          <div role="tabpanel" id="panel-shipping" data-testid="panel-shipping" aria-labelledby="tab-shipping" hidden>
+            <p>Ships within 2 business days. Free standard shipping on orders over $50.</p>
+          </div>
+        </div>
+        <div class="accordion" data-testid="detail-accordion">
+          <button class="acc-trigger" data-testid="accordion-shipping-trigger" aria-expanded="false" aria-controls="accordion-shipping-panel">Shipping information</button>
+          <div class="acc-panel" id="accordion-shipping-panel" data-testid="accordion-shipping-panel" role="region" hidden>
+            <p>Orders ship within 2 business days via tracked courier. Express options are available at checkout.</p>
+          </div>
+          <button class="acc-trigger" data-testid="accordion-returns-trigger" aria-expanded="false" aria-controls="accordion-returns-panel">Returns &amp; refunds</button>
+          <div class="acc-panel" id="accordion-returns-panel" data-testid="accordion-returns-panel" role="region" hidden>
+            <p>30-day returns, no questions asked. Refunds are issued to the original payment method within 5 business days.</p>
+          </div>
+        </div>
       </section>
 
-      <h2 class="category" data-cat="advanced">Advanced components</h2>
+      <!-- Cart -->
+      <section data-testid="cart-view" data-view="cart" hidden>
+        <h1>Your Cart</h1>
+        <p data-testid="cart-empty" hidden>Your cart is empty.</p>
+        <div data-testid="cart-items">
+          <div class="table-scroll">
+          <table class="cart">
+            <thead><tr><th>Product</th><th>Unit price</th><th>Quantity</th><th>Line total</th><th></th></tr></thead>
+            <tbody data-testid="cart-lines"></tbody>
+          </table>
+          </div>
+          <div class="totals">
+            <p>Subtotal: <span data-testid="cart-subtotal"></span></p>
+            <p>Total: <strong data-testid="cart-total"></strong></p>
+          </div>
+          <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px;">
+            <button class="secondary" data-testid="continue-shopping-button">Continue shopping</button>
+            <button class="secondary" data-testid="clear-cart-button">Clear cart</button>
+            <button class="primary" data-testid="checkout-button">Checkout</button>
+          </div>
+        </div>
+      </section>
 
-      <section class="card cat-advanced" aria-label="release wizard">
-        <h3>New Release Wizard</h3>
-        <ol id="wizard-progress" aria-label="progress">
-          <li data-wstep="1" aria-current="step">Name</li>
-          <li data-wstep="2">Environment</li>
-          <li data-wstep="3">Review</li>
+      <!-- Checkout (3-step wizard) -->
+      <section data-testid="checkout-view" data-view="checkout" hidden>
+        <h1>Checkout</h1>
+        <ol class="steps" data-testid="checkout-steps">
+          <li data-testid="checkout-step-label-1" aria-current="step">1. Shipping</li>
+          <li data-testid="checkout-step-label-2">2. Payment</li>
+          <li data-testid="checkout-step-label-3">3. Review</li>
         </ol>
-        <div data-wpanel="1">
-          <label for="wiz-name">Release name</label>
-          <input id="wiz-name" type="text" />
-          <div class="error" id="wiz-name-error" aria-live="polite"></div>
-          <p><button id="wiz-next-1" type="button">Next</button></p>
-        </div>
-        <div data-wpanel="2" hidden>
-          <label for="wiz-env">Environment</label>
-          <select id="wiz-env">
-            <option value="staging">Staging</option>
-            <option value="production">Production</option>
-          </select>
-          <p><button id="wiz-back-2" type="button">Back</button> <button id="wiz-next-2" type="button">Next</button></p>
-        </div>
-        <div data-wpanel="3" hidden>
-          <p id="wiz-review" aria-live="polite"></p>
-          <p><button id="wiz-back-3" type="button">Back</button> <button id="wiz-submit" type="button">Create release</button></p>
-        </div>
-        <div class="status" id="wiz-done" aria-live="polite"></div>
+        <form class="checkout" data-testid="checkout-form" novalidate>
+          <div class="error-summary" data-testid="checkout-errors" hidden></div>
+          <fieldset data-testid="checkout-step-1">
+            <label>Full name
+              <input data-testid="checkout-name" name="name" autocomplete="name" />
+            </label>
+            <p class="error" data-testid="checkout-error-name"></p>
+            <label>Email
+              <input data-testid="checkout-email" name="email" type="email" autocomplete="email" />
+            </label>
+            <p class="error" data-testid="checkout-error-email"></p>
+            <label>Shipping address
+              <input data-testid="checkout-address" name="address" autocomplete="street-address" />
+            </label>
+            <p class="error" data-testid="checkout-error-address"></p>
+            <label>Preferred delivery date
+              <input data-testid="checkout-delivery-date" name="deliveryDate" type="date" />
+            </label>
+            <fieldset class="radio-group" data-testid="shipping-method-group">
+              <legend>Shipping method</legend>
+              <label><input type="radio" name="shippingMethod" value="standard" data-testid="shipping-standard" checked /> Standard (5–7 days)</label>
+              <label><input type="radio" name="shippingMethod" value="express" data-testid="shipping-express" /> Express (2 days)</label>
+            </fieldset>
+          </fieldset>
+          <fieldset data-testid="checkout-step-2" hidden>
+            <label>Card number
+              <input data-testid="checkout-card-number" name="cardNumber" inputmode="numeric" placeholder="4111 1111 1111 1111" />
+            </label>
+            <p class="error" data-testid="checkout-error-card"></p>
+            <label>Expiry (MM/YY)
+              <input data-testid="checkout-card-expiry" name="expiry" placeholder="12/30" />
+            </label>
+            <label>CVC
+              <input data-testid="checkout-card-cvc" name="cvc" inputmode="numeric" placeholder="123" />
+            </label>
+            <iframe class="payment-frame" data-testid="payment-frame" src="/payment-frame" title="Secure payment"></iframe>
+          </fieldset>
+          <fieldset data-testid="checkout-step-3" hidden>
+            <h2>Review your order</h2>
+            <div data-testid="review-summary"></div>
+          </fieldset>
+          <div style="margin-top: 16px; display: flex; gap: 8px;">
+            <button type="button" class="secondary" data-testid="checkout-back" hidden>Back</button>
+            <button type="button" class="primary" data-testid="checkout-next">Continue</button>
+            <button type="submit" class="primary" data-testid="place-order-button" hidden>Place order</button>
+            <button type="button" class="secondary" data-testid="back-to-cart-button">Back to cart</button>
+          </div>
+        </form>
       </section>
 
-      <section class="card cat-advanced" aria-label="priority list">
-        <h3>Priority List</h3>
-        <p>Drag to reorder.</p>
-        <ul id="priority-list">
-          <li draggable="true" data-id="a">Write tests</li>
-          <li draggable="true" data-id="b">Review PR</li>
-          <li draggable="true" data-id="c">Deploy</li>
-        </ul>
-      </section>
-
-      <section class="card cat-advanced" aria-label="embedded frame">
-        <h3>Embedded Frame</h3>
-        <iframe id="demo-frame" title="demo frame" src="/frame" width="100%" height="120"></iframe>
-      </section>
-
-      <section class="card cat-advanced" aria-label="shadow dom">
-        <h3>Shadow DOM</h3>
-        <qa-counter></qa-counter>
-      </section>
-
-      <section class="card cat-advanced" aria-label="controls">
-        <h3>Controls</h3>
-        <p><button id="notify-toggle" type="button" role="switch" aria-checked="false">Notifications</button></p>
-        <label for="volume">Volume</label>
-        <input id="volume" type="range" min="0" max="100" value="50" />
-        <output id="volume-value" for="volume">50</output>
-      </section>
-      <section class="card cat-advanced" aria-label="faq accordion">
-        <h3>FAQ Accordion</h3>
-        <div id="faq-accordion">
-          <h4><button id="acc-btn-1" type="button" aria-expanded="false" aria-controls="acc-panel-1">What is a release?</button></h4>
-          <div id="acc-panel-1" role="region" aria-labelledby="acc-btn-1" hidden><p>A release is a versioned snapshot of the application, validated by quality gates before deployment.</p></div>
-          <h4><button id="acc-btn-2" type="button" aria-expanded="false" aria-controls="acc-panel-2">How are gates evaluated?</button></h4>
-          <div id="acc-panel-2" role="region" aria-labelledby="acc-btn-2" hidden><p>Quality gates check test results, coverage thresholds, and security scans. All must pass for a GO signal.</p></div>
-          <h4><button id="acc-btn-3" type="button" aria-expanded="false" aria-controls="acc-panel-3">Where do reports go?</button></h4>
-          <div id="acc-panel-3" role="region" aria-labelledby="acc-btn-3" hidden><p>Reports publish to GitHub Pages after every main run, with Allure trends and the failure showcase.</p></div>
-        </div>
-      </section>
-
-      <section class="card cat-advanced" aria-label="dropdown menu">
-        <h3>Actions Menu</h3>
-        <div class="menu-wrap" style="position:relative;display:inline-block">
-          <button id="actions-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="actions-menu">Actions</button>
-          <ul id="actions-menu" role="menu" aria-labelledby="actions-btn" hidden style="position:absolute;top:100%;left:0;background:#fff;border:1px solid #ccc;list-style:none;margin:4px 0 0;padding:4px;min-width:140px">
-            <li role="menuitem" tabindex="-1" data-action="edit">Edit release</li>
-            <li role="menuitem" tabindex="-1" data-action="duplicate">Duplicate</li>
-            <li role="menuitem" tabindex="-1" data-action="archive">Archive</li>
-          </ul>
-        </div>
-        <div class="status" id="menu-result" aria-live="polite"></div>
-      </section>
-
-      <section class="card cat-advanced" aria-label="team list with empty state">
-        <h3>Team Members</h3>
-        <label for="team-filter">Filter by name</label>
-        <input id="team-filter" type="text" />
-        <ul id="team-list">
-          <li data-name="Alice Chen">Alice Chen</li>
-          <li data-name="Bob Martinez">Bob Martinez</li>
-          <li data-name="Carol Johnson">Carol Johnson</li>
-        </ul>
-        <div id="team-empty" hidden>
-          <p>No team members found.</p>
-          <p>Try a different search term.</p>
+      <!-- Order confirmation -->
+      <section data-testid="order-confirmation-view" data-view="confirmation" hidden>
+        <div class="confirm" data-testid="order-confirmation">
+          <h1>Thank you for your order!</h1>
+          <p>Order ID: <span class="order-id" data-testid="order-id"></span></p>
+          <p>Order placed: <span data-testid="order-timestamp"></span></p>
+          <p>Total charged: <strong data-testid="order-total"></strong></p>
+          <h2>Items</h2>
+          <ul data-testid="order-items"></ul>
+          <div style="display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap;">
+            <a class="secondary" data-testid="download-receipt-button" href="#" download style="text-decoration: none; display: inline-block; padding: 10px 16px;">Download receipt (CSV)</a>
+            <button class="secondary" data-testid="view-receipt-button">View receipt in new tab</button>
+            <button class="primary" data-testid="confirmation-continue-button">Continue shopping</button>
+          </div>
         </div>
       </section>
 
-      <section class="card cat-advanced" aria-label="tooltip demo">
-        <h3>Release Info</h3>
-        <p>
-          <button id="tooltip-btn" type="button" aria-describedby="tooltip-text">Hover or focus me</button>
-          <span id="tooltip-text" role="tooltip" hidden>Releases are snapshotted every Monday at 06:00 UTC.</span>
-        </p>
+      <!-- Login -->
+      <section data-testid="login-view" data-view="login" hidden>
+        <div class="login-card">
+          <h1>Log in</h1>
+          <p class="error" data-testid="login-error"></p>
+          <label>Username
+            <input data-testid="login-username" name="username" autocomplete="username" />
+          </label>
+          <label>Password
+            <input data-testid="login-password" name="password" type="password" autocomplete="current-password" />
+          </label>
+          <div style="margin-top: 16px;">
+            <button class="primary" data-testid="login-submit">Log in</button>
+          </div>
+          <p class="hint">Demo credentials: <code>admin</code> / <code>secret</code></p>
+        </div>
       </section>
-
     </main>
 
+    <!-- Quick-view modal -->
+    <div class="modal-backdrop" data-testid="quick-view-backdrop" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="quick-view-title" data-testid="quick-view-modal">
+        <h2 id="quick-view-title" data-testid="quick-view-title"></h2>
+        <p class="price" data-testid="quick-view-price"></p>
+        <p class="meta" data-testid="quick-view-meta"></p>
+        <div style="display: flex; gap: 8px; margin-top: 16px;">
+          <button class="primary" data-testid="quick-view-add">Add to Cart</button>
+          <button class="secondary" data-testid="quick-view-close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" data-testid="toast" role="status" aria-live="polite" hidden></div>
+
     <script>
-      // Theme toggle
-      document.getElementById('theme-toggle').addEventListener('click', () => {
-        const html = document.documentElement;
-        html.dataset.theme = html.dataset.theme === 'light' ? 'dark' : 'light';
-      });
+      'use strict';
+      const $ = (sel, root) => (root || document).querySelector(sel);
+      const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+      const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      const money = (n) => '$' + Number(n).toFixed(2);
 
-      // Dashboard
-      const status = document.getElementById('status');
-      document.getElementById('refresh-button').addEventListener('click', () => {
-        status.textContent = 'Snapshot refreshed successfully at ' + new Date().toLocaleTimeString();
-      });
-
-      document.getElementById('load-metrics').addEventListener('click', async () => {
-        const el = document.getElementById('live-metrics');
-        try {
-          const res = await fetch('/api/metrics');
-          if (!res.ok) throw new Error('request failed with status ' + res.status);
-          const m = await res.json();
-          el.textContent = `Coverage ${m.coverage}% · API ${m.apiHealth} · P95 ${m.p95LatencyMs} ms`;
-        } catch {
-          el.textContent = 'Could not load live metrics.';
-        }
-      });
-
-      // Feedback form with inline validation
-      document.getElementById('feedback-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = document.getElementById('fb-name').value.trim();
-        const email = document.getElementById('fb-email').value.trim();
-        const nameErr = document.getElementById('fb-name-error');
-        const emailErr = document.getElementById('fb-email-error');
-        const success = document.getElementById('fb-success');
-        nameErr.textContent = '';
-        emailErr.textContent = '';
-        success.textContent = '';
-        let valid = true;
-        if (!name) {
-          nameErr.textContent = 'Name is required.';
-          valid = false;
-        }
-        if (!email || !email.includes('@')) {
-          emailErr.textContent = 'Enter a valid email address.';
-          valid = false;
-        }
-        if (!valid) return;
-        const payload = {
-          name,
-          email,
-          rating: document.getElementById('fb-rating').value,
-          message: document.getElementById('fb-message').value.trim(),
-          subscribe: document.getElementById('fb-subscribe').checked,
-        };
-        const res = await fetch('/api/feedback', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (res.ok) {
-          success.textContent = `Thanks, ${name}! Your feedback was recorded.`;
-        } else {
-          emailErr.textContent = 'Submission failed — please try again.';
-        }
-      });
-
-      // Login form
-      document.getElementById('login-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const username = document.getElementById('login-username').value;
-        const password = document.getElementById('login-password').value;
-        const err = document.getElementById('login-error');
-        const welcome = document.getElementById('login-welcome');
-        err.textContent = '';
-        welcome.textContent = '';
-        const res = await fetch('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
-        });
-        if (res.ok) {
-          const { token } = await res.json();
-          localStorage.setItem('qa-demo-token', token);
-          welcome.textContent = `Welcome, ${username}!`;
-        } else {
-          err.textContent = 'Invalid credentials.';
-        }
-      });
-
-      // Sortable releases table
-      const releases = [
-        { name: 'Aurora', coverage: 82, status: 'Green' },
-        { name: 'Beacon', coverage: 74, status: 'Green' },
-        { name: 'Cipher', coverage: 61, status: 'Amber' },
-        { name: 'Dynamo', coverage: 93, status: 'Green' },
-      ];
-      const sortState = { key: null, dir: 1 };
-      function renderTable() {
-        const rows = [...releases].sort((a, b) => {
-          if (!sortState.key) return 0;
-          const va = a[sortState.key];
-          const vb = b[sortState.key];
-          return (va > vb ? 1 : va < vb ? -1 : 0) * sortState.dir;
-        });
-        document.getElementById('releases-body').innerHTML = rows
-          .map((r) => `<tr><td>${r.name}</td><td>${r.coverage}%</td><td>${r.status}</td></tr>`)
-          .join('');
-      }
-      document.querySelectorAll('#releases-table th button').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const key = btn.dataset.sort;
-          sortState.dir = sortState.key === key ? -sortState.dir : 1;
-          sortState.key = key;
-          renderTable();
-        });
-      });
-      renderTable();
-
-      // Modal (native confirm)
-      document.getElementById('delete-release').addEventListener('click', () => {
-        const confirmed = confirm('Delete release Aurora?');
-        document.getElementById('delete-result').textContent = confirmed
-          ? 'Release Aurora deleted.'
-          : 'Delete cancelled.';
-      });
-
-      // File upload
-      document.getElementById('upload-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const input = document.getElementById('upload-input');
-        const result = document.getElementById('upload-result');
-        if (!input.files.length) {
-          result.textContent = 'Choose a file first.';
-          return;
-        }
-        const form = new FormData();
-        form.append('file', input.files[0]);
-        const res = await fetch('/api/upload', { method: 'POST', body: form });
-        const { filename } = await res.json();
-        result.textContent = `Uploaded: ${filename}`;
-      });
-
-      // Tabs
-      const tabs = [...document.querySelectorAll('[role="tab"]')];
-      tabs.forEach((tab) => {
-        tab.addEventListener('click', () => {
-          tabs.forEach((t) => {
-            t.setAttribute('aria-selected', 'false');
-            document.getElementById(t.getAttribute('aria-controls')).hidden = true;
-          });
-          tab.setAttribute('aria-selected', 'true');
-          document.getElementById(tab.getAttribute('aria-controls')).hidden = false;
-        });
-      });
-      // Tabs: WAI-ARIA keyboard navigation (arrow keys move between tabs,
-      // Home/End jump to first/last). Focus follows selection.
-      tabs.forEach((tab, i) => {
-        tab.addEventListener('keydown', (e) => {
-          let next = -1;
-          if (e.key === 'ArrowRight') next = (i + 1) % tabs.length;
-          else if (e.key === 'ArrowLeft') next = (i - 1 + tabs.length) % tabs.length;
-          else if (e.key === 'Home') next = 0;
-          else if (e.key === 'End') next = tabs.length - 1;
-          if (next >= 0) {
-            e.preventDefault();
-            tabs[next].focus();
-            tabs[next].click();
-          }
-        });
-      });
-
-      // Search autocomplete (debounced)
-      const searchInput = document.getElementById('search-input');
-      const searchResults = document.getElementById('search-results');
-      const searchSelection = document.getElementById('search-selection');
-      let searchTimer = null;
-      let activeOption = -1;
-      function renderOptions(names) {
-        searchResults.innerHTML = names
-          .map((n) => `<li role="option" id="search-opt-${n}">${n}</li>`)
-          .join('');
-        const open = names.length > 0;
-        searchResults.hidden = !open;
-        searchInput.setAttribute('aria-expanded', String(open));
-        activeOption = -1;
-      }
-      searchInput.addEventListener('input', () => {
-        clearTimeout(searchTimer);
-        const q = searchInput.value.trim();
-        if (!q) {
-          renderOptions([]);
-          return;
-        }
-        searchTimer = setTimeout(async () => {
-          const res = await fetch('/api/search?q=' + encodeURIComponent(q));
-          renderOptions(await res.json());
-        }, 200);
-      });
-      searchInput.addEventListener('keydown', (e) => {
-        const options = [...searchResults.querySelectorAll('[role="option"]')];
-        if (e.key === 'ArrowDown' && options.length) {
-          e.preventDefault();
-          activeOption = (activeOption + 1) % options.length;
-          options.forEach((o, i) => o.setAttribute('aria-selected', String(i === activeOption)));
-          searchInput.setAttribute('aria-activedescendant', options[activeOption].id);
-        } else if (e.key === 'Enter' && activeOption >= 0) {
-          e.preventDefault();
-          const chosen = options[activeOption].textContent;
-          searchInput.value = chosen;
-          searchSelection.textContent = `Selected: ${chosen}`;
-          renderOptions([]);
-        }
-      });
-
-      // Date picker
-      document.getElementById('schedule-button').addEventListener('click', () => {
-        const val = document.getElementById('release-date').value;
-        document.getElementById('schedule-result').textContent = val
-          ? `Scheduled for ${val}.`
-          : 'Pick a date first.';
-      });
-
-      // Wizard
-      const wpanels = [...document.querySelectorAll('[data-wpanel]')];
-      const wsteps = [...document.querySelectorAll('#wizard-progress li')];
-      function showWPanel(n) {
-        wpanels.forEach((p) => (p.hidden = p.dataset.wpanel !== String(n)));
-        wsteps.forEach((s) => {
-          if (Number(s.dataset.wstep) === n) s.setAttribute('aria-current', 'step');
-          else s.removeAttribute('aria-current');
-        });
-      }
-      document.getElementById('wiz-next-1').addEventListener('click', () => {
-        const name = document.getElementById('wiz-name').value.trim();
-        const err = document.getElementById('wiz-name-error');
-        if (!name) {
-          err.textContent = 'Give the release a name.';
-          return;
-        }
-        err.textContent = '';
-        showWPanel(2);
-      });
-      document.getElementById('wiz-back-2').addEventListener('click', () => showWPanel(1));
-      document.getElementById('wiz-next-2').addEventListener('click', () => {
-        const name = document.getElementById('wiz-name').value.trim();
-        const env = document.getElementById('wiz-env').value;
-        document.getElementById('wiz-review').textContent = `Create "${name}" in ${env}?`;
-        showWPanel(3);
-      });
-      document.getElementById('wiz-back-3').addEventListener('click', () => showWPanel(2));
-      document.getElementById('wiz-submit').addEventListener('click', () => {
-        const name = document.getElementById('wiz-name').value.trim();
-        document.getElementById('wiz-done').textContent = `Release "${name}" created.`;
-      });
-
-      // Drag and drop (HTML5)
-      const plist = document.getElementById('priority-list');
-      let dragEl = null;
-      plist.querySelectorAll('li').forEach((li) => {
-        li.addEventListener('dragstart', () => (dragEl = li));
-        li.addEventListener('dragover', (e) => e.preventDefault());
-        li.addEventListener('drop', (e) => {
-          e.preventDefault();
-          if (dragEl && dragEl !== li) plist.insertBefore(dragEl, li.nextSibling);
-        });
-      });
-
-      // Toast
-      document.getElementById('notify-button').addEventListener('click', () => {
-        const toast = document.getElementById('toast');
-        toast.textContent = 'Team notified!';
-        toast.hidden = false;
-        setTimeout(() => {
-          toast.hidden = true;
-        }, 2500);
-      });
-
-      // Switch + slider
-      document.getElementById('notify-toggle').addEventListener('click', (e) => {
-        const btn = e.currentTarget;
-        btn.setAttribute('aria-checked', String(btn.getAttribute('aria-checked') !== 'true'));
-      });
-      document.getElementById('volume').addEventListener('input', (e) => {
-        document.getElementById('volume-value').textContent = e.target.value;
-      });
-
-      // Shadow DOM counter
-      class QaCounter extends HTMLElement {
+      // Star rating as an open-shadow-root web component.
+      class StarRating extends HTMLElement {
         constructor() {
           super();
-          const shadow = this.attachShadow({ mode: 'open' });
-          shadow.innerHTML = '<button type="button">Count: <span id="n">0</span></button>';
-          shadow.querySelector('button').addEventListener('click', () => {
-            const n = shadow.querySelector('#n');
-            n.textContent = String(Number(n.textContent) + 1);
-          });
+          this.attachShadow({ mode: 'open' });
+        }
+        connectedCallback() {
+          const value = parseFloat(this.getAttribute('value') || '0');
+          const full = Math.round(value);
+          this.shadowRoot.innerHTML =
+            '<span aria-label="Rated ' + value + ' out of 5">' + '★'.repeat(full) + '☆'.repeat(5 - full) + '</span>';
         }
       }
-      customElements.define('qa-counter', QaCounter);
+      customElements.define('star-rating', StarRating);
 
-      // Custom modal dialog (focus trap, ESC, backdrop click, focus return)
-      const modalBackdrop = document.getElementById('modal-backdrop');
-      const customModal = document.getElementById('custom-modal');
-      const openModalBtn = document.getElementById('open-modal');
+      const filters = { q: '', category: '', sort: '', maxPrice: 400 };
+      const PAGE_SIZE = 6;
+      let page = 1;
+      let lastResults = [];
+      let detailProduct = null;
+      let toastTimer = null;
+      let checkoutStep = 1;
       let lastFocused = null;
-      function openModal() {
-        lastFocused = document.activeElement;
-        modalBackdrop.hidden = false;
-        document.getElementById('modal-confirm').focus();
-      }
-      function closeModal() {
-        modalBackdrop.hidden = true;
-        if (lastFocused) lastFocused.focus();
-      }
-      openModalBtn.addEventListener('click', openModal);
-      document.getElementById('modal-cancel').addEventListener('click', closeModal);
-      document.getElementById('modal-confirm').addEventListener('click', () => {
-        document.getElementById('modal-result').textContent = 'Release archived.';
-        closeModal();
-      });
-      modalBackdrop.addEventListener('click', (e) => {
-        if (e.target === modalBackdrop) closeModal();
-      });
-      document.addEventListener('keydown', (e) => {
-        if (modalBackdrop.hidden) return;
-        if (e.key === 'Escape') closeModal();
-        if (e.key === 'Tab') {
-          const focusable = [...customModal.querySelectorAll('button')];
-          const first = focusable[0];
-          const last = focusable[focusable.length - 1];
-          if (e.shiftKey && document.activeElement === first) {
-            e.preventDefault();
-            last.focus();
-          } else if (!e.shiftKey && document.activeElement === last) {
-            e.preventDefault();
-            first.focus();
-          }
-        }
-      });
 
-      // Accordion (single-open)
-      const accButtons = [...document.querySelectorAll('#faq-accordion button[aria-expanded]')];
-      accButtons.forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const isOpen = btn.getAttribute('aria-expanded') === 'true';
-          accButtons.forEach((b) => {
-            b.setAttribute('aria-expanded', 'false');
-            document.getElementById(b.getAttribute('aria-controls')).hidden = true;
+      function showToast(msg) {
+        const t = $('[data-testid="toast"]');
+        t.textContent = msg;
+        t.hidden = false;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { t.hidden = true; }, 2500);
+      }
+
+      function show(view) {
+        document.querySelectorAll('[data-view]').forEach((s) => { s.hidden = s.dataset.view !== view; });
+        $('[data-testid="nav-catalog"]').setAttribute('aria-current', view === 'catalog' ? 'page' : 'false');
+        $('[data-testid="nav-cart"]').setAttribute('aria-current', view === 'cart' ? 'page' : 'false');
+        window.scrollTo(0, 0);
+      }
+
+      function applyTheme(dark) {
+        document.documentElement.dataset.theme = dark ? 'dark' : '';
+        const t = $('[data-testid="theme-toggle"]');
+        t.setAttribute('aria-checked', String(dark));
+        t.textContent = dark ? '☀️ Light' : '🌙 Dark';
+        localStorage.setItem('demomart-theme', dark ? 'dark' : 'light');
+      }
+
+      // Per-session cart id: every browser context (i.e. every test) gets its own
+      // server-side cart, so parallel tests never share cart state. The server
+      // keys carts by the X-Cart-Id header and falls back to a shared 'demo'
+      // cart when it is absent.
+      let cartId = null;
+      try {
+        cartId = sessionStorage.getItem('demomart-cart-id');
+      } catch (e) {
+        /* sessionStorage unavailable — fall back to the shared cart */
+      }
+      if (!cartId) {
+        cartId = 'cart-' + Date.now().toString(36) + Math.random().toString(36).slice(2);
+        try {
+          sessionStorage.setItem('demomart-cart-id', cartId);
+        } catch (e) {
+          /* ignore */
+        }
+      }
+      async function req(method, path, data) {
+        const res = await fetch(path, {
+          method,
+          headers: { 'Content-Type': 'application/json', 'X-Cart-Id': cartId },
+          body: data === undefined ? undefined : JSON.stringify(data),
+        });
+        let body = null;
+        try { body = await res.json(); } catch (e) { /* empty body (204) */ }
+        return { status: res.status, body };
+      }
+
+      async function refreshBadge() {
+        try {
+          const { body } = await req('GET', '/api/cart');
+          const count = (body.items || []).reduce((n, i) => n + i.qty, 0);
+          $('[data-testid="cart-badge"]').textContent = String(count);
+        } catch (e) { /* badge keeps its last value offline */ }
+      }
+
+      function productCard(p) {
+        return `<article class="card" data-testid="product-card-${p.id}">
+          <button class="icon-btn" data-testid="product-info-${p.id}" data-tooltip-for="${p.id}" aria-label="More about ${esc(p.name)}" aria-describedby="tooltip-${p.id}">ⓘ</button>
+          <div class="tooltip" role="tooltip" id="tooltip-${p.id}" data-testid="product-tooltip-${p.id}" hidden>${esc(p.description || '')}</div>
+          <h3 data-testid="product-name-${p.id}">${esc(p.name)}</h3>
+          <p class="price" data-testid="product-price-${p.id}">${money(p.price)}</p>
+          <p class="meta"><span data-testid="product-category-${p.id}">${esc(p.category)}</span> · <star-rating value="${p.rating}" data-testid="rating-${p.id}"></star-rating></p>
+          <div class="actions">
+            <button class="secondary" data-testid="view-product-${p.id}" data-view-product="${p.id}">Details</button>
+            <button class="link" data-testid="quick-view-${p.id}" data-quick-view="${p.id}">Quick view</button>
+            <button class="primary" data-testid="add-to-cart-${p.id}" data-add-product="${p.id}">Add to Cart</button>
+          </div>
+        </article>`;
+      }
+
+      function renderSkeletons() {
+        const grid = $('[data-testid="product-grid"]');
+        grid.setAttribute('aria-busy', 'true');
+        grid.innerHTML = Array.from({ length: PAGE_SIZE }, (_, i) =>
+          `<div class="skeleton" data-testid="catalog-skeleton"><div class="bar" style="width: 70%;"></div><div class="bar" style="width: 40%;"></div><div class="bar" style="width: 90%;"></div></div>`
+        ).join('');
+        $('[data-testid="no-results"]').hidden = true;
+        $('[data-testid="catalog-error"]').hidden = true;
+        $('[data-testid="catalog-pagination"]').style.display = 'none';
+      }
+
+      function renderProducts(list) {
+        lastResults = list;
+        const grid = $('[data-testid="product-grid"]');
+        grid.setAttribute('aria-busy', 'false');
+        const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+        if (page > pages) page = pages;
+        const slice = list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+        grid.innerHTML = slice.map(productCard).join('');
+        $('[data-testid="no-results"]').hidden = list.length > 0;
+        const pag = $('[data-testid="catalog-pagination"]');
+        pag.style.display = list.length > PAGE_SIZE ? '' : 'none';
+        $('[data-testid="catalog-page-info"]').textContent = `Page ${page} of ${pages}`;
+        $('[data-testid="catalog-prev"]').disabled = page <= 1;
+        $('[data-testid="catalog-next"]').disabled = page >= pages;
+      }
+
+      function showCatalogError() {
+        const grid = $('[data-testid="product-grid"]');
+        grid.setAttribute('aria-busy', 'false');
+        grid.innerHTML = '';
+        $('[data-testid="no-results"]').hidden = true;
+        $('[data-testid="catalog-pagination"]').style.display = 'none';
+        const err = $('[data-testid="catalog-error"]');
+        err.textContent = 'Could not load products. Check your connection and try again.';
+        err.hidden = false;
+      }
+
+      async function initCategories() {
+        // Populate the category filter from the live catalog. The server-side
+        // ?category= filter exists, but users can't reach it until the select
+        // has options (dropdown spec).
+        try {
+          const { status, body } = await req('GET', '/api/products');
+          if (status !== 200 || !Array.isArray(body)) return;
+          const select = $('[data-testid="category-filter"]');
+          const cats = Array.from(new Set(body.map((p) => p.category).filter(Boolean))).sort();
+          cats.forEach((c) => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = c.charAt(0).toUpperCase() + c.slice(1);
+            select.appendChild(opt);
           });
-          if (!isOpen) {
-            btn.setAttribute('aria-expanded', 'true');
-            document.getElementById(btn.getAttribute('aria-controls')).hidden = false;
+        } catch (e) { /* filter stays on "All categories" */ }
+      }
+
+      async function loadCatalog() {
+        renderSkeletons();
+        const params = new URLSearchParams();
+        if (filters.q) params.set('q', filters.q);
+        if (filters.category) params.set('category', filters.category);
+        if (filters.sort) params.set('sort', filters.sort);
+        try {
+          const { status, body } = await req('GET', '/api/products' + (params.toString() ? '?' + params : ''));
+          if (status !== 200 || !Array.isArray(body)) throw new Error('bad response');
+          renderProducts(body.filter((p) => p.price <= filters.maxPrice));
+        } catch (e) {
+          showCatalogError();
+        }
+      }
+
+      async function addToCart(productId, qty) {
+        const { status, body } = await req('POST', '/api/cart/items', { productId, qty });
+        if (status === 200) {
+          const p = body.items.find((i) => i.productId === productId);
+          showToast(`Added ${p ? p.name : 'item'} to cart`);
+          await refreshBadge();
+        } else {
+          showToast(body && body.error ? body.error : 'Could not add to cart');
+        }
+        return status;
+      }
+
+      // ---- Quick-view modal (focus trap, ESC/backdrop close, focus return) ----
+      function openQuickView(productId) {
+        const p = lastResults.find((x) => x.id === productId);
+        if (!p) return;
+        lastFocused = document.activeElement;
+        $('[data-testid="quick-view-title"]').textContent = p.name;
+        $('[data-testid="quick-view-price"]').textContent = money(p.price);
+        $('[data-testid="quick-view-meta"]').textContent = `${p.category} · ★ ${p.rating}`;
+        $('[data-testid="quick-view-add"]').dataset.productId = p.id;
+        $('[data-testid="quick-view-backdrop"]').hidden = false;
+        $('[data-testid="quick-view-close"]').focus();
+      }
+
+      function closeQuickView() {
+        $('[data-testid="quick-view-backdrop"]').hidden = true;
+        if (lastFocused && document.contains(lastFocused)) lastFocused.focus();
+      }
+
+      // ---- Product detail: tabs + accordion ----
+      function selectTab(name) {
+        ['description', 'reviews', 'shipping'].forEach((n) => {
+          const selected = n === name;
+          const tab = $('[data-testid="tab-' + n + '"]');
+          tab.setAttribute('aria-selected', String(selected));
+          tab.tabIndex = selected ? 0 : -1;
+          $('[data-testid="panel-' + n + '"]').hidden = !selected;
+        });
+      }
+
+      function setAccordion(triggerId, open) {
+        const trigger = $('[data-testid="' + triggerId + '"]');
+        // Single-open: opening one section closes the other.
+        $$('[data-testid="detail-accordion"] [data-testid$="-trigger"]').forEach((t) => {
+          const p = document.getElementById(t.getAttribute('aria-controls'));
+          const isTarget = t === trigger;
+          t.setAttribute('aria-expanded', String(isTarget && open));
+          p.hidden = !(isTarget && open);
+        });
+      }
+
+      async function openDetail(productId) {
+        const { status, body } = await req('GET', '/api/products/' + encodeURIComponent(productId));
+        if (status !== 200) return;
+        detailProduct = body;
+        $('[data-testid="detail-name"]').textContent = body.name;
+        $('[data-testid="detail-price"]').textContent = money(body.price);
+        $('[data-testid="detail-meta"]').textContent = `${body.category} · ★ ${body.rating}`;
+        $('[data-testid="detail-description"]').textContent = body.description || 'No description.';
+        const stockEl = $('[data-testid="detail-stock"]');
+        if (body.stock > 0) {
+          stockEl.textContent = `In stock (${body.stock} available)`;
+          stockEl.className = 'stock-ok';
+        } else {
+          stockEl.textContent = 'Out of stock';
+          stockEl.className = 'stock-out';
+        }
+        $('[data-testid="detail-qty"]').value = '1';
+        $('[data-testid="detail-add-to-cart"]').disabled = body.stock === 0;
+        selectTab('description');
+        setAccordion('accordion-shipping-trigger', false);
+        show('detail');
+      }
+
+      async function renderCart() {
+        const { body } = await req('GET', '/api/cart');
+        const empty = body.items.length === 0;
+        $('[data-testid="cart-empty"]').hidden = !empty;
+        $('[data-testid="cart-items"]').style.display = empty ? 'none' : '';
+        const tbody = $('[data-testid="cart-lines"]');
+        tbody.innerHTML = body.items.map((i) => `<tr data-testid="cart-item-${i.productId}">
+          <td data-testid="cart-item-name-${i.productId}">${esc(i.name)}</td>
+          <td>${money(i.price)}</td>
+          <td>
+            <button class="secondary" data-testid="cart-dec-${i.productId}" data-cart-dec="${i.productId}" aria-label="Decrease quantity">−</button>
+            <span data-testid="cart-qty-${i.productId}" style="margin: 0 8px;">${i.qty}</span>
+            <button class="secondary" data-testid="cart-inc-${i.productId}" data-cart-inc="${i.productId}" aria-label="Increase quantity">+</button>
+          </td>
+          <td data-testid="cart-line-total-${i.productId}">${money(i.price * i.qty)}</td>
+          <td><button class="secondary" data-testid="cart-remove-${i.productId}" data-cart-remove="${i.productId}">Remove</button></td>
+        </tr>`).join('');
+        $('[data-testid="cart-subtotal"]').textContent = money(body.subtotal);
+        $('[data-testid="cart-total"]').textContent = money(body.subtotal);
+        await refreshBadge();
+      }
+
+      // ---- Checkout wizard ----
+      function setCheckoutError(field, msg) {
+        $('[data-testid="checkout-error-' + field + '"]').textContent = msg || '';
+      }
+
+      function goStep(n) {
+        checkoutStep = n;
+        [1, 2, 3].forEach((i) => {
+          $('[data-testid="checkout-step-' + i + '"]').hidden = i !== n;
+          const label = $('[data-testid="checkout-step-label-' + i + '"]');
+          if (i < n) {
+            label.removeAttribute('aria-current');
+            label.classList.add('done');
+          } else if (i === n) {
+            label.setAttribute('aria-current', 'step');
+            label.classList.remove('done');
+          } else {
+            label.removeAttribute('aria-current');
+            label.classList.remove('done');
           }
         });
-      });
+        $('[data-testid="checkout-back"]').hidden = n === 1;
+        $('[data-testid="checkout-next"]').hidden = n === 3;
+        $('[data-testid="place-order-button"]').hidden = n !== 3;
+        if (n === 3) renderReview();
+      }
 
-      // Paginated release archive
-      const archiveItems = Array.from({ length: 47 }, (_, i) => `Release ${String(i + 1).padStart(3, '0')}`);
-      let pageSize = 10;
-      let currentPage = 1;
-      function renderArchive() {
-        const totalPages = Math.ceil(archiveItems.length / pageSize);
-        currentPage = Math.min(Math.max(currentPage, 1), totalPages);
-        const start = (currentPage - 1) * pageSize;
-        const end = Math.min(start + pageSize, archiveItems.length);
-        document.getElementById('archive-list').innerHTML = archiveItems
-          .slice(start, end)
-          .map((name) => `<li>${name}</li>`)
-          .join('');
-        document.getElementById('page-info').textContent =
-          `Showing ${start + 1}\u2013${end} of ${archiveItems.length}`;
-        const nums = document.getElementById('page-numbers');
-        nums.innerHTML = '';
-        for (let p = 1; p <= totalPages; p++) {
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.textContent = String(p);
-          b.setAttribute('aria-label', `Page ${p}`);
-          if (p === currentPage) b.setAttribute('aria-current', 'page');
-          b.addEventListener('click', () => { currentPage = p; renderArchive(); });
-          nums.appendChild(b);
+      function checkoutValues() {
+        const v = (id) => $('[data-testid="' + id + '"]').value.trim();
+        const shipping = $('[data-testid="shipping-express"]').checked ? 'express' : 'standard';
+        return {
+          name: v('checkout-name'),
+          email: v('checkout-email'),
+          address: v('checkout-address'),
+          deliveryDate: $('[data-testid="checkout-delivery-date"]').value || null,
+          shippingMethod: shipping,
+          cardNumber: v('checkout-card-number'),
+          expiry: v('checkout-card-expiry'),
+          cvc: v('checkout-card-cvc'),
+        };
+      }
+
+      function validateStep1() {
+        ['name', 'email', 'address'].forEach((f) => setCheckoutError(f, ''));
+        const box = $('[data-testid="checkout-errors"]');
+        box.hidden = true;
+        box.innerHTML = '';
+        const v = checkoutValues();
+        const errors = {};
+        if (!v.name) errors.name = 'Full name is required.';
+        if (!v.email || !v.email.includes('@')) errors.email = 'Enter a valid email address.';
+        if (!v.address) errors.address = 'Shipping address is required.';
+        Object.keys(errors).forEach((f) => setCheckoutError(f, errors[f]));
+        if (Object.keys(errors).length > 0) {
+          box.innerHTML = '<ul>' + Object.values(errors).map((m) => `<li>${esc(m)}</li>`).join('') + '</ul>';
+          box.hidden = false;
+          return false;
         }
-        document.getElementById('page-prev').disabled = currentPage === 1;
-        document.getElementById('page-next').disabled = currentPage === totalPages;
-      }
-      document.getElementById('page-size').addEventListener('change', (e) => {
-        pageSize = Number(e.target.value);
-        currentPage = 1;
-        renderArchive();
-      });
-      document.getElementById('page-prev').addEventListener('click', () => { currentPage--; renderArchive(); });
-      document.getElementById('page-next').addEventListener('click', () => { currentPage++; renderArchive(); });
-      renderArchive();
-
-
-      // Dropdown menu
-      const menuBtn = document.getElementById('actions-btn');
-      const menu = document.getElementById('actions-menu');
-      const menuItems = Array.from(menu.querySelectorAll('[role="menuitem"]'));
-      let menuOpen = false;
-      function openMenu() {
-        menu.hidden = false; menuOpen = true;
-        menuBtn.setAttribute('aria-expanded', 'true');
-        menuItems[0].focus();
-      }
-      function closeMenu(returnFocus) {
-        menu.hidden = true; menuOpen = false;
-        menuBtn.setAttribute('aria-expanded', 'false');
-        if (returnFocus) menuBtn.focus();
-      }
-      menuBtn.addEventListener('click', () => { menuOpen ? closeMenu(false) : openMenu(); });
-      menu.addEventListener('keydown', (e) => {
-        const i = menuItems.indexOf(document.activeElement);
-        if (e.key === 'ArrowDown') { e.preventDefault(); menuItems[(i + 1) % menuItems.length].focus(); }
-        else if (e.key === 'ArrowUp') { e.preventDefault(); menuItems[(i - 1 + menuItems.length) % menuItems.length].focus(); }
-        else if (e.key === 'Escape') { closeMenu(true); }
-      });
-      document.addEventListener('click', (e) => {
-        if (menuOpen && !e.target.closest('.menu-wrap')) closeMenu(false);
-      });
-      menuItems.forEach((item) => {
-        item.addEventListener('click', () => {
-          document.getElementById('menu-result').textContent = 'Action: ' + item.dataset.action;
-          closeMenu(false);
-        });
-      });
-
-      // Empty states: team filter
-      const teamFilter = document.getElementById('team-filter');
-      const teamList = document.getElementById('team-list');
-      const teamEmpty = document.getElementById('team-empty');
-      teamFilter.addEventListener('input', () => {
-        const q = teamFilter.value.trim().toLowerCase();
-        let visible = 0;
-        teamList.querySelectorAll('li').forEach((li) => {
-          const show = li.dataset.name.toLowerCase().includes(q);
-          li.hidden = !show;
-          if (show) visible++;
-        });
-        teamEmpty.hidden = visible > 0;
-      });
-
-      // Tooltip
-      const tipBtn = document.getElementById('tooltip-btn');
-      const tip = document.getElementById('tooltip-text');
-      tipBtn.addEventListener('mouseenter', () => { tip.hidden = false; });
-      tipBtn.addEventListener('mouseleave', () => { tip.hidden = true; });
-      tipBtn.addEventListener('focus', () => { tip.hidden = false; });
-      tipBtn.addEventListener('blur', () => { tip.hidden = true; });
-      tipBtn.addEventListener('keydown', (e) => { if (e.key === 'Escape') tip.hidden = true; });
-
-      // Restore session
-      if (localStorage.getItem('qa-demo-token')) {
-        document.getElementById('login-welcome').textContent = 'Welcome, admin!';
+        return true;
       }
 
-      // Activity feed skeletons
-      document.getElementById('load-feed').addEventListener('click', () => {
-        const content = document.getElementById('feed-content');
-        content.innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
-        setTimeout(() => {
-          content.innerHTML = '<p>Deploy finished (2m ago)</p><p>Tests passed (15m ago)</p><p>Release cut (1h ago)</p>';
-        }, 800);
-      });
+      function validateStep2() {
+        setCheckoutError('card', '');
+        const box = $('[data-testid="checkout-errors"]');
+        box.hidden = true;
+        box.innerHTML = '';
+        const v = checkoutValues();
+        const digits = v.cardNumber.replace(/\D/g, '');
+        let error = '';
+        if (digits.length < 12) error = 'Enter a valid card number.';
+        else if (!/^\d{2}\/\d{2}$/.test(v.expiry)) error = 'Expiry must be MM/YY.';
+        else if (!/^\d{3,4}$/.test(v.cvc)) error = 'CVC must be 3–4 digits.';
+        if (error) {
+          setCheckoutError('card', error);
+          box.innerHTML = `<ul><li>${esc(error)}</li></ul>`;
+          box.hidden = false;
+          return false;
+        }
+        return true;
+      }
 
-      // Notification preferences form
-      document.getElementById('notify-form').addEventListener('submit', (e) => {
+      async function renderReview() {
+        const { body } = await req('GET', '/api/cart');
+        const v = checkoutValues();
+        $('[data-testid="review-summary"]').innerHTML =
+          `<p><strong>Ship to:</strong> ${esc(v.name)}, ${esc(v.address)} (${esc(v.email)})</p>` +
+          `<p><strong>Shipping:</strong> ${v.shippingMethod === 'express' ? 'Express (2 days)' : 'Standard (5–7 days)'}` +
+          (v.deliveryDate ? ` · preferred date ${esc(v.deliveryDate)}` : '') + '</p>' +
+          '<ul>' + body.items.map((i) => `<li>${esc(i.name)} × ${i.qty} — ${money(i.price * i.qty)}</li>`).join('') + '</ul>' +
+          `<p><strong>Total: ${money(body.subtotal)}</strong></p>`;
+      }
+
+      async function openCheckout() {
+        const { body } = await req('GET', '/api/cart');
+        if (body.items.length === 0) { showToast('Your cart is empty'); return; }
+        goStep(1);
+        show('checkout');
+      }
+
+      async function placeOrder(e) {
         e.preventDefault();
-        const selected = document.querySelector('input[name="notify-pref"]:checked').value;
-        document.getElementById('notify-pref-result').textContent = 'Preference saved: ' + selected + '.';
-      });
+        const v = checkoutValues();
+        const digits = v.cardNumber.replace(/\D/g, '');
+        const { status, body } = await req('POST', '/api/orders', {
+          name: v.name,
+          email: v.email,
+          address: v.address,
+          shippingMethod: v.shippingMethod,
+          deliveryDate: v.deliveryDate,
+          payment: { cardLast4: digits.slice(-4) },
+        });
+        if (status === 201) {
+          $('[data-testid="order-id"]').textContent = body.id;
+          $('[data-testid="order-timestamp"]').textContent = new Date().toLocaleString();
+          $('[data-testid="order-total"]').textContent = money(body.total);
+          $('[data-testid="order-items"]').innerHTML = body.items
+            .map((i) => `<li>${esc(i.name)} × ${i.qty} — ${money(i.price * i.qty)}</li>`).join('');
+          const receiptUrl = `/api/orders/${encodeURIComponent(body.id)}/receipt`;
+          $('[data-testid="download-receipt-button"]').setAttribute('href', receiptUrl);
+          $('[data-testid="view-receipt-button"]').dataset.receiptUrl = receiptUrl;
+          goStep(1);
+          show('confirmation');
+          await refreshBadge();
+        } else {
+          const box = $('[data-testid="checkout-errors"]');
+          const msg = (body && body.error) || 'Order failed.';
+          box.innerHTML = `<ul><li>${esc(msg)}</li></ul>`;
+          box.hidden = false;
+        }
+      }
 
+      function setAuth(token, username) {
+        if (token) localStorage.setItem('demomart-token', token);
+        else localStorage.removeItem('demomart-token');
+        $('[data-testid="login-button"]').hidden = !!token;
+        $('[data-testid="logout-button"]').hidden = !token;
+        const label = $('[data-testid="user-label"]');
+        label.hidden = !token;
+        if (token) label.textContent = `Signed in as ${username || 'admin'}`;
+      }
+
+      async function doLogin(e) {
+        e.preventDefault();
+        const username = $('[data-testid="login-username"]').value.trim();
+        const password = $('[data-testid="login-password"]').value;
+        const { status, body } = await req('POST', '/api/login', { username, password });
+        if (status === 200) {
+          $('[data-testid="login-error"]').textContent = '';
+          setAuth(body.token, username);
+          showToast(`Welcome, ${username}!`);
+          show('catalog');
+        } else {
+          $('[data-testid="login-error"]').textContent = (body && body.error) || 'Login failed.';
+        }
+      }
+
+      function bind() {
+        $('[data-testid="store-logo"]').addEventListener('click', () => { loadCatalog(); show('catalog'); });
+        $('[data-testid="nav-catalog"]').addEventListener('click', () => { loadCatalog(); show('catalog'); });
+        $('[data-testid="nav-cart"]').addEventListener('click', () => { renderCart(); show('cart'); });
+        $('[data-testid="login-button"]').addEventListener('click', () => show('login'));
+        $('[data-testid="logout-button"]').addEventListener('click', () => { setAuth(null); showToast('Signed out.'); });
+        $('[data-testid="theme-toggle"]').addEventListener('click', () => {
+          applyTheme(document.documentElement.dataset.theme !== 'dark');
+        });
+        $('[data-testid="search-input"]').addEventListener('input', (e) => { filters.q = e.target.value; page = 1; loadCatalog(); });
+        $('[data-testid="category-filter"]').addEventListener('change', (e) => { filters.category = e.target.value; page = 1; loadCatalog(); });
+        $('[data-testid="sort-select"]').addEventListener('change', (e) => { filters.sort = e.target.value; page = 1; loadCatalog(); });
+        $('[data-testid="price-max-slider"]').addEventListener('input', (e) => {
+          filters.maxPrice = Number(e.target.value);
+          $('[data-testid="price-max-output"]').textContent = money(filters.maxPrice);
+          page = 1;
+          loadCatalog();
+        });
+        $('[data-testid="catalog-prev"]').addEventListener('click', () => { if (page > 1) { page -= 1; renderProducts(lastResults); } });
+        $('[data-testid="catalog-next"]').addEventListener('click', () => { page += 1; renderProducts(lastResults); });
+
+        // Tooltips: show on hover/focus, hide on leave/blur/Escape.
+        document.addEventListener('mouseover', (e) => {
+          const btn = e.target.closest('[data-tooltip-for]');
+          if (btn) $('[data-testid="product-tooltip-' + btn.dataset.tooltipFor + '"]').hidden = false;
+        });
+        document.addEventListener('mouseout', (e) => {
+          const btn = e.target.closest('[data-tooltip-for]');
+          if (btn) $('[data-testid="product-tooltip-' + btn.dataset.tooltipFor + '"]').hidden = true;
+        });
+        document.addEventListener('focusin', (e) => {
+          const btn = e.target.closest('[data-tooltip-for]');
+          if (btn) $('[data-testid="product-tooltip-' + btn.dataset.tooltipFor + '"]').hidden = false;
+        });
+        document.addEventListener('focusout', (e) => {
+          const btn = e.target.closest('[data-tooltip-for]');
+          if (btn) $('[data-testid="product-tooltip-' + btn.dataset.tooltipFor + '"]').hidden = true;
+        });
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            $$('[data-testid^="product-tooltip-"]').forEach((t) => { t.hidden = true; });
+            if (!$('[data-testid="quick-view-backdrop"]').hidden) closeQuickView();
+          }
+        });
+
+        // Product-detail tabs: click + arrow-key navigation (roving tabindex).
+        $('[data-testid="detail-tabs"]').addEventListener('click', (e) => {
+          const tab = e.target.closest('[role="tab"]');
+          if (tab) selectTab(tab.id.replace('tab-', ''));
+        });
+        $('[data-testid="detail-tabs"]').addEventListener('keydown', (e) => {
+          const names = ['description', 'reviews', 'shipping'];
+          const current = names.indexOf(document.activeElement.id.replace('tab-', ''));
+          if (current === -1) return;
+          let next = null;
+          if (e.key === 'ArrowRight') next = names[(current + 1) % names.length];
+          else if (e.key === 'ArrowLeft') next = names[(current - 1 + names.length) % names.length];
+          else if (e.key === 'Home') next = names[0];
+          else if (e.key === 'End') next = names[names.length - 1];
+          if (next) {
+            e.preventDefault();
+            selectTab(next);
+            $('[data-testid="tab-' + next + '"]').focus();
+          }
+        });
+
+        // Accordion triggers are handled in the delegated click handler below.
+        document.addEventListener('click', async (e) => {
+          const t = e.target;
+
+          const add = t.closest('[data-add-product]');
+          if (add) { await addToCart(add.dataset.addProduct, 1); return; }
+          const view = t.closest('[data-view-product]');
+          if (view) { await openDetail(view.dataset.viewProduct); return; }
+          const quick = t.closest('[data-quick-view]');
+          if (quick) { openQuickView(quick.dataset.quickView); return; }
+          const accTrigger = t.closest('.accordion [data-testid$="-trigger"]');
+          if (accTrigger) {
+            const open = accTrigger.getAttribute('aria-expanded') === 'true';
+            setAccordion(accTrigger.dataset.testid, !open);
+            return;
+          }
+          const inc = t.closest('[data-cart-inc]');
+          if (inc) {
+            const pid = inc.dataset.cartInc;
+            const line = (await req('GET', '/api/cart')).body.items.find((i) => i.productId === pid);
+            await req('PATCH', '/api/cart/items/' + encodeURIComponent(pid), { qty: line.qty + 1 });
+            await renderCart(); return;
+          }
+          const dec = t.closest('[data-cart-dec]');
+          if (dec) {
+            const pid = dec.dataset.cartDec;
+            const line = (await req('GET', '/api/cart')).body.items.find((i) => i.productId === pid);
+            await req('PATCH', '/api/cart/items/' + encodeURIComponent(pid), { qty: line.qty - 1 });
+            await renderCart(); return;
+          }
+          const rem = t.closest('[data-cart-remove]');
+          if (rem) {
+            if (confirm('Remove this item from the cart?')) {
+              await req('DELETE', '/api/cart/items/' + encodeURIComponent(rem.dataset.cartRemove));
+              await renderCart();
+            }
+          }
+        });
+
+        // Quick-view modal: focus trap + backdrop close.
+        $('[data-testid="quick-view-close"]').addEventListener('click', closeQuickView);
+        $('[data-testid="quick-view-backdrop"]').addEventListener('click', (e) => {
+          if (e.target.dataset.testid === 'quick-view-backdrop') closeQuickView();
+        });
+        $('[data-testid="quick-view-modal"]').addEventListener('keydown', (e) => {
+          if (e.key !== 'Tab') return;
+          const modal = $('[data-testid="quick-view-modal"]');
+          const focusables = $$('button', modal).filter((b) => !b.disabled);
+          const first = focusables[0];
+          const last = focusables[focusables.length - 1];
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        });
+        $('[data-testid="quick-view-add"]').addEventListener('click', async (e) => {
+          const pid = e.target.dataset.productId;
+          await addToCart(pid, 1);
+          closeQuickView();
+        });
+
+        $('[data-testid="back-to-catalog"]').addEventListener('click', () => show('catalog'));
+        $('[data-testid="detail-qty-inc"]').addEventListener('click', () => { const q = $('[data-testid="detail-qty"]'); q.value = String(Number(q.value || 1) + 1); });
+        $('[data-testid="detail-qty-dec"]').addEventListener('click', () => { const q = $('[data-testid="detail-qty"]'); q.value = String(Math.max(1, Number(q.value || 1) - 1)); });
+        $('[data-testid="detail-add-to-cart"]').addEventListener('click', async () => {
+          if (!detailProduct) return;
+          await addToCart(detailProduct.id, Math.max(1, Number($('[data-testid="detail-qty"]').value || 1)));
+        });
+
+        $('[data-testid="continue-shopping-button"]').addEventListener('click', () => { loadCatalog(); show('catalog'); });
+        $('[data-testid="clear-cart-button"]').addEventListener('click', async () => { await req('DELETE', '/api/cart'); await renderCart(); });
+        $('[data-testid="checkout-button"]').addEventListener('click', openCheckout);
+        $('[data-testid="checkout-form"]').addEventListener('submit', placeOrder);
+        $('[data-testid="checkout-next"]').addEventListener('click', async () => {
+          if (checkoutStep === 1 && validateStep1()) goStep(2);
+          else if (checkoutStep === 2 && validateStep2()) goStep(3);
+        });
+        $('[data-testid="checkout-back"]').addEventListener('click', () => { if (checkoutStep > 1) goStep(checkoutStep - 1); });
+        $('[data-testid="back-to-cart-button"]').addEventListener('click', () => { renderCart(); show('cart'); });
+        $('[data-testid="confirmation-continue-button"]').addEventListener('click', () => { loadCatalog(); show('catalog'); });
+        $('[data-testid="view-receipt-button"]').addEventListener('click', (e) => {
+          const url = e.target.dataset.receiptUrl;
+          if (url) window.open(url + '?inline=1', '_blank');
+        });
+        $('[data-testid="login-submit"]').addEventListener('click', doLogin);
+        $('[data-testid="login-password"]').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(e); });
+
+        // Hamburger nav (visible on small screens via CSS): toggles the menu.
+        const navToggle = $('[data-testid="nav-toggle"]');
+        const storeNav = $('[data-testid="store-nav"]');
+        const closeNav = () => {
+          storeNav.classList.remove('open');
+          navToggle.setAttribute('aria-expanded', 'false');
+        };
+        navToggle.addEventListener('click', () => {
+          const open = storeNav.classList.toggle('open');
+          navToggle.setAttribute('aria-expanded', String(open));
+        });
+        // Close the mobile menu when navigating.
+        $('[data-testid="nav-catalog"]').addEventListener('click', closeNav);
+        $('[data-testid="nav-cart"]').addEventListener('click', closeNav);
+      }
+
+      bind();
+      applyTheme(localStorage.getItem('demomart-theme') === 'dark');
+      setAuth(localStorage.getItem('demomart-token'));
+      // Skeletons paint before any network: the skeleton spec gates
+      // /api/products, so renderSkeletons() must not wait on a fetch.
+      renderSkeletons();
+      // Categories must exist before any filter interaction (dropdown spec).
+      initCategories().then(() => {
+        loadCatalog();
+        refreshBadge();
+        show('catalog');
+      });
     </script>
   </body>
 </html>

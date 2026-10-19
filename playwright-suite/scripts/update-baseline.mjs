@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
  *   npm run baseline:update
  */
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const png = join(root, 'tests', 'visual.spec.ts-snapshots', 'dashboard-chromium-linux.png');
+const png = join(root, 'tests', 'visual.spec.ts-snapshots', 'storefront-chromium.png');
 const b64 = readFileSync(png).toString('base64');
 const CHUNK = 81920;
 for (const old of readdirSync(join(root, 'test-data')).filter((f) =>

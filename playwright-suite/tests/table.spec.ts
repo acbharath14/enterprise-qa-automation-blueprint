@@ -1,20 +1,36 @@
 import { test, expect } from '../fixtures/test';
 
-test.describe('releases table', () => {
-  test('lists four releases', async ({ galleryPage }) => {
-    await expect(galleryPage.releaseRows).toHaveCount(4);
+/** Catalog sort control: price ascending/descending and name ordering. */
+test.describe('catalog sort', () => {
+  test('price_asc sorts card prices ascending', async ({ catalogPage }) => {
+    await catalogPage.sortBy('price_asc');
+    await expect(catalogPage.productCard('prod-6')).toBeVisible();
+    const prices = await catalogPage.cardPrices();
+    expect(prices.length).toBeGreaterThan(0);
+    const sorted = [...prices].sort((a, b) => a - b);
+    expect(prices).toEqual(sorted);
   });
 
-  test('sorts by coverage ascending', async ({ galleryPage }) => {
-    await galleryPage.coverageHeader.click();
-    await expect(galleryPage.releaseRows.first().locator('td').nth(1)).toHaveText('61%');
-    await expect(galleryPage.releaseRows.last().locator('td').nth(1)).toHaveText('93%');
+  test('price_desc sorts card prices descending', async ({ catalogPage }) => {
+    await catalogPage.sortBy('price_desc');
+    await expect(catalogPage.productCard('prod-2')).toBeVisible();
+    const prices = await catalogPage.cardPrices();
+    expect(prices.length).toBeGreaterThan(0);
+    const sorted = [...prices].sort((a, b) => b - a);
+    expect(prices).toEqual(sorted);
   });
 
-  test('sorts by coverage descending on second click', async ({ galleryPage }) => {
-    await galleryPage.coverageHeader.click();
-    await galleryPage.coverageHeader.click();
-    await expect(galleryPage.releaseRows.first().locator('td').nth(1)).toHaveText('93%');
-    await expect(galleryPage.releaseRows.last().locator('td').nth(1)).toHaveText('61%');
+  test('name sorts cards alphabetically by product name', async ({
+    catalogPage,
+    page,
+  }) => {
+    await catalogPage.sortBy('name');
+    await expect(catalogPage.productCard('prod-9')).toBeVisible();
+    const names = await page
+      .locator('[data-testid^="product-name-"]')
+      .allTextContents();
+    expect(names.length).toBeGreaterThan(0);
+    const sorted = [...names].sort((a, b) => a.localeCompare(b));
+    expect(names).toEqual(sorted);
   });
 });

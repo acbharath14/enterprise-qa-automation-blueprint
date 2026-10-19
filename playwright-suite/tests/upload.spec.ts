@@ -1,22 +1,17 @@
 import { test, expect } from '../fixtures/test';
-import { writeFileSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
 
-test('uploads a file and shows the returned filename', async ({ galleryPage, page }, testInfo) => {
-  mkdirSync(testInfo.outputDir, { recursive: true });
-  const filePath = join(testInfo.outputDir, 'evidence.txt');
-  writeFileSync(filePath, 'release evidence');
-
-  await galleryPage.uploadInput.setInputFiles(filePath);
-  const [response] = await Promise.all([
-    page.waitForResponse((res) => res.url().includes('/api/upload')),
-    galleryPage.uploadSubmit.click(),
-  ]);
-  expect(response.ok()).toBeTruthy();
-  await expect(galleryPage.uploadResult).toContainText('Uploaded: evidence.txt');
-});
-
-test('prompts when no file is chosen', async ({ galleryPage }) => {
-  await galleryPage.uploadSubmit.click();
-  await expect(galleryPage.uploadResult).toHaveText('Choose a file first.');
+test('product image upload sanitizes a hostile filename', async ({ request }) => {
+  const response = await request.post('/api/products/prod-1/image', {
+    multipart: {
+      image: {
+        name: '<script>alert(1)</script>.png',
+        mimeType: 'image/png',
+        buffer: Buffer.from('fake-png-bytes')
+      }
+    }
+  });
+  expect(response.status()).toBe(200);
+  const body = await response.json();
+  expect(body.filename).not.toContain('<');
+  expect(body.filename).not.toContain('>');
 });

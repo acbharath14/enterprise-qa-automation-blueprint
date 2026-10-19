@@ -9,8 +9,8 @@ test.skip(
 );
 
 /**
- * Core Web Vitals — Google's user-perceived performance metrics.
- * Thresholds are Google's "good" ratings:
+ * Core Web Vitals — Google's user-perceived performance metrics, measured
+ * on the DemoMart storefront. Thresholds are Google's "good" ratings:
  *   LCP (Largest Contentful Paint) < 2.5s — when the main content is visible
  *   CLS (Cumulative Layout Shift)  < 0.1  — visual stability (no janky shifts)
  *   INP (Interaction to Next Paint) < 200ms — responsiveness to input
@@ -45,7 +45,7 @@ test('LCP: largest contentful paint under 2.5s', async ({ page }) => {
 
 test('CLS: cumulative layout shift under 0.1', async ({ page }) => {
   await page.goto('/');
-  // Let the page settle — fonts, images, and late layout settle here
+  // Let the page settle — catalog render and late layout settle here
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(1000);
 
@@ -63,9 +63,7 @@ test('CLS: cumulative layout shift under 0.1', async ({ page }) => {
 
 test('INP: interaction responds within 200ms', async ({ page }) => {
   await page.goto('/');
-  await expect(
-    page.getByRole('heading', { name: 'Enterprise QA Automation Blueprint' }),
-  ).toBeVisible();
+  await expect(page.getByTestId('product-grid')).toBeVisible();
 
   // Observe long event-timing entries (interactions)
   await page.evaluate(() => {
@@ -79,19 +77,15 @@ test('INP: interaction responds within 200ms', async ({ page }) => {
     (window as any).__inpObserver = observer;
   });
 
-  // Interact: click a control and type in the search box
-  const refreshButton = page.getByRole('button', { name: /refresh/i });
-  if (await refreshButton.isVisible()) {
-    await refreshButton.click();
-  }
-  // Optional extra interaction for INP; wrapped to avoid flakiness
+  // Interact: add a product to the cart and type in the search box
+  await page.getByTestId('add-to-cart-prod-1').click();
   try {
-    const searchBox = page.getByRole('textbox').first();
+    const searchBox = page.getByTestId('search-input');
     if (await searchBox.isVisible({ timeout: 2000 })) {
       await searchBox.fill('test', { timeout: 2000 });
     }
   } catch {
-    // Non-critical: button click above already provides interaction
+    // Non-critical: the add-to-cart click above already provides interaction
   }
   await page.waitForTimeout(1000);
 

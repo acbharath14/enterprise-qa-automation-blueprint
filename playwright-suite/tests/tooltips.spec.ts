@@ -1,51 +1,31 @@
 import { test, expect } from '../fixtures/test';
 
-/**
- * Tooltips: revealed on hover and focus, associated via aria-describedby,
- * dismissible with ESC.
- */
-test('hover reveals the tooltip', async ({ page }) => {
-  await page.goto('/');
-  const tooltip = page.getByRole('tooltip');
-  await expect(tooltip).toBeHidden();
-  await page.getByRole('button', { name: 'Hover or focus me' }).hover();
-  await expect(tooltip).toBeVisible();
-  await expect(tooltip).toHaveText(
-    'Releases are snapshotted every Monday at 06:00 UTC.',
-  );
-});
+test.describe('product info tooltips', () => {
+  test('hover reveals the tooltip with the product description', async ({ catalogPage, page }) => {
+    const tooltip = page.getByTestId('product-tooltip-prod-1');
+    await page.getByTestId('product-info-prod-1').hover();
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toContainText('Over-ear Bluetooth headphones');
+  });
 
-test('keyboard focus reveals the tooltip', async ({ page }) => {
-  await page.goto('/');
-  const tooltip = page.getByRole('tooltip');
-  await page.getByRole('button', { name: 'Hover or focus me' }).focus();
-  await expect(tooltip).toBeVisible();
-});
+  test('ESC dismisses the tooltip', async ({ catalogPage, page }) => {
+    const tooltip = page.getByTestId('product-tooltip-prod-1');
+    await page.getByTestId('product-info-prod-1').hover();
+    await expect(tooltip).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(tooltip).toBeHidden();
+  });
 
-test('moving focus away hides the tooltip', async ({ page }) => {
-  await page.goto('/');
-  const tooltip = page.getByRole('tooltip');
-  const button = page.getByRole('button', { name: 'Hover or focus me' });
-  await button.focus();
-  await expect(tooltip).toBeVisible();
-  await page.getByRole('button', { name: 'Toggle theme' }).focus();
-  await expect(tooltip).toBeHidden();
-});
+  test('keyboard focus reveals the tooltip', async ({ catalogPage, page }) => {
+    const tooltip = page.getByTestId('product-tooltip-prod-1');
+    await page.getByTestId('product-info-prod-1').focus();
+    await expect(tooltip).toBeVisible();
+  });
 
-test('ESC dismisses the tooltip', async ({ page }) => {
-  await page.goto('/');
-  const tooltip = page.getByRole('tooltip');
-  await page.getByRole('button', { name: 'Hover or focus me' }).focus();
-  await expect(tooltip).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(tooltip).toBeHidden();
-});
-
-test('tooltip is associated with the button via aria-describedby', async ({
-  page,
-}) => {
-  await page.goto('/');
-  await expect(
-    page.getByRole('button', { name: 'Hover or focus me' }),
-  ).toHaveAttribute('aria-describedby', 'tooltip-text');
+  test('tooltip is associated with the button via aria-describedby', async ({ catalogPage, page }) => {
+    const button = page.getByTestId('product-info-prod-1');
+    const tooltip = page.getByTestId('product-tooltip-prod-1');
+    await expect(button).toHaveAttribute('aria-describedby', 'tooltip-prod-1');
+    await expect(tooltip).toHaveAttribute('id', 'tooltip-prod-1');
+  });
 });

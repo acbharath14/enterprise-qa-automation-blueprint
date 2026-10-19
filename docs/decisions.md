@@ -5,9 +5,9 @@ start here.
 
 ## Page Object Model + fixtures, not raw selectors in specs
 
-Selectors live in `playwright-suite/pages/DashboardPage.ts`. Specs describe behavior
-("refresh updates the snapshot message"), never CSS. The custom fixture in
-`playwright-suite/fixtures/test.ts` navigates and asserts the page loaded before each
+Selectors live in `playwright-suite/pages/CatalogPage.ts`. Specs describe behavior
+("adding to cart updates the badge"), never CSS. The custom fixtures in
+`playwright-suite/fixtures/test.ts` navigate and assert the page loaded before each
 test, so every spec starts from a known-good state and failures point at the
 app, not at test setup.
 
@@ -35,9 +35,9 @@ train people to ignore the check; blocking impacts stay blocking.
 
 ## Route interception for backend control
 
-`api-mocked.spec.ts` stubs `/api/metrics` with `page.route()` to verify how
+`api-mocked.spec.ts` stubs `/api/products` with `page.route()` to verify how
 the UI handles degraded and failed backends — without depending on a real
-backend being in a particular state. The sample app's `/api/metrics`
+backend being in a particular state. The sample app's `/api/products`
 endpoint exists so the same spec file also covers the happy path against
 the real local server.
 
@@ -62,19 +62,21 @@ status badge honest: green means the suite passed recently, not once in June.
 
 ## Direct API tests alongside UI tests
 
-`api.spec.ts` hits `/api/metrics` with Playwright's `request` fixture — no
+`api.spec.ts` hits the store API with Playwright's `request` fixture — no
 browser needed. UI specs prove the user journey; API tests pin the contract
 (shape + value sanity). Both run in the same suite and the same report.
 
 ## Visual regression, masked
 
 `visual.spec.ts` compares against the committed baseline (materialized
-from base64 text by `global-setup.ts`) with dynamic regions (timestamps, live
-metrics) masked — only layout regressions fail the build, not data changes.
+from base64 text by `global-setup.ts`) with dynamic regions (the cart badge)
+masked — only layout regressions fail the build, not data changes.
 Baselines run in the desktop-chromium project only:
 cross-OS font rendering makes multi-browser baselines flaky without a
 dedicated visual service, and the mobile project (also chromium-based) would
-need its own viewport-specific baseline.
+need its own viewport-specific baseline. The snapshot path omits the OS
+(`snapshotPathTemplate`) so the baseline captured on a Mac asserts cleanly
+on Linux CI.
 
 ## Performance budgets, not benchmarks
 
@@ -88,19 +90,32 @@ The sample server sends `X-Content-Type-Options: nosniff`, returns JSON 404s
 for unknown `/api/*` routes, and never reflects query input.
 `security.spec.ts` locks that in — even demo apps should model the basics.
 
-## Data-driven from JSON
+## Per-test cart isolation via X-Cart-Id
 
-Dashboard expectations live in `test-data/metrics.json`, not in the spec.
-Adding a metric means editing data, not code.
-# Design decisions — gallery expansion
+The store API keeps server-side carts, and spec files run in parallel
+workers — a single shared cart would race (clear-then-act is not atomic).
+The server keys carts by the `X-Cart-Id` header instead. The storefront mints
+a per-session id in `sessionStorage`, so every browser context gets a private
+cart automatically. The `cart`/`checkout` fixtures pin the page's session cart
+to a known id via `addInitScript` (before first navigation) and expose it as
+`headers` for direct API calls. Pure API specs generate their own id per test
+(the `cartApi()` wrapper in `api.spec.ts`). Specs that mix UI steps with
+direct cart API calls bridge via `pageCartHeaders(page)` in
+`tests/helpers/cart.ts`.
 
-## The sample app is a component gallery, not a toy page
+# Design decisions — the DemoMart re-theme
 
-The app grew from a metrics dashboard into a gallery of common UI patterns:
-forms with validation, login, sortable table, native dialogs, file upload,
-tabs, and a theme toggle. One static HTML file, no build step — it stays
-approachable for novices while giving every spec something real to validate.
-Each section exists because a test type needs it.
+## The sample app is a store, not a dashboard
+
+The original sample app was a release-readiness dashboard — hard for a
+newcomer to map onto a real application. It is now **DemoMart**, a small
+e-commerce store: product catalog (search, category filter, sort), product
+detail, server-side cart, checkout wizard with validation, order
+confirmation, and demo login. One static HTML file plus a tiny Node API, no
+build step — it stays approachable for novices while giving every spec
+something relatable to validate. Each view exists because a test type needs
+it, and the domain (products, carts, orders) is one every tester already
+understands.
 
 ## Auth via setup project + storageState
 
@@ -110,25 +125,20 @@ the session persists without signing in again. This is Playwright's documented
 pattern: pay the login cost once per run, not once per test. The auth file is
 git-ignored — sessions never get committed.
 
-## API contract pinned with a committed file
+## API contract pinned with OpenAPI + AJV
 
-`api.spec.ts` asserts the `/api/metrics` payload equals
-`test-data/metrics-snapshot.json`. Any field added, removed, or renamed fails
-the build loudly. Deliberately not `toMatchSnapshot`: that resolves a
-separate file per project (`metrics-<project>-linux.json`), which would mean
-committing seven copies of identical JSON. One file, all projects.
-
-## Deterministic time with page.clock
-
-The refresh timestamp is asserted exactly, not fuzzily: `page.clock.install`
-freezes time, and the expected value is rendered inside the page context, so
-the assertion holds under any machine timezone. No sleeps, no regexes, no
-flakes.
+`api-schema.spec.ts` validates every store endpoint against
+`test-data/openapi.store.json` using the reusable `validateResponse` helper
+(AJV, local `$ref` resolution, `{param}` path-template matching). Undocumented
+paths, statuses, or schemas fail loudly rather than silently passing — the
+spec is executable documentation of the API. Deliberately not
+`toMatchSnapshot`: that resolves a separate file per project, which would mean
+committing near-identical copies. One OpenAPI document, all projects.
 
 ## UI↔API integration, not just isolation
 
-`integration.spec.ts` uses `waitForResponse` to prove the dashboard calls
-`GET /api/metrics` and renders *that response's* body. API specs test the
+`integration.spec.ts` uses `waitForResponse` to prove the storefront calls
+`POST /api/cart/items` and renders *that response's* body. API specs test the
 contract; UI specs test the rendering; this test proves they talk to each
 other.
 
@@ -152,14 +162,14 @@ the `authed` project reuses that session instead of logging in per test. That
 pattern transfers directly to production apps with OIDC/OAuth2 providers,
 httpOnly cookies, and server-side sessions.
 
-## Wave 2: the remaining production component patterns
+## Production UI patterns, store-flavored
 
-The gallery's second wave adds the UI patterns the first wave lacked: an
-autocomplete combobox (`/api/search`, debounced, keyboard selection),
-a date picker, a 3-step wizard with per-step validation, HTML5 drag-and-drop
-reordering, an auto-dismissing toast, a CSV download (filename + content
-assertions), a same-origin iFrame (`frameLocator`), a shadow-DOM custom
-element, an ARIA switch, a range slider, and a popup link.
+The suite covers the UI patterns a real storefront needs: an autocomplete
+search (debounced, keyboard selection), a delivery date picker, a 3-step
+checkout wizard with per-step validation, an auto-dismissing toast, an order
+receipt CSV download (filename + content assertions), a same-origin payment
+iFrame (`frameLocator`), a star-rating web component in shadow DOM, a price
+range slider, product-detail tabs and accordions, and a receipt popup.
 
 Two testing utilities ride along: `test.step` structures multi-step flows in
 reports, `expect.soft` collects all form errors in one run, and
@@ -167,21 +177,18 @@ reports, `expect.soft` collects all form errors in one run, and
 `video: 'retain-on-failure'` is enabled alongside traces.
 
 The `tz` project (Pacific/Auckland, en-NZ) proves datetime rendering follows
-the emulated locale instead of the machine's: `datetime.spec.ts` and the
-frozen-clock smoke test compute expectations inside the page context, so they
-hold under any timezone. The aria snapshot (`toMatchAriaSnapshot`) is
-chromium-gated because serialized accessibility trees vary across engines.
+the emulated locale instead of the machine's: `datetime.spec.ts` computes
+expectations inside the page context, so they hold under any timezone. The
+aria snapshot (`toMatchAriaSnapshot`) is chromium-gated because serialized
+accessibility trees vary across engines.
 
-## Gallery, not a product: sections grouped by category
+## Responsive by construction, verified by spec
 
-The sample app accumulated components wave by wave until it read as two
-things at once — a release dashboard and a component playground. It is now
-organized honestly: one page, four labeled categories (Release dashboard,
-Forms, Overlays, Advanced components), each a `<h2>` group with the
-components as `<h3>` cards. The delete-confirmation button moved out of the
-releases table into its own Confirm Dialog card. No test changes were needed:
-every selector is ID- or role-based, so section order and heading levels don't
-affect the suite.
+The storefront is mobile-first CSS (single-column grid, hamburger nav,
+full-screen cart sheet under 768px, 44px touch targets). `mobile.spec.ts`
+asserts no horizontal overflow at 375px on the Pixel 7 project — the layout
+regression net for the responsive design, alongside the desktop visual
+baseline.
 
 ## Visual baseline is versioned as base64 text
 
@@ -214,7 +221,7 @@ trace). The build stays green; the report honestly shows the failures.
 The reporter defaults to the Playwright project name (chromium, firefox, …)
 as the top-level suite, which reads poorly. `scripts/fix-allure-labels.mjs`
 rewrites the `parentSuite`/`suite` labels in the result JSON after each run
-(e.g. `Accessibility › WCAG scans`, `API › Mocked API`), before the report is
+(e.g. `Accessibility › WCAG scans`, `API › Store API`), before the report is
 generated. A post-processing script was chosen over `allure.parentSuite()` in
 a `beforeEach` because the runtime API silently drops labels for some files
 when several specs run in one invocation; the script is deterministic.
