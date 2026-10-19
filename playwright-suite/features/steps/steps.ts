@@ -2117,10 +2117,8 @@ Then('the response status is {int}', async ({ bdd }, status: number) => {
 Then('every product in the response validates against the Product schema', async ({ bdd }) => {
   const products = bdd.lastJson as any[];
   expect(Array.isArray(products)).toBe(true);
-  for (const p of products) {
-    const result = validateResponse({ method: 'GET', path: '/api/products', status: 200, body: p });
-    expect(result.errors, `schema violations for ${p.id}`).toEqual([]);
-  }
+  const result = validateResponse({ method: 'GET', path: '/api/products', status: 200, body: products });
+  expect(result.errors, 'schema violations').toEqual([]);
 });
 
 Then('the created product validates against the Product schema', async ({ bdd }) => {
