@@ -214,7 +214,7 @@ Then('the confirmation lists the product', async ({ page, bdd }) => {
   await expect(new CheckoutPage(page).confirmation).toContainText(bdd.productName || '');
 });
 
-Then('the order total equals the sum of the line totals', async ({ page, request, bdd }) => {
+Then('the displayed order total equals the sum of the line totals', async ({ page, request, bdd }) => {
   const orderId = (await new CheckoutPage(page).orderId.textContent()) || '';
   const order = await (await request.get(`/api/orders/${orderId.trim()}`)).json();
   const sum = (order.items as Array<{ price: number; qty: number }>).reduce(

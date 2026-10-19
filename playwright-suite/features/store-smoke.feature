@@ -44,7 +44,7 @@ Feature: Store Smoke Tests
     Then the order confirmation is shown
     And the displayed order id matches the pattern "ord-<number>"
     And the confirmation lists the product
-    And the order total equals the sum of the line totals
+    And the displayed order total equals the sum of the line totals
 
   @smoke
   Scenario: Demo login works
