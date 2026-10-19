@@ -2759,10 +2759,6 @@ Given('the browser emulates Pacific\\/Auckland \\(en-NZ)', async () => {
   // This step documents the precondition; no runtime action needed.
 });
 
-Then('the body is exactly {string}', async ({ bdd }, expected: string) => {
-  const body = await bdd.lastResponse?.text();
-  expect(body?.trim()).toBe(expected);
-});
 
 Then('the cumulative layout shift \\(excluding input-driven shifts) is under {float}', async ({ page }, threshold: number) => {
   const cls = await page.evaluate(() => {
