@@ -1,32 +1,42 @@
 /**
  * Seedable test-data factory for data-driven suites.
  *
- * Generates realistic releases, feedback submissions, and metrics payloads
- * matching the sample app's data shapes. Every generator accepts a seed —
- * the same seed produces the same data on every run (deterministic CI),
- * while a different seed gives variety for exploratory runs.
+ * Generates realistic products, cart lines, and orders matching the
+ * DemoMart store's data shapes. Every generator accepts a seed — the same
+ * seed produces the same data on every run (deterministic CI), while a
+ * different seed gives variety for exploratory runs.
  *
  * Usage:
- *   import { makeReleases } from '../test-data/factory';
- *   const releases = makeReleases(25, 42); // 25 releases, fixed seed
+ *   import { makeProducts } from '../test-data/factory';
+ *   const products = makeProducts(25, 42); // 25 products, fixed seed
  */
 
-export interface Release {
+export interface Product {
   name: string;
-  coverage: number;
-  status: 'Green' | 'Amber' | 'Red';
+  category: string;
+  price: number;
+  rating: number;
+  stock: number;
+  description: string;
 }
 
-export interface Feedback {
-  name: string;
-  email: string;
-  message: string;
+export interface CartLine {
+  productId: string;
+  qty: number;
 }
 
-export interface Metrics {
-  coverage: number;
-  apiHealth: string;
-  p95LatencyMs: number;
+export interface OrderItem {
+  productId: string;
+  qty: number;
+  name: string;
+  price: number;
+}
+
+export interface Order {
+  id: string;
+  items: OrderItem[];
+  total: number;
+  status: 'confirmed';
 }
 
 /**
@@ -44,15 +54,18 @@ export function createRng(seed: number): () => number {
   };
 }
 
-const RELEASE_NAMES = [
+const PRODUCT_ADJECTIVES = [
   'Aurora', 'Beacon', 'Cipher', 'Dynamo', 'Ember', 'Flux', 'Granite', 'Harbor',
   'Ion', 'Juniper', 'Krypton', 'Lumen', 'Mesa', 'Nimbus', 'Onyx', 'Prism',
-  'Quartz', 'Ridge', 'Sable', 'Tundra', 'Umbra', 'Vega', 'Willow', 'Xenon',
-  'Yonder', 'Zephyr',
 ];
 
-// Weighted toward Green, mirroring a healthy dashboard.
-const STATUSES: Release['status'][] = ['Green', 'Green', 'Green', 'Green', 'Amber', 'Amber', 'Red'];
+const PRODUCT_NOUNS = [
+  'Headphones', 'Monitor', 'Keyboard', 'Running Shoes', 'Jacket', 'T-Shirt',
+  'Pour-Over Set', 'Cutting Board', 'Desk Lamp', 'Yoga Mat', 'Water Bottle',
+  'Resistance Band Set',
+];
+
+const CATEGORIES = ['electronics', 'apparel', 'home', 'sports'];
 
 const FIRST = ['Ada', 'Bharath', 'Maya', 'Leo', 'Nina', 'Omar', 'Priya', 'Ravi'];
 const LAST = ['Sharma', 'Iyer', 'Chen', 'Garcia', 'Khan', 'Novak', 'Patel', 'Rao'];
@@ -65,46 +78,78 @@ function int(rng: () => number, min: number, max: number): number {
   return min + Math.floor(rng() * (max - min + 1));
 }
 
-export function makeRelease(
+function price(rng: () => number): number {
+  return Math.round((5 + rng() * 395) * 100) / 100;
+}
+
+export function makeProduct(
   rng: () => number = Math.random,
-  overrides: Partial<Release> = {},
-): Release {
+  overrides: Partial<Product> = {},
+): Product {
   return {
-    name: pick(rng, RELEASE_NAMES),
-    coverage: int(rng, 40, 99),
-    status: pick(rng, STATUSES),
+    name: `${pick(rng, PRODUCT_ADJECTIVES)} ${pick(rng, PRODUCT_NOUNS)}`,
+    category: pick(rng, CATEGORIES),
+    price: price(rng),
+    rating: Math.round((3 + rng() * 2) * 10) / 10,
+    stock: int(rng, 0, 100),
+    description: `Demo product ${int(rng, 1000, 9999)}: quality you can trust.`,
     ...overrides,
   };
 }
 
-/** Deterministic batch: makeReleases(n, seed) is identical on every run. */
-export function makeReleases(count: number, seed = 42): Release[] {
+/** Deterministic batch: makeProducts(n, seed) is identical on every run. */
+export function makeProducts(count: number, seed = 42): Product[] {
   const rng = createRng(seed);
-  return Array.from({ length: count }, () => makeRelease(rng));
+  return Array.from({ length: count }, () => makeProduct(rng));
 }
 
-export function makeFeedback(
+export function makeCartLine(
   rng: () => number = Math.random,
-  overrides: Partial<Feedback> = {},
-): Feedback {
+  overrides: Partial<CartLine> = {},
+): CartLine {
+  return {
+    productId: `prod-${int(rng, 1, 12)}`,
+    qty: int(rng, 1, 5),
+    ...overrides,
+  };
+}
+
+export function makeOrder(
+  rng: () => number = Math.random,
+  overrides: Partial<Order> = {},
+): Order {
+  const first = pick(rng, FIRST);
+  const last = pick(rng, LAST);
+  const items: OrderItem[] = Array.from({ length: int(rng, 1, 3) }, () => {
+    const p = makeProduct(rng);
+    const qty = int(rng, 1, 3);
+    return {
+      productId: `prod-${int(rng, 1, 12)}`,
+      qty,
+      name: p.name,
+      price: p.price,
+    };
+  });
+  const total = Math.round(items.reduce((sum, i) => sum + i.price * i.qty, 0) * 100) / 100;
+  return {
+    id: `ord-${int(rng, 1, 9999)}`,
+    items,
+    total,
+    status: 'confirmed',
+    ...overrides,
+  };
+}
+
+export function makeCustomer(rng: () => number = Math.random): {
+  name: string;
+  email: string;
+  address: string;
+} {
   const first = pick(rng, FIRST);
   const last = pick(rng, LAST);
   return {
     name: `${first} ${last}`,
     email: `${first.toLowerCase()}.${last.toLowerCase()}@example.com`,
-    message: `Feedback message ${int(rng, 1000, 9999)}: the dashboard looks good.`,
-    ...overrides,
-  };
-}
-
-export function makeMetrics(
-  rng: () => number = Math.random,
-  overrides: Partial<Metrics> = {},
-): Metrics {
-  return {
-    coverage: int(rng, 40, 99),
-    apiHealth: pick(rng, ['Green', 'Green', 'Green', 'Amber']),
-    p95LatencyMs: int(rng, 200, 1200),
-    ...overrides,
+    address: `${int(rng, 1, 999)} Main St, Herndon VA`,
   };
 }

@@ -6,7 +6,7 @@ Hourly Postman collection runs via [Newman](https://github.com/postmanlabs/newma
 
 | File | Purpose |
 |---|---|
-| `health-check.postman_collection.json` | 7 requests covering all sample-app API endpoints, with assertions |
+| `health-check.postman_collection.json` | 7 requests covering the DemoMart store API endpoints, with assertions |
 | `local.postman_environment.json` | Environment with `baseUrl` (defaults to `http://localhost:4173`) |
 | `health-check.yml` | GitHub Actions workflow template — copy to `.github/workflows/` via web UI |
 
@@ -14,13 +14,13 @@ Hourly Postman collection runs via [Newman](https://github.com/postmanlabs/newma
 
 | Request | Assertions |
 |---|---|
-| GET /api/metrics | 200, has `coverage` number, `apiHealth` is Green, response < 800ms |
+| GET /api/products | 200, non-empty product array, includes prod-1, response < 800ms |
+| GET /api/products/prod-1 | 200, name is "Aurora Wireless Headphones" |
 | POST /api/login (valid) | 200, returns token (saved to collection variable) |
 | POST /api/login (invalid) | 401, error message present |
-| GET /api/search?q=aur | 200, returns array including "Aurora" |
-| POST /api/feedback (valid) | 200, returns feedback id |
-| POST /api/feedback (invalid) | 400 for bad email |
-| GET /api/export | 200, Content-Type is CSV, has header row |
+| POST /api/cart/items | 200, cart has numeric subtotal |
+| GET /api/cart | 200, cart contains the prod-1 line |
+| GET /api/nope (404) | 404, JSON error shape, Content-Type is JSON |
 
 ## Run locally
 

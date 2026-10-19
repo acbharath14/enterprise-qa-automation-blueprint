@@ -6,10 +6,7 @@ import { test, expect } from '../fixtures/test';
  * Skipped everywhere else: without the saved session there is nothing to reuse.
  */
 test('session persists without signing in again', async ({ page }, testInfo) => {
-  test.skip(
-    testInfo.project.name !== 'authed',
-    'requires the storageState from auth.setup.ts',
-  );
+  test.skip(testInfo.project.name !== 'authed', 'requires the storageState from auth.setup.ts');
   await page.goto('/');
-  await expect(page.locator('#login-welcome')).toHaveText('Welcome, admin!');
+  await expect(page.getByTestId('user-label')).toHaveText('Signed in as admin');
 });

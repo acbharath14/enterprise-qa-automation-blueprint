@@ -11,6 +11,6 @@ setup('authenticate', async ({ page }) => {
   const login = new LoginPage(page);
   await login.goto();
   await login.login('admin', 'secret');
-  await expect(login.welcome).toHaveText('Welcome, admin!');
+  await expect(login.logoutButton).toBeVisible();
   await page.context().storageState({ path: authFile });
 });

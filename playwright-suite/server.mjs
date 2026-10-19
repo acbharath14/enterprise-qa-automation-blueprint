@@ -55,7 +55,22 @@ const seedProducts = [
 
 let products = seedProducts.map((p) => ({ ...p }));
 let nextProductId = 13;
-let cart = []; // [{ productId, qty }]
+// Carts are keyed by the X-Cart-Id request header (each browser context /
+// test sends its own id, so parallel tests never share cart state). Requests
+// without the header share the 'demo' cart, preserving the hand-driven UX.
+const carts = new Map(); // cartId -> [{ productId, qty }]
+function cartIdOf(req) {
+  const id = req.headers['x-cart-id'];
+  return typeof id === 'string' && id.length > 0 ? id : 'demo';
+}
+function getCart(req) {
+  const id = cartIdOf(req);
+  if (!carts.has(id)) carts.set(id, []);
+  return carts.get(id);
+}
+function setCart(req, lines) {
+  carts.set(cartIdOf(req), lines);
+}
 let orders = [];
 let nextOrderId = 1;
 
@@ -96,7 +111,7 @@ function productValidationError(body, { partial = false } = {}) {
   return null;
 }
 
-function cartView() {
+function cartView(cart) {
   const items = cart
     .filter((line) => findProduct(line.productId))
     .map((line) => {
@@ -164,7 +179,13 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       products.splice(idx, 1);
-      cart = cart.filter((line) => line.productId !== id);
+      // Drop the deleted product's lines from every cart.
+      for (const [cartId, lines] of carts) {
+        carts.set(
+          cartId,
+          lines.filter((line) => line.productId !== id),
+        );
+      }
       res.writeHead(204, { ...securityHeaders });
       res.end();
       return;
@@ -204,12 +225,12 @@ const server = http.createServer(async (req, res) => {
 
   // ---- Cart (single demo cart) ---------------------------------------------
   if (url === '/api/cart' && method === 'GET') {
-    json(res, 200, cartView());
+    json(res, 200, cartView(getCart(req)));
     return;
   }
   if (url === '/api/cart' && method === 'DELETE') {
-    cart = [];
-    json(res, 200, cartView());
+    setCart(req, []);
+    json(res, 200, cartView(getCart(req)));
     return;
   }
   if (url === '/api/cart/items' && method === 'POST') {
@@ -224,6 +245,7 @@ const server = http.createServer(async (req, res) => {
       json(res, 400, { error: 'qty must be a positive integer' });
       return;
     }
+    const cart = getCart(req);
     const line = cart.find((l) => l.productId === product.id);
     const newQty = (line ? line.qty : 0) + qty;
     if (newQty > product.stock) {
@@ -232,20 +254,21 @@ const server = http.createServer(async (req, res) => {
     }
     if (line) line.qty = newQty;
     else cart.push({ productId: product.id, qty });
-    json(res, 200, cartView());
+    json(res, 200, cartView(cart));
     return;
   }
   const cartItemMatch = /^\/api\/cart\/items\/([^/]+)$/.exec(url);
   if (cartItemMatch) {
     const pid = decodeURIComponent(cartItemMatch[1]);
+    const cart = getCart(req);
     const line = cart.find((l) => l.productId === pid);
     if (!line) {
       json(res, 404, { error: 'Item not in cart' });
       return;
     }
     if (method === 'DELETE') {
-      cart = cart.filter((l) => l.productId !== pid);
-      json(res, 200, cartView());
+      setCart(req, cart.filter((l) => l.productId !== pid));
+      json(res, 200, cartView(getCart(req)));
       return;
     }
     if (method === 'PATCH') {
@@ -260,9 +283,9 @@ const server = http.createServer(async (req, res) => {
         json(res, 400, { error: `Only ${product.stock} in stock` });
         return;
       }
-      if (qty === 0) cart = cart.filter((l) => l.productId !== pid);
+      if (qty === 0) setCart(req, cart.filter((l) => l.productId !== pid));
       else line.qty = qty;
-      json(res, 200, cartView());
+      json(res, 200, cartView(getCart(req)));
       return;
     }
   }
@@ -291,7 +314,7 @@ const server = http.createServer(async (req, res) => {
       json(res, 400, { error: 'payment.cardLast4 must be 4 digits' });
       return;
     }
-    const view = cartView();
+    const view = cartView(getCart(req));
     if (view.items.length === 0) {
       json(res, 422, { error: 'Cart is empty' });
       return;
@@ -303,8 +326,34 @@ const server = http.createServer(async (req, res) => {
       status: 'confirmed',
     };
     orders.push(order);
-    cart = [];
+    setCart(req, []);
     json(res, 201, order);
+    return;
+  }
+  const receiptMatch = /^\/api\/orders\/([^/]+)\/receipt$/.exec(url);
+  if (receiptMatch && method === 'GET') {
+    const order = orders.find((o) => o.id === decodeURIComponent(receiptMatch[1]));
+    if (!order) {
+      json(res, 404, { error: 'Order not found' });
+      return;
+    }
+    const lines = order.items.map(
+      (i) => `${i.name},${i.qty},${i.price.toFixed(2)},${(i.price * i.qty).toFixed(2)}`,
+    );
+    const csv =
+      'product,quantity,unit_price,line_total\n' +
+      lines.join('\n') +
+      `\ntotal,,,${order.total.toFixed(2)}\n`;
+    // ?inline=1 renders the receipt as plain text in the browser tab (for the
+    // popup spec — Chromium downloads text/csv instead of rendering it);
+    // otherwise it downloads as a CSV attachment (for the download spec).
+    const inline = new URL(req.url, 'http://localhost').searchParams.get('inline') === '1';
+    res.writeHead(200, {
+      'Content-Type': inline ? 'text/plain' : 'text/csv',
+      ...(inline ? {} : { 'Content-Disposition': `attachment; filename="receipt-${order.id}.csv"` }),
+      ...securityHeaders,
+    });
+    res.end(csv);
     return;
   }
   const orderMatch = /^\/api\/orders\/([^/]+)$/.exec(url);
@@ -318,6 +367,26 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ---- Product image upload (admin demo) ----------------------------------------
+  // Minimal multipart handling: the filename is regex-extracted from the raw
+  // body and sanitized, mirroring the old sample app's upload endpoint.
+  const imageMatch = /^\/api\/products\/([^/]+)\/image$/.exec(url);
+  if (imageMatch && method === 'POST') {
+    const product = findProduct(decodeURIComponent(imageMatch[1]));
+    if (!product) {
+      json(res, 404, { error: 'Product not found' });
+      return;
+    }
+    const raw = await readBody(req);
+    const match = /filename="([^"]+)"/.exec(raw);
+    // Strip angle brackets/quotes: a stored filename rendered as HTML
+    // would otherwise be an XSS vector.
+    const filename = match ? match[1].replace(/[<>\"']/g, '') : 'unknown';
+    product.image = filename;
+    json(res, 200, { ok: true, filename });
+    return;
+  }
+
   // ---- Demo login (unchanged) -------------------------------------------------
   if (url === '/api/login' && method === 'POST') {
     const body = await readJsonBody(req);
@@ -326,6 +395,21 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     json(res, 401, { error: 'Invalid credentials' });
+    return;
+  }
+
+  // ---- Same-origin fixture page for the iframe spec -----------------------------
+  if (url === '/payment-frame') {
+    const frame = [
+      '<!doctype html>',
+      '<html lang="en"><head><meta charset="utf-8"><title>Secure payment</title></head><body>',
+      '<h1>Secure payment</h1>',
+      '<p data-testid="frame-note">Demo secure payment frame (same origin).</p>',
+      '<label>Cardholder name <input data-testid="frame-cardholder" name="cardholder"></label>',
+      '</body></html>',
+    ].join('\n');
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', ...securityHeaders });
+    res.end(frame);
     return;
   }
 
