@@ -1981,6 +1981,8 @@ async function apiSend(
   if (data !== undefined) opts.data = data;
   const res = await request.fetch(path, { method, ...opts });
   bdd.lastResponse = res;
+  (bdd as any).lastMethod = method;
+  (bdd as any).lastPath = path;
   const ct = res.headers()['content-type'] || '';
   if (ct.includes('application/json')) {
     try {
@@ -2130,8 +2132,8 @@ Then('the created product validates against the Product schema', async ({ bdd })
 
 Then('the error payload validates against the Error schema', async ({ bdd }) => {
   const result = validateResponse({
-    method: 'POST',
-    path: '/api/products',
+    method: (bdd as any).lastMethod || 'GET',
+    path: (bdd as any).lastPath || '/api/products',
     status: bdd.lastResponse?.status() || 400,
     body: bdd.lastJson
   });
