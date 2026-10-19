@@ -15,7 +15,7 @@
  * - No trailing commas in multiline calls (repo pins TypeScript 7.0.2,
  *   which rejects them).
  */
-import { expect } from '../../fixtures/test';
+import { expect } from '@playwright/test';
 import type { APIRequestContext, Page } from '@playwright/test';
 import { Given, When, Then } from './fixtures';
 import type { BddState } from './fixtures';
