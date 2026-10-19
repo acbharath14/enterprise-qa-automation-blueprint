@@ -12,3 +12,4 @@ Thumbs.db
 
 playwright/.auth/
 playwright-suite/playwright/.auth/
+playwright-suite/tests/visual.spec.ts-snapshots/*.png

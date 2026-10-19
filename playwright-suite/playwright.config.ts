@@ -72,7 +72,7 @@ export default defineConfig({
   // OS-independent screenshot names: the visual baseline is captured on a
   // Mac (no Linux browsers handy) but asserted on Linux CI. Font rendering
   // differs slightly across OSes; the spec's maxDiffPixelRatio absorbs it.
-  snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{arg}-{projectName}{ext}',
+  snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}-{projectName}{ext}',
   timeout: 30_000,
   fullyParallel: true,
   workers: process.env.CI ? 4 : 8,
