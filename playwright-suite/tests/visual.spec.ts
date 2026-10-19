@@ -18,9 +18,12 @@ test.describe('visual regression', () => {
     // the dead dashboard). Capture one on a machine with browsers via:
     //   npx playwright test visual --project=chromium --update-snapshots
     //   npm run baseline:update
+    // The skip below is bypassed in update-snapshots mode, otherwise the
+    // initial capture could never run.
     test.skip(
-      !existsSync(join(__dirname, 'visual.spec.ts-snapshots', 'storefront-chromium.png')),
-      'no committed baseline for the storefront yet',
+      testInfo.config.updateSnapshots === 'none' &&
+        !existsSync(join(__dirname, 'visual.spec.ts-snapshots', 'storefront-chromium.png')),
+      'no committed baseline for the storefront yet (capture one with --update-snapshots)',
     );
     // Dynamic regions are masked — only layout regressions fail the build,
     // not data changes. Full-page so the whole storefront is covered.
