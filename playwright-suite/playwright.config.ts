@@ -94,8 +94,8 @@ export default defineConfig({
     // Authenticates once via the UI; the 'authed' project reuses the session.
     { name: 'setup', testMatch: /.*\.setup\.ts/ },
     { name: 'chromium', ...ignoreMobileSpecs, use: { ...devices['Desktop Chrome'], ...chromeChannel } },
-    { name: 'firefox', ...ignoreMobileSpecs, use: { ...devices['Desktop Firefox'] }, testIgnore: /web-vitals/ },
-    { name: 'webkit', ...ignoreMobileSpecs, use: { ...devices['Desktop Safari'] }, testIgnore: /web-vitals/ },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] }, testIgnore: [/mobile\.spec\.ts/, /web-vitals/] },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] }, testIgnore: [/mobile\.spec\.ts/, /web-vitals/] },
     { name: 'mobile', use: { ...devices['Pixel 7'], ...chromeChannel } },
     { name: 'dark', ...ignoreMobileSpecs, use: { ...devices['Desktop Chrome'], colorScheme: 'dark', ...chromeChannel } },
     {
