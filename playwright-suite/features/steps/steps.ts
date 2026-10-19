@@ -821,10 +821,6 @@ Then('downloading the receipt for an unknown order returns 404', async ({ reques
  *   X-Cart-Id isolation).
  * - No trailing commas in multiline calls (repo pins TypeScript 7.0.2).
  */
-import { Given, When, Then } from './fixtures';
-import { CatalogPage } from '../../pages/CatalogPage';
-import { CartPage } from '../../pages/CartPage';
-import { CheckoutPage } from '../../pages/CheckoutPage';
 import { ProductPage } from '../../pages/ProductPage';
 
 /* ------------------------------------------------------------------ */
@@ -1441,12 +1437,6 @@ Then('the tooltip carries that id', async ({ page }) => {
  * - Uses the `bdd` fixture from './fixtures' for per-scenario state.
  * - No trailing commas in multiline calls (repo pins TypeScript 7.0.2).
  */
-import { Given, When, Then } from './fixtures';
-import type { BddState } from './fixtures';
-import { CatalogPage } from '../../pages/CatalogPage';
-import { CartPage } from '../../pages/CartPage';
-import { CheckoutPage } from '../../pages/CheckoutPage';
-import { LoginPage } from '../../pages/LoginPage';
 
 // ---------------------------------------------------------------------------
 // auth.feature
@@ -1951,13 +1941,9 @@ Then('the address field still shows {string}', async ({ page }, value: string) =
  * - No trailing commas in multiline calls (repo pins TypeScript 7.0.2).
  */
 import type { APIRequestContext } from '@playwright/test';
-import { Given, When, Then } from './fixtures';
-import type { BddState } from './fixtures';
 import AxeBuilder from '@axe-core/playwright';
 import { validateResponse } from '../../test-data/schema-validator';
 import { makeProducts, makeOrder, makeCustomer, createRng } from '../../test-data/factory';
-import { CatalogPage } from '../../pages/CatalogPage';
-import { CheckoutPage } from '../../pages/CheckoutPage';
 
 // ---------------------------------------------------------------------------
 // Shared helpers
