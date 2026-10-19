@@ -96,18 +96,21 @@ test.describe('API schema validation', () => {
     expect(result.errors, 'schema violations').toEqual([]);
   });
 
-  test('unknown /api routes return the documented 404 error shape', async ({
+  test('unknown /api routes return 404 and the validator fails loudly', async ({
     request,
   }) => {
     const res = await request.get('/api/does-not-exist');
     expect(res.status()).toBe(404);
+    // The API returns a proper 404, but the path is not in the OpenAPI doc,
+    // so the validator must fail loudly instead of passing silently.
     const result = validateResponse({
       method: 'GET',
       path: '/api/does-not-exist',
       status: res.status(),
       body: await res.json(),
     });
-    expect(result.errors, 'schema violations').toEqual([]);
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(' ')).toContain('No operation documented');
   });
 
   test('the validator rejects a payload that violates the schema', () => {

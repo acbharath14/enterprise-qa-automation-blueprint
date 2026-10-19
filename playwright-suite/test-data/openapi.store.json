@@ -662,6 +662,10 @@
           },
           "description": {
             "type": "string"
+          },
+          "image": {
+            "type": "string",
+            "description": "Uploaded image filename (present if an image was uploaded via POST /api/products/{id}/image)"
           }
         }
       },
