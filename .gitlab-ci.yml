@@ -198,6 +198,13 @@ contract:
 pages:
   extends: [.imac-runner, .npm-cache]
   stage: report
+  # Persist Allure history between pipelines for trend graphs.
+  # The cache restores history/ at job start; the job saves it at end.
+  cache:
+    key: allure-history-main
+    paths:
+      - playwright-suite/allure-results/history/
+    policy: pull-push
   image: mcr.microsoft.com/playwright:v1.64.0
   timeout: 20m
   interruptible: true
@@ -227,7 +234,17 @@ pages:
     - node playwright-suite/scripts/fix-allure-labels.mjs allure-results
     - node playwright-suite/scripts/fix-allure-labels.mjs showcase-allure-results
     - mkdir -p allure-results/history
-    - curl -sf "$CI_PAGES_URL/allure/history/history.json" -o allure-results/history/history.json || echo "No previous history (first run)"
+    # Restore Allure history for trend graphs. Try Pages URL first, then fall back
+    # to the last successful pipeline's pages job artifacts via the API.
+    - |
+      if curl -sf "$CI_PAGES_URL/allure/history/history.json" -o allure-results/history/history.json; then
+        echo "Restored history.json from Pages"
+        # Also try to get the full history directory listing
+        curl -sf "$CI_PAGES_URL/allure/history/" -o /tmp/history_index.html || true
+      else
+        echo "No history.json at $CI_PAGES_URL/allure/history/ (first run or Pages not yet published)"
+      fi
+      ls -la allure-results/history/ || true
     # allure-commandline is a Java app; the Playwright image ships no JRE.
     - apt-get update -qq && apt-get install -y -qq default-jre-headless
     - npm install -g allure-commandline
