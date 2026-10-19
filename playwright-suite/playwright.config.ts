@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+
 import path from 'node:path';
 import { defineBddConfig } from 'playwright-bdd';
 
