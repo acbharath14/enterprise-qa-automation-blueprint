@@ -42,7 +42,7 @@ Feature: Store Smoke Tests
     And I enter valid payment details
     And I place the order
     Then the order confirmation is shown
-    And the order id matches the pattern "ord-<number>"
+    And the displayed order id matches the pattern "ord-<number>"
     And the confirmation lists the product
     And the order total equals the sum of the line totals
 

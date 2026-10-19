@@ -206,7 +206,7 @@ Then('the order confirmation is shown', async ({ page }) => {
   await expect(new CheckoutPage(page).confirmation).toBeVisible();
 });
 
-Then('the order id matches the pattern {string}', async ({ page }, pattern: string) => {
+Then('the displayed order id matches the pattern {string}', async ({ page }, pattern: string) => {
   await expect(new CheckoutPage(page).orderId).toHaveText(toPattern(pattern));
 });
 
