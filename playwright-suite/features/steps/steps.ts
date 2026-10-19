@@ -2804,3 +2804,11 @@ Then('the cumulative layout shift \\(excluding input-driven shifts) is under {fl
   });
   expect(cls).toBeLessThan(threshold);
 });
+
+
+Then('every product in the response validates against the Product schema', async ({ bdd }) => {
+  const products = bdd.lastJson as any[];
+  expect(Array.isArray(products)).toBe(true);
+  const result = validateResponse({ method: 'GET', path: '/api/products', status: 200, body: products });
+  expect(result.errors, 'schema violations').toEqual([]);
+});
