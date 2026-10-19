@@ -1,4 +1,4 @@
-import { test as base } from '../../fixtures/test';
+import { test as base } from '@playwright/test';
 import { createBdd } from 'playwright-bdd';
 import type { APIResponse } from '@playwright/test';
 
