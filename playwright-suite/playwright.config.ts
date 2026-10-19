@@ -69,6 +69,10 @@ export default defineConfig({
   testDir: './tests',
   // Materializes the committed visual baseline (stored as base64 text) before tests run.
   globalSetup: './global-setup.ts',
+  // OS-independent screenshot names: the visual baseline is captured on a
+  // Mac (no Linux browsers handy) but asserted on Linux CI. Font rendering
+  // differs slightly across OSes; the spec's maxDiffPixelRatio absorbs it.
+  snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{arg}-{projectName}{ext}',
   timeout: 30_000,
   fullyParallel: true,
   workers: process.env.CI ? 4 : 8,

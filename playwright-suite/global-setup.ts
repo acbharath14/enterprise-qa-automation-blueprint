@@ -30,6 +30,6 @@ export default async function globalSetup() {
   const b64 = parts.map((p) => readFileSync(join(dataDir, p), 'utf8')).join('').trim();
   const dir = join(__dirname, 'tests', 'visual.spec.ts-snapshots');
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'storefront-chromium-linux.png'), Buffer.from(b64, 'base64'));
+  writeFileSync(join(dir, 'storefront-chromium.png'), Buffer.from(b64, 'base64'));
   console.log(`visual baseline materialized from ${parts.length} base64 parts`);
 }

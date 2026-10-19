@@ -19,7 +19,7 @@ test.describe('visual regression', () => {
     //   npx playwright test visual --project=chromium --update-snapshots
     //   npm run baseline:update
     test.skip(
-      !existsSync(join(__dirname, 'visual.spec.ts-snapshots', 'storefront-chromium-linux.png')),
+      !existsSync(join(__dirname, 'visual.spec.ts-snapshots', 'storefront-chromium.png')),
       'no committed baseline for the storefront yet',
     );
     // Dynamic regions are masked — only layout regressions fail the build,
