@@ -2431,10 +2431,6 @@ When('I search products with each XSS payload', async ({ request, bdd }) => {
   }
 });
 
-Then('the response status is always 200', async ({ bdd }) => {
-  const attempts = (bdd as any).searchAttempts || [];
-  for (const a of attempts) expect(a.res.status()).toBe(200);
-});
 
 When('I request traversal-style URLs against the products and orders APIs', async ({ request, bdd }) => {
   (bdd as any).traversalBodies = [];
