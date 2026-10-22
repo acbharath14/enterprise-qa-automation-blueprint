@@ -74,6 +74,8 @@ test:
     matrix:
       - SHARD: ["1", "2"]
   rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never # scheduled pipelines run newman-health only
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   script:
@@ -154,6 +156,8 @@ quality-gate:
     - job: test
       artifacts: true
   rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never # scheduled pipelines run newman-health only
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: always # run even when test failed — NO-GO must be visible
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -181,6 +185,8 @@ contract:
     - job: test
       artifacts: false
   rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never # scheduled pipelines run newman-health only
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: always
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -212,6 +218,8 @@ pages:
     - job: test
       artifacts: true
   rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never # scheduled pipelines run newman-health only
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: always
   script:
@@ -282,6 +290,8 @@ notify:
     - job: pages
       artifacts: true
   rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never # scheduled pipelines run newman-health only
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: always
   script:
@@ -373,3 +383,83 @@ notify:
       req.write(data);
       req.end();
       NODEEOF
+
+# =============================================================================
+# 6. newman-health — hourly API health check (mirrors GitHub `newman`).
+#    Runs ONLY from a pipeline schedule: Build -> Pipeline schedules,
+#    cron `17 * * * *`, branch main. The other 5 jobs carry a matching
+#    schedule exclusion rule, so a scheduled pipeline runs this job alone.
+# =============================================================================
+newman-health:
+  extends: .imac-runner
+  stage: test
+  image: node:20
+  timeout: 15m
+  interruptible: true
+  # Only on pipeline schedules — not on pushes or MRs.
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  script:
+    - cd playwright-suite
+    - npm ci
+    - npm install -g newman newman-reporter-htmlextra
+    # Start the DemoMart sample app and wait for it to be healthy.
+    # (No /api/metrics on the re-themed server — use /api/products.)
+    - |
+      (node server.mjs > /tmp/app.log 2>&1 &)
+      for i in $(seq 1 30); do
+        curl -sf http://127.0.0.1:4173/api/products >/dev/null && break
+        sleep 1
+      done
+      curl -sf http://127.0.0.1:4173/api/products >/dev/null
+    # Run from the repo root — collection/environment paths are repo-relative.
+    - cd "$CI_PROJECT_DIR"
+    - |
+      if newman run newman/health-check.postman_collection.json \
+        -e newman/local.postman_environment.json \
+        -r htmlextra \
+        --reporter-htmlextra-export newman-report.html \
+        --reporter-htmlextra-title "DemoMart API Health Check"; then
+        echo 0 > /tmp/newman-exit-code
+      else
+        echo 1 > /tmp/newman-exit-code
+      fi
+    # Failure alert via Resend (mirrors the GitHub workflow email).
+    - |
+      if [ "$(cat /tmp/newman-exit-code)" = "1" ]; then
+        node <<'NODEEOF'
+        const https = require('https');
+        const runUrl = process.env.CI_PIPELINE_URL;
+        const body = {
+          from: 'QA Automation <onboarding@resend.dev>',
+          to: [process.env.ALERT_TO],
+          subject: `ALERT: Newman API health check FAILED (pipeline #${process.env.CI_PIPELINE_ID})`,
+          html: `<p>The hourly Newman API health check failed.</p><p><a href="${runUrl}">View pipeline</a></p>`,
+        };
+        const data = JSON.stringify(body);
+        const req = https.request('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(data),
+          },
+        }, (res) => {
+          let out = '';
+          res.on('data', (c) => out += c);
+          res.on('end', () => {
+            console.log('Resend status:', res.statusCode, out);
+            if (res.statusCode >= 300) process.exit(1);
+          });
+        });
+        req.on('error', (e) => { console.error(e.message); process.exit(1); });
+        req.write(data);
+        req.end();
+      NODEEOF
+      fi
+    - exit $(cat /tmp/newman-exit-code)
+  artifacts:
+    when: always
+    paths:
+      - newman-report.html
+    expire_in: 14 days
