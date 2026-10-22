@@ -1,3 +1,11 @@
+# Pipeline inputs (GitLab CI/CD spec:inputs). Schedules set these in their
+# Inputs section; every other pipeline type gets the defaults.
+spec:
+  inputs:
+    newman_only:
+      description: "Set to true ONLY on the hourly Newman schedule (runs newman-health alone). Weekly regression schedule and push/MR pipelines leave the default false."
+      default: "false"
+---
 # =============================================================================
 # GitLab CI port of .github/workflows/e2e.yml
 # Repo: hexaware-technologies-group4/enterprise-qa-automation-blueprint
@@ -59,6 +67,8 @@ stages:
 
 variables:
   NPM_CONFIG_CACHE: "$CI_PROJECT_DIR/.npm"
+  # Bridged from the pipeline input above; job rules gate on this variable.
+  NEWMAN_ONLY: "$[[ inputs.newman_only ]]"
 
 # =============================================================================
 # 1. test — Playwright suite, 2 shards (mirrors GitHub `strategy.matrix`)
