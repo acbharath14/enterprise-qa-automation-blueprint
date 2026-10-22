@@ -1,7 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
 import path from 'node:path';
-import { defineBddConfig } from 'playwright-bdd';
 
 // Multi-environment config: TEST_ENV selects which env file loads
 // (dev | staging | prod). Defaults to dev — the local sample app.
@@ -66,15 +65,9 @@ const ignoreMobileSpecs = { testIgnore: /mobile\.spec\.ts/ };
 // Set USE_SYSTEM_CHROME=1 to drive the installed Google Chrome instead.
 // (CI uses Playwright's bundled Chromium and does not set this.)
 const chromeChannel = process.env.USE_SYSTEM_CHROME === '1' ? { channel: 'chrome' } : {};
-const testDir = defineBddConfig({
-  features: 'features/*.feature',
-  steps: ['features/steps/fixtures.ts', 'features/steps/steps.ts'],
-  importTestFrom: 'features/steps/fixtures.ts',
-});
-
 
 export default defineConfig({
-  testDir: testDir,
+  testDir: './tests',
   // Materializes the committed visual baseline (stored as base64 text) before tests run.
   globalSetup: './global-setup.ts',
   // OS-independent screenshot names: the visual baseline is captured on a
