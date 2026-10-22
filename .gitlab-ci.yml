@@ -475,3 +475,43 @@ newman-health:
     paths:
       - newman-report.html
     expire_in: 14 days
+
+# =============================================================================
+# 7. bdd — Gherkin suite via playwright-bdd (NON-GATING while it burns down)
+#    Runs playwright.bdd.config.ts; the main config and the `test` job are
+#    untouched. allow_failure: true — results publish, merges never block.
+#    Promote to a gate only after a full green run. Push/MR pipelines only:
+#    scheduled pipelines (weekly regression, hourly Newman) skip it.
+# =============================================================================
+bdd:
+  extends: [.imac-runner, .npm-cache]
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.64.0
+  timeout: 45m
+  interruptible: true
+  allow_failure: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - cd playwright-suite
+    - npm ci
+    - npx bddgen -c playwright.bdd.config.ts
+    # Capture the exit code without failing fast (same pattern as `test`):
+    # the job reports its true result, allow_failure keeps it non-gating.
+    - |
+      if npx playwright test -c playwright.bdd.config.ts; then
+        echo 0 > /tmp/bdd-exit-code
+      else
+        echo 1 > /tmp/bdd-exit-code
+      fi
+    - exit $(cat /tmp/bdd-exit-code)
+  artifacts:
+    when: always
+    paths:
+      - playwright-suite/allure-results/
+      - playwright-suite/playwright-report/
+      - playwright-suite/test-results/
+    expire_in: 14 days
