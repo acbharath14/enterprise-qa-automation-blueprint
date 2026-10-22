@@ -74,8 +74,8 @@ test:
     matrix:
       - SHARD: ["1", "2"]
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-      when: never # scheduled pipelines run newman-health only
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $NEWMAN_ONLY == "true"
+      when: never # Newman-only schedules skip the regression jobs
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   script:
@@ -156,8 +156,8 @@ quality-gate:
     - job: test
       artifacts: true
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-      when: never # scheduled pipelines run newman-health only
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $NEWMAN_ONLY == "true"
+      when: never # Newman-only schedules skip the regression jobs
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: always # run even when test failed — NO-GO must be visible
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -185,8 +185,8 @@ contract:
     - job: test
       artifacts: false
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-      when: never # scheduled pipelines run newman-health only
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $NEWMAN_ONLY == "true"
+      when: never # Newman-only schedules skip the regression jobs
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: always
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -218,8 +218,8 @@ pages:
     - job: test
       artifacts: true
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-      when: never # scheduled pipelines run newman-health only
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $NEWMAN_ONLY == "true"
+      when: never # Newman-only schedules skip the regression jobs
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: always
   script:
@@ -290,8 +290,8 @@ notify:
     - job: pages
       artifacts: true
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-      when: never # scheduled pipelines run newman-health only
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $NEWMAN_ONLY == "true"
+      when: never # Newman-only schedules skip the regression jobs
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: always
   script:
@@ -386,9 +386,11 @@ notify:
 
 # =============================================================================
 # 6. newman-health — hourly API health check (mirrors GitHub `newman`).
-#    Runs ONLY from a pipeline schedule: Build -> Pipeline schedules,
-#    cron `17 * * * *`, branch main. The other 5 jobs carry a matching
-#    schedule exclusion rule, so a scheduled pipeline runs this job alone.
+#    Runs ONLY from the hourly Newman pipeline schedule: Build ->
+#    Pipeline schedules, cron `17 * * * *`, branch main, with schedule
+#    variable NEWMAN_ONLY=true. The other 5 jobs carry a matching
+#    NEWMAN_ONLY exclusion rule, so that schedule runs this job alone;
+#    the weekly regression schedule (no variable) runs the full suite.
 # =============================================================================
 newman-health:
   extends: .imac-runner
@@ -398,7 +400,7 @@ newman-health:
   interruptible: true
   # Only on pipeline schedules — not on pushes or MRs.
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $NEWMAN_ONLY == "true"
   script:
     - cd playwright-suite
     - npm ci
