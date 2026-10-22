@@ -225,3 +225,23 @@ rewrites the `parentSuite`/`suite` labels in the result JSON after each run
 generated. A post-processing script was chosen over `allure.parentSuite()` in
 a `beforeEach` because the runtime API silently drops labels for some files
 when several specs run in one invocation; the script is deterministic.
+
+## Optional Postgres persistence, memory by default
+
+`server.mjs` originally kept all state in memory, which made DB-level
+validation of UI-driven CRUD impossible. The data operations now live behind
+`db/store.mjs`: in-memory by default (unchanged behavior for every existing
+consumer), Postgres when `DATABASE_URL` is set. If the variable is set but
+Postgres is unreachable, the server refuses to start rather than silently
+falling back — a green run must mean the mode it claims. Carts deliberately
+stay in-memory: they are per-test state keyed by `X-Cart-Id`, and persisting
+them would add cross-test cleanup for no coverage gain.
+
+## BDD runs from its own config
+
+The Gherkin suite originally entered CI by flipping `testDir` in
+`playwright.config.ts`, which *replaced* the spec suite instead of adding to
+it — one config change turned the whole pipeline red. `playwright.bdd.config.ts`
+now inherits the main config and overrides only `testDir`; BDD enablement is a
+CI-job decision (dedicated jobs on GitHub and GitLab), never a shared-config
+edit. Both BDD jobs are non-gating while the suite is brought to green.

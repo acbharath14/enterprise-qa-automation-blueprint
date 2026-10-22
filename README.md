@@ -32,6 +32,11 @@ flowchart LR
 │   ├── server.mjs                   # tiny Node server: serves the app + store JSON API (products
 │   │                                # CRUD, server-side cart, orders, login) with security headers.
 │   │                                # Carts are isolated per test via the X-Cart-Id header.
+│   │                                # State lives in db/store.mjs: in-memory by default, Postgres
+│   │                                # when DATABASE_URL is set (see "Database" below).
+│   ├── db/                          # schema.sql (products / orders / order_items) + store.mjs,
+│   │                                # the persistence layer behind server.mjs (memory or Postgres)
+│   ├── features/                    # Gherkin BDD suite: 43 .feature files + steps/ (playwright-bdd)
 │   ├── global-setup.ts              # decodes the base64 visual baseline before tests run
 │   ├── scripts/update-baseline.mjs  # re-encodes the PNG after regenerating the baseline
 │   ├── pages/                       # Page Objects: CatalogPage, ProductPage, CartPage,
@@ -53,6 +58,8 @@ flowchart LR
 │   │                                    # OpenAPI document (local $refs, {param} path templates)
 │   ├── playwright.config.ts         # projects (chromium/firefox/webkit/mobile/dark/tz/authed + auth
 │   │                                # setup), retries, reporters, trace+video-on-failure, auto-started webServer
+│   ├── playwright.bdd.config.ts     # BDD-only config: inherits playwright.config.ts and points
+│   │                                # testDir at the generated BDD specs (see "BDD (Gherkin) suite")
 │   └── package.json                 # scripts: test, test:smoke, test:a11y, test:headed, report,
 │                                    # baseline:update
 ├── docs/
@@ -62,6 +69,7 @@ flowchart LR
 ├── k6/                               # k6 smoke/load/stress tests against the store API
 ├── newman/                           # Postman collection: store API health checks, run hourly in CI
 ├── ci/                              # GitLab CI and Jenkins pipeline templates
+├── docker-compose.yml               # optional Postgres 16 for the sample app's persistence mode
 └── .github/workflows/e2e.yml        # GitHub Actions: sharded runs, HTML + Allure reports, Pages deploy
 ```
 
@@ -69,7 +77,7 @@ The pattern to notice: **tests describe behavior, page objects describe the UI, 
 
 ## Getting started
 
-**Prerequisites:** Node.js 20 or newer (`node --version` to check).
+**Prerequisites:** Node.js 20 or newer (`node --version` to check). Optional: Docker, only for the Postgres persistence mode (see [Database](#database-optional-postgres-persistence)).
 
 ```bash
 # 1. Clone and install
@@ -85,7 +93,7 @@ npx playwright install chromium
 npm test
 ```
 
-The sample app starts automatically — `playwright.config.ts` launches `node server.mjs` before the tests and shuts it down after. There is nothing else to start.
+The sample app starts automatically — `playwright.config.ts` launches `node server.mjs` before the tests and shuts it down after. In the default in-memory mode there is nothing else to start.
 
 After the run, open the HTML report:
 
@@ -94,6 +102,19 @@ npm run report
 ```
 
 You should see all specs listed with pass/fail, timings, and (for failures) traces and screenshots.
+
+## Database (optional Postgres persistence)
+
+By default the sample app keeps everything in memory — a fresh start is a clean catalog, which is what the suite assumes. If `DATABASE_URL` is set, `server.mjs` instead persists products and orders to **Postgres** (carts stay in-memory; they are per-test state). The API surface does not change — only where the data lives.
+
+```bash
+cd playwright-suite
+npm run db:up        # starts Postgres 16 via the repo-root docker-compose.yml
+DATABASE_URL=postgres://demomart:demomart@localhost:5432/demomart npm start
+npm run db:down      # stops Postgres (data survives in the named volume)
+```
+
+On boot with `DATABASE_URL` set, the server applies `db/schema.sql` (idempotent) and seeds the 12 catalog products if the table is empty. If Postgres is unreachable it refuses to start — it never silently falls back to in-memory, so a green run in this mode really ran against the database.
 
 ## Test coverage
 
@@ -107,6 +128,7 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 | API | `tests/api.spec.ts` | Store API contract: products CRUD, cart math, order lifecycle, JSON error shapes. Each test gets an isolated cart via the `X-Cart-Id` header, so parallel workers never interfere |
 | API schema | `tests/api-schema.spec.ts` | Every store endpoint validates against `test-data/openapi.store.json` via the reusable AJV `validateResponse` helper — including negative cases (wrong types, extra/missing fields) and loud failures on undocumented paths |
 | Contract | `contract/pact-store.spec.ts` | Pact consumer + provider verification for the store API (`GET /api/products`, `POST /api/cart/items`, `POST /api/orders`, …) via `npm run test:contract`; contract files are committed at `contract/pacts/` |
+| BDD | `features/*.feature` (43 files) | Gherkin scenarios mirroring the spec suite via playwright-bdd, generated into `.features-gen/` and run from `playwright.bdd.config.ts` — see [BDD (Gherkin) suite](#bdd-gherkin-suite) |
 | API mocking | `tests/api-mocked.spec.ts` | UI behavior when the products API returns 500s or slow responses |
 | Integration | `tests/integration.spec.ts` | UI calls the right API and renders its response (`waitForResponse`); attaches the raw response to the report |
 | Offline | `tests/offline.spec.ts` | Friendly message when the API is unreachable |
@@ -223,6 +245,18 @@ npm run baseline:update
 
 The first command re-captures the PNG; the second re-encodes it into `test-data/visual-baseline.b64.partN`, which is the file actually committed. The PNG itself is materialized from that text by `global-setup.ts` before every run, so a fresh clone needs no manual steps. Review the new screenshot before committing — a baseline update should be a deliberate, reviewed change.
 
+## BDD (Gherkin) suite
+
+The same behaviors also exist as Gherkin scenarios in `playwright-suite/features/` (43 feature files, steps in `features/steps/`), executed with playwright-bdd. The BDD suite has its **own config** — `playwright.bdd.config.ts` inherits everything from `playwright.config.ts` and only changes where tests come from, so the two suites cannot drift in setup, and enabling BDD never displaces the spec suite:
+
+```bash
+cd playwright-suite
+npx bddgen -c playwright.bdd.config.ts        # generate specs into .features-gen/
+npx playwright test -c playwright.bdd.config.ts
+```
+
+In CI the BDD suite runs in dedicated, **non-gating** jobs — GitHub's `e2e-bdd.yml` workflow (`continue-on-error`) and the `bdd` job in `.gitlab-ci.yml` (`allow_failure`) — publishing its own reports while the suite is brought fully green. The release signal still comes from the spec suite and the quality gate.
+
 ## Make it yours
 
 Adapting this framework to your application is three steps. Here is each one with a concrete example.
@@ -289,11 +323,11 @@ Every push/PR touching `playwright-suite/` runs the suite split across 2 shards 
 
 ### GitLab CI on a self-hosted runner
 
-The same pipeline runs on GitLab CI via `.gitlab-ci.yml` — a port of the GitHub workflow with the same five jobs: sharded Playwright tests, the GO/NO-GO quality gate, Pact contract tests, report publishing, and the Resend email summary.
+The same pipeline runs on GitLab CI via `.gitlab-ci.yml` — a port of the GitHub workflow with the same core jobs: sharded Playwright tests, the GO/NO-GO quality gate, Pact contract tests, report publishing, and the Resend email summary — plus two GitLab-side additions: the non-gating `bdd` job (see above) and `newman-health`, an hourly Newman health check.
 
 GitHub remains the source of truth. The `mirror-to-gitlab.yml` workflow pushes `main` and tags to the GitLab project on every push — a push mirror, because GitLab pull mirroring requires a Premium tier. Jobs run on a self-hosted GitLab Runner (Docker executor, tagged `imac,docker`); the Playwright Docker image ships the browsers, so there is no install step.
 
-Setup on the GitLab project: two masked CI/CD variables (`RESEND_API_KEY`, `ALERT_TO`), and any scheduled runs as pipeline schedules in the GitLab UI. Reports publish to GitLab Pages.
+Setup on the GitLab project: two masked CI/CD variables (`RESEND_API_KEY`, `ALERT_TO`), and any scheduled runs as pipeline schedules in the GitLab UI. Reports publish to GitLab Pages. Two schedules drive the automation: a weekly full regression, and an hourly Newman-only run — that schedule sets the `newman_only` pipeline input (declared in the `.gitlab-ci.yml` `spec: inputs` header) to `true`, which runs only `newman-health` and skips the regression jobs.
 
 ## Troubleshooting
 
@@ -307,6 +341,7 @@ Setup on the GitLab project: two masked CI/CD variables (`RESEND_API_KEY`, `ALER
 | Page shows raw text instead of rendering | `index.html` was pushed base64-encoded — push raw HTML content via the API, not base64 |
 | `getByLabel` matches multiple elements | another component uses the same label text — use `getByRole` with a specific role, or scope to a region |
 | Allure shows skips as failures | use `testIgnore` in the Playwright config for browser-exclusive tests instead of `test.skip()` |
+| `[db] DATABASE_URL is set but Postgres could not be initialized` | Postgres isn't running — start Docker Desktop, then `npm run db:up` from `playwright-suite/` |
 
 ## License
 
