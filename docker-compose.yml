@@ -1,0 +1,23 @@
+# Local Postgres for DemoMart DB validation (spec section 7).
+# Usage from playwright-suite/:  npm run db:up   /   npm run db:down
+# Then run the app/tests with:
+#   DATABASE_URL=postgres://demomart:demomart@localhost:5432/demomart
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: demomart
+      POSTGRES_PASSWORD: demomart
+      POSTGRES_DB: demomart
+    ports:
+      - "5432:5432"
+    volumes:
+      - demomart-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demomart -d demomart"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  demomart-pgdata:
