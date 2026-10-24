@@ -3,25 +3,25 @@ import { test } from "../../features/steps/fixtures.ts";
 
 test.describe('Baseline Security Headers and Output Encoding', () => {
 
-  test('HTML responses carry the nosniff header', async ({ When, Then, bdd, request }) => { 
-    await When('I request the DemoMart homepage', null, { bdd, request }); 
+  test('HTML responses carry the nosniff header', async ({ When, Then, api, bdd }) => { 
+    await When('I request the DemoMart homepage', null, { api, bdd }); 
     await Then('the response carries X-Content-Type-Options: nosniff', null, { bdd }); 
   });
 
-  test('API responses carry the nosniff header', async ({ When, Then, bdd, request }) => { 
-    await When('I send a GET request to "/api/products"', null, { bdd, request }); 
+  test('API responses carry the nosniff header', async ({ When, Then, api, bdd }) => { 
+    await When('I send a GET request to "/api/products"', null, { api, bdd }); 
     await Then('the response carries X-Content-Type-Options: nosniff', null, { bdd }); 
   });
 
-  test('Clickjacking defense header is present', async ({ When, Then, bdd, request }) => { 
-    await When('I request the homepage, the payment frame, and the products API', null, { bdd, request }); 
+  test('Clickjacking defense header is present', async ({ When, Then, api, bdd }) => { 
+    await When('I request the homepage, the payment frame, and the products API', null, { api, bdd }); 
     await Then('every response carries X-Frame-Options: SAMEORIGIN', null, { bdd }); 
   });
 
-  test('Product names are HTML-escaped in the catalog', async ({ Given, When, Then, bdd, page, request }) => { 
-    await Given('a product exists whose name contains an image-tag XSS payload', null, { bdd, request }); 
+  test('Product names are HTML-escaped in the catalog', async ({ Given, When, Then, api, bdd, page }) => { 
+    await Given('a product exists whose name contains an image-tag XSS payload', null, { api, bdd }); 
     await When('I search the catalog for that product', null, { page }); 
-    await Then('the product name renders as escaped text, never as HTML', null, { bdd, page, request }); 
+    await Then('the product name renders as escaped text, never as HTML', null, { api, bdd, page }); 
   });
 
 });

@@ -3,7 +3,7 @@ import { test } from "../../features/steps/fixtures.ts";
 
 test.describe('Checkout Wizard', () => {
 
-  test('Step 1 is marked current and empty submit stays on step 1', async ({ Given, When, Then, And, page }) => { 
+  test('Wizard starts on step 1 and empty submit stays on step 1', async ({ Given, When, Then, And, page }) => { 
     await Given('I am on the checkout wizard', null, { page }); 
     await Then('step 1 is marked as the current step', null, { page }); 
     await When('I continue without entering shipping details', null, { page }); 
@@ -11,8 +11,8 @@ test.describe('Checkout Wizard', () => {
     await And('step 2 is hidden', null, { page }); 
   });
 
-  test('Completes the full flow', async ({ Given, When, Then, And, bdd, page, request }) => { 
-    await Given('I have a product in my cart', null, { bdd, request }); 
+  test('Checkout wizard completes shipping, payment, and review and shows confirmation', async ({ Given, When, Then, And, api, bdd, page }) => { 
+    await Given('I have a product in my cart', null, { api, bdd }); 
     await And('I am on the checkout wizard', null, { page }); 
     await When('I enter shipping details for "Wizard Buyer"', null, { page }); 
     await And('I continue to step 2', null, { page }); 

@@ -3,8 +3,8 @@ import { test } from "../../features/steps/fixtures.ts";
 
 test.describe('Product Image Upload', () => {
 
-  test('Product image upload sanitizes a hostile filename', async ({ When, Then, And, bdd, request }) => { 
-    await When('I upload an image for prod-1 with a script-tag filename', null, { bdd, request }); 
+  test('Product image upload sanitizes a hostile filename', async ({ When, Then, And, api, bdd }) => { 
+    await When('I upload an image for prod-1 with a script-tag filename', null, { api, bdd }); 
     await Then('the response status is 200', null, { bdd }); 
     await And('the stored filename contains no "<" or ">"', null, { bdd }); 
   });

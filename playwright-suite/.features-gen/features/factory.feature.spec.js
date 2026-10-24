@@ -23,13 +23,13 @@ test.describe('Test Data Factory Contract', () => {
     await And('every stock count is a non-negative integer', null, { bdd }); 
   });
 
-  test('Generated orders balance', async ({ When, Then, And, bdd }) => { 
+  test('Generated order totals equal their line items and status is confirmed', async ({ When, Then, And, bdd }) => { 
     await When('I generate orders', null, { bdd }); 
     await Then('each order total equals the sum of its line items', null, { bdd }); 
     await And('each order status is "confirmed"', null, { bdd }); 
   });
 
-  test('Generated customers are submittable', async ({ When, Then, And, bdd }) => { 
+  test('Generated customers have a name, a valid email, and an address', async ({ When, Then, And, bdd }) => { 
     await When('I generate a customer', null, { bdd }); 
     await Then('the customer has a name', null, { bdd }); 
     await And('the email contains "@"', null, { bdd }); 

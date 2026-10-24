@@ -21,12 +21,12 @@ Feature: Test Data Factory Contract
     And every rating is between 0 and 5
     And every stock count is a non-negative integer
 
-  Scenario: Generated orders balance
+  Scenario: Generated order totals equal their line items and status is confirmed
     When I generate orders
     Then each order total equals the sum of its line items
     And each order status is "confirmed"
 
-  Scenario: Generated customers are submittable
+  Scenario: Generated customers have a name, a valid email, and an address
     When I generate a customer
     Then the customer has a name
     And the email contains "@"

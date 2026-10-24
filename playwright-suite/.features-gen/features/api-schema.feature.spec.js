@@ -5,26 +5,26 @@ test.describe('OpenAPI Schema Validation', () => {
 
   test.describe('Product catalog endpoints', () => {
 
-    test('GET /api/products matches the OpenAPI schema', async ({ When, Then, And, bdd, request }) => { 
-      await When('I send a GET request to "/api/products"', null, { bdd, request }); 
+    test('GET /api/products matches the OpenAPI schema', async ({ When, Then, And, api, bdd }) => { 
+      await When('I send a GET request to "/api/products"', null, { api, bdd }); 
       await Then('the response status is 200', null, { bdd }); 
       await And('every product in the response validates against the Product schema', null, { bdd }); 
     });
 
-    test('POST /api/products 201 and 400 payloads match their schemas', async ({ When, Then, And, bdd, request }) => { 
-      await When('I send a POST request to "/api/products" with a valid product payload', null, { bdd, request }); 
+    test('POST /api/products 201 and 400 payloads match their schemas', async ({ When, Then, And, api, bdd }) => { 
+      await When('I send a POST request to "/api/products" with a valid product payload', null, { api, bdd }); 
       await Then('the response status is 201', null, { bdd }); 
       await And('the created product validates against the Product schema', null, { bdd }); 
-      await When('I send a POST request to "/api/products" with a negative price', null, { bdd, request }); 
+      await When('I send a POST request to "/api/products" with a negative price', null, { api, bdd }); 
       await Then('the response status is 400', null, { bdd }); 
       await And('the error payload validates against the Error schema', null, { bdd }); 
     });
 
-    test('GET /api/products/{id} 200 and 404 payloads match their schemas', async ({ When, Then, And, bdd, request }) => { 
-      await When('I send a GET request to "/api/products/prod-1"', null, { bdd, request }); 
+    test('GET /api/products/{id} 200 and 404 payloads match their schemas', async ({ When, Then, And, api, bdd }) => { 
+      await When('I send a GET request to "/api/products/prod-1"', null, { api, bdd }); 
       await Then('the response status is 200', null, { bdd }); 
       await And('the product validates against the Product schema', null, { bdd }); 
-      await When('I send a GET request to "/api/products/no-such-product"', null, { bdd, request }); 
+      await When('I send a GET request to "/api/products/no-such-product"', null, { api, bdd }); 
       await Then('the response status is 404', null, { bdd }); 
       await And('the error payload validates against the Error schema', null, { bdd }); 
     });
@@ -33,8 +33,8 @@ test.describe('OpenAPI Schema Validation', () => {
 
   test.describe('Authentication endpoint', () => {
 
-    test('POST /api/login 401 payload matches the error schema', async ({ When, Then, And, bdd, request }) => { 
-      await When('I send a POST request to "/api/login" with wrong credentials', null, { bdd, request }); 
+    test('POST /api/login 401 payload matches the error schema', async ({ When, Then, And, api, bdd }) => { 
+      await When('I send a POST request to "/api/login" with wrong credentials', null, { api, bdd }); 
       await Then('the response status is 401', null, { bdd }); 
       await And('the error payload validates against the Error schema', null, { bdd }); 
     });
@@ -43,8 +43,8 @@ test.describe('OpenAPI Schema Validation', () => {
 
   test.describe('Validator integrity (no server involved)', () => {
 
-    test('Unknown /api routes return 404 and the validator fails loudly', async ({ When, Then, And, bdd, request }) => { 
-      await When('I send a GET request to "/api/does-not-exist"', null, { bdd, request }); 
+    test('Unknown /api routes return 404 and the validator fails loudly', async ({ When, Then, And, api, bdd }) => { 
+      await When('I send a GET request to "/api/does-not-exist"', null, { api, bdd }); 
       await Then('the response status is 404', null, { bdd }); 
       await And('the schema validator reports "No operation documented" instead of passing silently', null, { bdd }); 
     });

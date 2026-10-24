@@ -6,13 +6,13 @@ Feature: Store API
 
   Rule: Product catalog endpoints
 
-  Scenario: Lists the seeded products
+  Scenario: Product list returns all catalog products with complete fields
     When I request GET /api/products
     Then the response is 200 with JSON content
     And the list contains prod-1 through prod-12
     And each product has id, name, category, price, rating, stock and description
 
-  Scenario: Supports search, category filter and sort
+  Scenario: Product search, category filter, and sort return the matching products
     When I request GET /api/products?q=aurora
     Then 3 products are returned and every name contains "aurora"
     When I request GET /api/products?category=apparel
@@ -20,7 +20,7 @@ Feature: Store API
     When I request GET /api/products?sort=price_asc
     Then the products are ordered by ascending price
 
-  Scenario: Product values are sane
+  Scenario: Every product has a positive price, a rating from 0 to 5, and a non-negative integer stock
     When I request GET /api/products
     Then every product has a price greater than 0
     And every product has a rating between 0 and 5
@@ -32,7 +32,7 @@ Feature: Store API
     When I request GET /api/products/nope
     Then the response is 404 with JSON content and an error field
 
-  Scenario: Product CRUD round-trips
+  Scenario: Product can be created, updated, and deleted; invalid prices are rejected
     When I create a product named "API Test Widget" priced at 12.50
     Then the response is 201 and the product is returned
     When I patch the product price to 15
@@ -49,12 +49,12 @@ Feature: Store API
 
   Rule: Cart endpoints
 
-  Scenario: Cart math is internally consistent
+  Scenario: Cart subtotal equals the sum of the line totals
     Given a product priced at $42.50 exists
     When I add 5 units to my cart
     Then my cart line shows quantity 5
     And the line total is 5 x $42.50
-    And the cart subtotal equals the sum of the line totals
+    And the cart subtotal from the API equals the sum of the line totals
 
   Scenario: Rejects unknown products, bad quantities and over-stock
     When I add an unknown product to my cart
@@ -64,7 +64,7 @@ Feature: Store API
     When I add prod-1 with quantity 99999
     Then the response is 400
 
-  Scenario: Quantity updates and removal work
+  Scenario: Cart quantity can be updated and the line removed
     Given a product exists and 1 unit is in my cart
     When I set the quantity to 4
     Then the cart line shows quantity 4

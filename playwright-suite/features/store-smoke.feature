@@ -4,7 +4,7 @@ Feature: Store Smoke Tests
   and demo login.
 
   @smoke
-  Scenario: Catalog renders the seeded products
+  Scenario: Catalog shows the product grid with 6 cards on page 1
     Given I am on the DemoMart homepage
     Then the product grid is visible
     And the card for "Aurora Wireless Headphones" (prod-1) is visible
@@ -47,7 +47,7 @@ Feature: Store Smoke Tests
     And the displayed order total equals the sum of the line totals
 
   @smoke
-  Scenario: Demo login works
+  Scenario: Valid login shows the logout button and the username
     Given I am on the DemoMart homepage
     When I log in with username "admin" and password "secret"
     Then the logout button is visible

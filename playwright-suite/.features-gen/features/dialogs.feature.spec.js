@@ -3,8 +3,8 @@ import { test } from "../../features/steps/fixtures.ts";
 
 test.describe('Cart Remove Confirmation Dialog', () => {
 
-  test.beforeEach('Background', async ({ Given, bdd, page, request }, testInfo) => { if (testInfo.error) return;
-    await Given('my cart contains one line item', null, { bdd, page, request }); 
+  test.beforeEach('Background', async ({ Given, api, bdd, page }, testInfo) => { if (testInfo.error) return;
+    await Given('my cart contains one line item', null, { api, bdd, page }); 
   });
   
   test('Dismissing the dialog keeps the cart line', async ({ When, Then, And, bdd, page }) => { 

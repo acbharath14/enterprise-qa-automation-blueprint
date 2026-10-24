@@ -178,6 +178,16 @@ Then('the cart subtotal equals the sum of the line totals', async ({ page }) => 
   expect(subtotal).toBeCloseTo(sum, 2);
 });
 
+// API variant of the subtotal check for api.feature: that scenario never
+// opens the cart page, so it asserts on the API cart payload instead of
+// the rendered page. The UI step above stays canonical for store-smoke.
+Then('the cart subtotal from the API equals the sum of the line totals', async ({ api, bdd }) => {
+  const cart = await (await api.get('/api/cart', { headers: bdd.cartHeaders })).json();
+  const lines = cart.items as Array<{ price: number; qty: number }>;
+  const sum = lines.reduce((total, line) => total + line.price * line.qty, 0);
+  expect(cart.subtotal).toBeCloseTo(sum, 2);
+});
+
 When('I start checkout', async ({ page }) => {
   const cart = new CartPage(page);
   await cart.checkoutButton.click();

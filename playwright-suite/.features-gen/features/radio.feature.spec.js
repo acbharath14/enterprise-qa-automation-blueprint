@@ -3,8 +3,8 @@ import { test } from "../../features/steps/fixtures.ts";
 
 test.describe('Shipping Method Radio Group', () => {
 
-  test.beforeEach('Background', async ({ Given, bdd, page, request }, testInfo) => { if (testInfo.error) return;
-    await Given('I am on the checkout shipping step', null, { bdd, page, request }); 
+  test.beforeEach('Background', async ({ Given, api, bdd, page }, testInfo) => { if (testInfo.error) return;
+    await Given('I am on the checkout shipping step', null, { api, bdd, page }); 
   });
   
   test('Group has a legend describing the choice', async ({ Then, page }) => { 

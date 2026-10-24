@@ -3,7 +3,7 @@ import { test } from "../../features/steps/fixtures.ts";
 
 test.describe('Product Catalog', () => {
 
-  test('Renders the 12 seeded products, 6 per page', { tag: ['@smoke'] }, async ({ Given, When, Then, And, bdd, page }) => { 
+  test('Catalog shows all 12 products, 6 per page', { tag: ['@smoke'] }, async ({ Given, When, Then, And, bdd, page }) => { 
     await Given('I am on the DemoMart catalog', null, { bdd, page }); 
     await When('I page through the whole catalog', null, { bdd, page }); 
     await Then('all 12 seeded products (prod-1 through prod-12) are shown', null, { bdd }); 
@@ -18,7 +18,7 @@ test.describe('Product Catalog', () => {
     await And('the prod-1 card shows rating "4.5"', null, { page }); 
   });
 
-  test('All four seeded categories appear across the pages', async ({ Given, When, Then, bdd, page }) => { 
+  test('All four catalog categories appear across the pages', async ({ Given, When, Then, bdd, page }) => { 
     await Given('I am on the DemoMart catalog', null, { bdd, page }); 
     await When('I page through the whole catalog', null, { bdd, page }); 
     await Then('the categories "electronics", "apparel", "home" and "sports" all appear', null, { page }); 

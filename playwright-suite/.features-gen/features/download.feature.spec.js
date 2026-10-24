@@ -3,9 +3,9 @@ import { test } from "../../features/steps/fixtures.ts";
 
 test.describe('Order Receipt Download', () => {
 
-  test('Downloads the order receipt as CSV', async ({ Given, When, Then, And, bdd, page, request }) => { 
-    await Given('my cart contains the "Aurora Wireless Headphones"', null, { bdd, request }); 
-    await And('I have completed checkout with valid details', null, { bdd, page, request }); 
+  test('Downloads the order receipt as CSV', async ({ Given, When, Then, And, api, bdd, page }) => { 
+    await Given('my cart contains the "Aurora Wireless Headphones"', null, { api, bdd }); 
+    await And('I have completed checkout with valid details', null, { api, bdd, page }); 
     await When('I click the download receipt button', null, { bdd, page }); 
     await Then('a file named like "receipt-ord-<n>.csv" is downloaded', null, { bdd }); 
     await And('the CSV contains the header "product,quantity,unit_price,line_total"', null, { bdd }); 

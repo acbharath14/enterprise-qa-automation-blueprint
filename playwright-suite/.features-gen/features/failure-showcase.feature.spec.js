@@ -8,9 +8,9 @@ test.describe('Intentional Failure Showcase', () => {
     await Then('the price of prod-1 reads "$9999.99"', null, { page }); 
   });
 
-  test('Products API exposes a discount field (intentionally wrong)', { tag: ['@showcase'] }, async ({ When, Then, bdd, request }) => { 
-    await When('I send a GET request to "/api/products"', null, { bdd, request }); 
-    await Then('the first product has a "discount" of 10', null, { request }); 
+  test('Products API exposes a discount field (intentionally wrong)', { tag: ['@showcase'] }, async ({ When, Then, api, bdd }) => { 
+    await When('I send a GET request to "/api/products"', null, { api, bdd }); 
+    await Then('the first product has a "discount" of 10', null, { api }); 
   });
 
 });

@@ -3,8 +3,8 @@ import { test } from "../../features/steps/fixtures.ts";
 
 test.describe('Checkout Form Validation', () => {
 
-  test.beforeEach('Background', async ({ Given, bdd, page, request }, testInfo) => { if (testInfo.error) return;
-    await Given('I am on the checkout page with a product in my cart', null, { bdd, page, request }); 
+  test.beforeEach('Background', async ({ Given, api, bdd, page }, testInfo) => { if (testInfo.error) return;
+    await Given('I am on the checkout page with a product in my cart', null, { api, bdd, page }); 
   });
   
   test('Shows inline errors for empty submit', async ({ When, Then, And, page }) => { 

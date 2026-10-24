@@ -2,14 +2,14 @@ Feature: Checkout Wizard
   The multi-step checkout guides the buyer through shipping, payment,
   and review before placing the order.
 
-  Scenario: Step 1 is marked current and empty submit stays on step 1
+  Scenario: Wizard starts on step 1 and empty submit stays on step 1
     Given I am on the checkout wizard
     Then step 1 is marked as the current step
     When I continue without entering shipping details
     Then step 1 is still visible
     And step 2 is hidden
 
-  Scenario: Completes the full flow
+  Scenario: Checkout wizard completes shipping, payment, and review and shows confirmation
     Given I have a product in my cart
     And I am on the checkout wizard
     When I enter shipping details for "Wizard Buyer"

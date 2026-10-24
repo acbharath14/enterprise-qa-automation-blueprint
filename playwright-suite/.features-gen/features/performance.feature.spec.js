@@ -8,8 +8,8 @@ test.describe('Performance Budgets', () => {
     await Then('the catalog heading is visible within 8 seconds', null, { page }); 
   });
 
-  test('Products API responds within budget', async ({ When, Then, bdd, request }) => { 
-    await When('I send a GET request to "/api/products"', null, { bdd, request }); 
+  test('Products API responds within budget', async ({ When, Then, api, bdd }) => { 
+    await When('I send a GET request to "/api/products"', null, { api, bdd }); 
     await Then('the response is successful within 2 seconds', null, { bdd }); 
   });
 

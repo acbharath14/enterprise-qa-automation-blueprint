@@ -3,15 +3,15 @@ import { test } from "../../features/steps/fixtures.ts";
 
 test.describe('Store Smoke Tests', () => {
 
-  test('Catalog renders the seeded products', { tag: ['@smoke'] }, async ({ Given, Then, And, bdd, page }) => { 
+  test('Catalog shows the product grid with 6 cards on page 1', { tag: ['@smoke'] }, async ({ Given, Then, And, bdd, page }) => { 
     await Given('I am on the DemoMart homepage', null, { bdd, page }); 
     await Then('the product grid is visible', null, { page }); 
     await And('the card for "Aurora Wireless Headphones" (prod-1) is visible', null, { page }); 
     await And('6 product cards are shown on page 1', null, { page }); 
   });
 
-  test('Adding a product updates the cart badge', { tag: ['@smoke'] }, async ({ Given, When, Then, And, bdd, page, request }) => { 
-    await Given('a product exists in the catalog', null, { bdd, request }); 
+  test('Adding a product updates the cart badge', { tag: ['@smoke'] }, async ({ Given, When, Then, And, api, bdd, page }) => { 
+    await Given('a product exists in the catalog', null, { api, bdd }); 
     await And('I am on the DemoMart homepage', null, { bdd, page }); 
     await When('I search for the product', null, { bdd, page }); 
     await And('I add it to the cart', null, { bdd, page }); 
@@ -19,8 +19,8 @@ test.describe('Store Smoke Tests', () => {
     await And('a confirmation toast shows the product name', null, { bdd, page }); 
   });
 
-  test('Cart page shows the line item and correct total', { tag: ['@smoke'] }, async ({ Given, When, Then, And, bdd, page, request }) => { 
-    await Given('a product priced at $42.50 exists in the catalog', null, { bdd, request }); 
+  test('Cart page shows the line item and correct total', { tag: ['@smoke'] }, async ({ Given, When, Then, And, api, bdd, page }) => { 
+    await Given('a product priced at $42.50 exists in the catalog', null, { api, bdd }); 
     await And('I am on the DemoMart homepage', null, { bdd, page }); 
     await When('I search for the product', null, { bdd, page }); 
     await And('I add it to the cart', null, { bdd, page }); 
@@ -30,8 +30,8 @@ test.describe('Store Smoke Tests', () => {
     await And('the cart subtotal equals the sum of the line totals', null, { page }); 
   });
 
-  test('Checkout wizard completes and shows an order id', { tag: ['@smoke'] }, async ({ Given, When, Then, And, bdd, page, request }) => { 
-    await Given('a product exists in the catalog', null, { bdd, request }); 
+  test('Checkout wizard completes and shows an order id', { tag: ['@smoke'] }, async ({ Given, When, Then, And, api, bdd, page }) => { 
+    await Given('a product exists in the catalog', null, { api, bdd }); 
     await And('I am on the DemoMart homepage', null, { bdd, page }); 
     await When('I search for the product', null, { bdd, page }); 
     await And('I add it to the cart', null, { bdd, page }); 
@@ -43,10 +43,10 @@ test.describe('Store Smoke Tests', () => {
     await Then('the order confirmation is shown', null, { page }); 
     await And('the displayed order id matches the pattern "ord-<number>"', null, { page }); 
     await And('the confirmation lists the product', null, { bdd, page }); 
-    await And('the displayed order total equals the sum of the line totals', null, { bdd, page, request }); 
+    await And('the displayed order total equals the sum of the line totals', null, { api, bdd, page }); 
   });
 
-  test('Demo login works', { tag: ['@smoke'] }, async ({ Given, When, Then, And, bdd, page }) => { 
+  test('Valid login shows the logout button and the username', { tag: ['@smoke'] }, async ({ Given, When, Then, And, bdd, page }) => { 
     await Given('I am on the DemoMart homepage', null, { bdd, page }); 
     await When('I log in with username "admin" and password "secret"', null, { page }); 
     await Then('the logout button is visible', null, { page }); 

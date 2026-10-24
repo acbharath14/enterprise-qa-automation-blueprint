@@ -3,9 +3,9 @@ import { test } from "../../features/steps/fixtures.ts";
 
 test.describe('Delivery Date Picker', () => {
 
-  test('Delivery date carries to the review step', async ({ Given, When, Then, And, bdd, page, request }) => { 
-    await Given('I have a product in my cart', null, { bdd, request }); 
-    await And('I am on the checkout shipping step', null, { bdd, page, request }); 
+  test('Delivery date carries to the review step', async ({ Given, When, Then, And, api, bdd, page }) => { 
+    await Given('I have a product in my cart', null, { api, bdd }); 
+    await And('I am on the checkout shipping step', null, { api, bdd, page }); 
     await When('I fill shipping details with delivery date "2026-10-25"', null, { page }); 
     await Then('the delivery date input holds "2026-10-25"', null, { page }); 
     await When('I continue to payment and fill valid card details', null, { page }); 
