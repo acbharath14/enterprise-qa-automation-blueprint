@@ -438,8 +438,10 @@ newman-health:
       else
         echo 1 > /tmp/newman-exit-code
       fi
-    # Report email via Resend on EVERY run (pass and fail) — the HTML
-    # report is attached, so the inbox carries the report, not just a link.
+    # Report email via Resend on EVERY run (pass and fail) — the full HTML
+    # report is embedded in the email body AND attached (the attachment stays
+    # for sharing; email clients strip the report's JavaScript, so its
+    # expand/collapse controls only work in the attachment).
     - |
       node <<'NODEEOF'
       const https = require('https');
@@ -455,21 +457,29 @@ newman-health:
       } catch (e) {
         stats = '<p>Summary counts unavailable (newman-summary.json missing).</p>';
       }
-      let attachments = [];
+      let reportHtml = null;
       try {
+        reportHtml = fs.readFileSync('newman-report.html', 'utf8');
+      } catch (e) { console.log('Newman report not found, sending summary only:', e.message); }
+      let attachments = [];
+      if (reportHtml !== null) {
         attachments.push({
           filename: 'newman-report.html',
-          content: fs.readFileSync('newman-report.html').toString('base64'),
+          content: Buffer.from(reportHtml).toString('base64'),
         });
-      } catch (e) { console.log('Report attachment skipped:', e.message); }
+      }
+      const summaryHtml = `<p>The hourly Newman API health check ${passed ? 'passed' : 'failed'}.</p>${stats}` +
+        `<p><a href="${process.env.CI_PIPELINE_URL}">View pipeline</a> | ` +
+        `<a href="${process.env.CI_JOB_URL}">View job</a></p>` +
+        `<p>Full HTML report attached (also in the job artifacts for 14 days).</p>`;
       const body = {
         from: 'QA Automation <onboarding@resend.dev>',
         to: [process.env.ALERT_TO],
         subject: `Newman API health check ${passed ? 'PASSED' : 'FAILED'} (pipeline #${process.env.CI_PIPELINE_ID})`,
-        html: `<p>The hourly Newman API health check ${passed ? 'passed' : 'failed'}.</p>${stats}` +
-          `<p><a href="${process.env.CI_PIPELINE_URL}">View pipeline</a> | ` +
-          `<a href="${process.env.CI_JOB_URL}">View job</a></p>` +
-          `<p>Full HTML report attached (also in the job artifacts for 14 days).</p>`,
+        html: reportHtml !== null ? reportHtml : summaryHtml,
+        text: `The hourly Newman API health check ${passed ? 'passed' : 'failed'}. ` +
+          `Pipeline: ${process.env.CI_PIPELINE_URL} Job: ${process.env.CI_JOB_URL} ` +
+          `(Full HTML report attached.)`,
         attachments,
       };
       const data = JSON.stringify(body);
