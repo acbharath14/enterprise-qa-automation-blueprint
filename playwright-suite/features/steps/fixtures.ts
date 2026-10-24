@@ -1,6 +1,7 @@
 import { test as base } from 'playwright-bdd';
 import { createBdd } from 'playwright-bdd';
-import type { APIResponse } from '@playwright/test';
+import { evidenceApi } from '../../fixtures/api-evidence';
+import type { APIRequestContext, APIResponse } from '@playwright/test';
 
 /**
  * Shared mutable state carried between the steps of a single scenario.
@@ -32,11 +33,14 @@ export type BddState = {
   badgeBefore?: number;
 };
 
-export const test = base.extend<{ bdd: BddState }>({
+export const test = base.extend<{ bdd: BddState; api: APIRequestContext }>({
   bdd: async ({}, use) => {
     const cartId = `bdd-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     await use({ cartHeaders: { 'X-Cart-Id': cartId }, cartPinned: false });
   },
+  api: async ({ request }, use, testInfo) => {
+    await use(evidenceApi(request, testInfo));
+  }
 });
 
 export const { Given, When, Then } = createBdd(test);

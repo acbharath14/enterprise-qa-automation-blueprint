@@ -1,4 +1,5 @@
 import { test as base, expect, APIRequestContext } from '@playwright/test';
+import { evidenceApi } from './api-evidence';
 import { allure } from 'allure-playwright';
 import { CatalogPage } from '../pages/CatalogPage';
 import { ProductPage } from '../pages/ProductPage';
@@ -43,6 +44,8 @@ type Fixtures = {
   checkout: { checkoutPage: CheckoutPage; productId: string; headers: Record<string, string> };
   /** DemoMart login view, already opened. */
   loginPage: LoginPage;
+  /** Evidence-logging API client: same calls as `request`, plus one console line and one JSON report attachment per call. */
+  api: APIRequestContext;
 };
 
 export const test = base.extend<Fixtures>({
@@ -104,6 +107,9 @@ export const test = base.extend<Fixtures>({
     await loginPage.goto();
     await use(loginPage);
   },
+  api: async ({ request }, use, testInfo) => {
+    await use(evidenceApi(request, testInfo));
+  }
 });
 
 export { expect };

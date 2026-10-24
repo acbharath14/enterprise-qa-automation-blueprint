@@ -78,9 +78,11 @@ export default defineConfig({
   fullyParallel: true,
   workers: process.env.CI ? 4 : 8,
   retries: process.env.CI ? 2 : 0,
+  // step-log: one console line per action/assertion step, so the CI job log
+  // shows what each test validated without opening any report.
   reporter: process.env.CI
-    ? [['list'], ['html', { open: 'never' }], ['allure-playwright']]
-    : [['list'], ['html', { open: 'never' }]],
+    ? [['list'], ['html', { open: 'never' }], ['allure-playwright'], ['./reporters/step-log']]
+    : [['list'], ['html', { open: 'never' }], ['./reporters/step-log']],
   webServer: {
     command: 'node server.mjs',
     url: 'http://127.0.0.1:4173',

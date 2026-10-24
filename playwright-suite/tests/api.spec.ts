@@ -28,8 +28,8 @@ function cartApi(request: APIRequestContext, testInfo: { workerIndex: number }) 
  * itself. The demo cart is shared server-side, so cart/order tests reset it.
  */
 test.describe('products API', () => {
-  test('lists the seeded products', async ({ request }) => {
-    const res = await request.get('/api/products');
+  test('lists the seeded products', async ({ api }) => {
+    const res = await api.get('/api/products');
     expect(res.ok()).toBeTruthy();
     expect(res.headers()['content-type']).toContain('application/json');
     const body = await res.json();
@@ -48,22 +48,22 @@ test.describe('products API', () => {
     );
   });
 
-  test('supports search, category filter and sort', async ({ request }) => {
-    const q = await (await request.get('/api/products?q=aurora')).json();
+  test('supports search, category filter and sort', async ({ api }) => {
+    const q = await (await api.get('/api/products?q=aurora')).json();
     expect(q.length).toBe(3);
     expect(q.every((p: { name: string }) => p.name.toLowerCase().includes('aurora'))).toBe(true);
 
-    const cat = await (await request.get('/api/products?category=apparel')).json();
+    const cat = await (await api.get('/api/products?category=apparel')).json();
     expect(cat.length).toBe(3);
     expect(cat.every((p: { category: string }) => p.category === 'apparel')).toBe(true);
 
-    const sorted = await (await request.get('/api/products?sort=price_asc')).json();
+    const sorted = await (await api.get('/api/products?sort=price_asc')).json();
     const prices = sorted.map((p: { price: number }) => p.price);
     expect([...prices].sort((a, b) => a - b)).toEqual(prices);
   });
 
-  test('product values are sane', async ({ request }) => {
-    const body = await (await request.get('/api/products')).json();
+  test('product values are sane', async ({ api }) => {
+    const body = await (await api.get('/api/products')).json();
     for (const p of body) {
       expect(p.price).toBeGreaterThan(0);
       expect(p.rating).toBeGreaterThanOrEqual(0);
@@ -73,19 +73,19 @@ test.describe('products API', () => {
     }
   });
 
-  test('get-by-id returns the product; unknown id is a JSON 404', async ({ request }) => {
-    const res = await request.get('/api/products/prod-1');
+  test('get-by-id returns the product; unknown id is a JSON 404', async ({ api }) => {
+    const res = await api.get('/api/products/prod-1');
     expect(res.ok()).toBeTruthy();
     expect((await res.json()).name).toBe('Aurora Wireless Headphones');
 
-    const missing = await request.get('/api/products/nope');
+    const missing = await api.get('/api/products/nope');
     expect(missing.status()).toBe(404);
     expect(missing.headers()['content-type']).toContain('application/json');
     expect((await missing.json()).error).toBeDefined();
   });
 
-  test('product CRUD round-trips', async ({ request }) => {
-    const created = await request.post('/api/products', {
+  test('product CRUD round-trips', async ({ api }) => {
+    const created = await api.post('/api/products', {
       data: { name: 'API Test Widget', price: 12.5, category: 'test', stock: 5 },
     });
     expect(created.status()).toBe(201);
@@ -94,22 +94,22 @@ test.describe('products API', () => {
     try {
       expect(product).toMatchObject({ name: 'API Test Widget', price: 12.5 });
 
-      const patched = await request.patch(`/api/products/${id}`, { data: { price: 15 } });
+      const patched = await api.patch(`/api/products/${id}`, { data: { price: 15 } });
       expect(patched.status()).toBe(200);
       expect((await patched.json()).price).toBe(15);
 
-      const badCreate = await request.post('/api/products', { data: { price: -3 } });
+      const badCreate = await api.post('/api/products', { data: { price: -3 } });
       expect(badCreate.status()).toBe(400);
       expect((await badCreate.json()).error).toBeDefined();
     } finally {
-      const deleted = await request.delete(`/api/products/${id}`);
+      const deleted = await api.delete(`/api/products/${id}`);
       expect(deleted.status()).toBe(204);
-      expect((await request.get(`/api/products/${id}`)).status()).toBe(404);
+      expect((await api.get(`/api/products/${id}`)).status()).toBe(404);
     }
   });
 
-  test('unknown API routes return JSON 404', async ({ request }) => {
-    const res = await request.get('/api/does-not-exist');
+  test('unknown API routes return JSON 404', async ({ api }) => {
+    const res = await api.get('/api/does-not-exist');
     expect(res.status()).toBe(404);
     expect(res.headers()['content-type']).toContain('application/json');
     expect((await res.json()).error).toBeDefined();
@@ -140,9 +140,9 @@ function lineTotal(line: { price: number; qty: number }): number {
 }
 
 test.describe('cart API', () => {
-  test('cart math is internally consistent', async ({ request }, testInfo) => {
-    const capi = cartApi(request, testInfo);
-    const pid = await mintProduct(request, 'math');
+  test('cart math is internally consistent', async ({ api }, testInfo) => {
+    const capi = cartApi(api, testInfo);
+    const pid = await mintProduct(api, 'math');
     try {
       await capi.post('/api/cart/items', { data: { productId: pid, qty: 5 } });
       const cart = await (await capi.get('/api/cart')).json();
@@ -158,8 +158,8 @@ test.describe('cart API', () => {
     }
   });
 
-  test('rejects unknown products, bad quantities and over-stock', async ({ request }, testInfo) => {
-    const capi = cartApi(request, testInfo);
+  test('rejects unknown products, bad quantities and over-stock', async ({ api }, testInfo) => {
+    const capi = cartApi(api, testInfo);
     expect(
       (await capi.post('/api/cart/items', { data: { productId: 'nope', qty: 1 } })).status(),
     ).toBe(404);
@@ -171,9 +171,9 @@ test.describe('cart API', () => {
     ).toBe(400);
   });
 
-  test('quantity updates and removal work', async ({ request }, testInfo) => {
-    const capi = cartApi(request, testInfo);
-    const pid = await mintProduct(request, 'qty');
+  test('quantity updates and removal work', async ({ api }, testInfo) => {
+    const capi = cartApi(api, testInfo);
+    const pid = await mintProduct(api, 'qty');
     try {
       await capi.post('/api/cart/items', { data: { productId: pid, qty: 1 } });
       const updated = await capi.patch(`/api/cart/items/${pid}`, { data: { qty: 4 } });
@@ -184,15 +184,15 @@ test.describe('cart API', () => {
       expect(cart.items.find((i: { productId: string }) => i.productId === pid)).toBeUndefined();
       expect((await capi.delete(`/api/cart/items/${pid}`)).status()).toBe(404);
     } finally {
-      await request.delete(`/api/products/${pid}`);
+      await api.delete(`/api/products/${pid}`);
     }
   });
 });
 
 test.describe('orders API', () => {
-  test('checkout creates an order and clears its lines', async ({ request }, testInfo) => {
-    const capi = cartApi(request, testInfo);
-    const pid = await mintProduct(request, 'order');
+  test('checkout creates an order and clears its lines', async ({ api }, testInfo) => {
+    const capi = cartApi(api, testInfo);
+    const pid = await mintProduct(api, 'order');
     try {
       await capi.post('/api/cart/items', { data: { productId: pid, qty: 2 } });
       const res = await capi.post('/api/orders', {
@@ -222,12 +222,12 @@ test.describe('orders API', () => {
       expect(cart.items.find((i: { productId: string }) => i.productId === pid)).toBeUndefined();
       expect((await (await capi.get(`/api/orders/${order.id}`)).json()).id).toBe(order.id);
     } finally {
-      await request.delete(`/api/products/${pid}`);
+      await api.delete(`/api/products/${pid}`);
     }
   });
 
-  test('rejects empty carts and invalid payloads', async ({ request }, testInfo) => {
-    const capi = cartApi(request, testInfo);
+  test('rejects empty carts and invalid payloads', async ({ api }, testInfo) => {
+    const capi = cartApi(api, testInfo);
     // Needs a truly empty cart: clear and act immediately.
     await capi.delete('/api/cart');
     const empty = await capi.post('/api/orders', {
@@ -235,7 +235,7 @@ test.describe('orders API', () => {
     });
     expect(empty.status()).toBe(422);
 
-    const pid = await mintProduct(request, 'badorder');
+    const pid = await mintProduct(api, 'badorder');
     try {
       await capi.post('/api/cart/items', { data: { productId: pid, qty: 1 } });
       const badEmail = await capi.post('/api/orders', {
@@ -247,9 +247,9 @@ test.describe('orders API', () => {
     }
   });
 
-  test('receipt downloads as CSV', async ({ request }, testInfo) => {
-    const capi = cartApi(request, testInfo);
-    const pid = await mintProduct(request, 'receipt');
+  test('receipt downloads as CSV', async ({ api }, testInfo) => {
+    const capi = cartApi(api, testInfo);
+    const pid = await mintProduct(api, 'receipt');
     try {
       await capi.post('/api/cart/items', { data: { productId: pid, qty: 1 } });
       const order = await (
@@ -266,7 +266,7 @@ test.describe('orders API', () => {
       expect(csv).toContain(`Cart Test receipt`);
       expect((await capi.get('/api/orders/nope/receipt')).status()).toBe(404);
     } finally {
-      await request.delete(`/api/products/${pid}`);
+      await api.delete(`/api/products/${pid}`);
     }
   });
 });

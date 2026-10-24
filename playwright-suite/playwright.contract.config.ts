@@ -10,7 +10,9 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './contract',
   timeout: 60_000,
-  reporter: process.env.CI ? [['list'], ['allure-playwright']] : [['list']],
+  reporter: process.env.CI
+    ? [['list'], ['allure-playwright'], ['./reporters/step-log']]
+    : [['list'], ['./reporters/step-log']],
   webServer: {
     command: 'node server.mjs',
     url: 'http://127.0.0.1:4173',

@@ -95,9 +95,9 @@ Given('I am on the DemoMart catalog', async ({ page, bdd }) => {
 
 Given(
   'I am on the checkout page with a product in my cart',
-  async ({ page, request, bdd }) => {
-    await mintProduct(request, bdd, 'checkout-bg');
-    await request.post('/api/cart/items', {
+  async ({ page, api, bdd }) => {
+    await mintProduct(api, bdd, 'checkout-bg');
+    await api.post('/api/cart/items', {
       headers: bdd.cartHeaders,
       data: { productId: bdd.productId, qty: 1 }
     });
@@ -126,8 +126,8 @@ Then('{int} product cards are shown on page 1', async ({ page }, count: number) 
   await expect(new CatalogPage(page).grid.getByTestId(/^product-card-/)).toHaveCount(count);
 });
 
-Given('a product exists in the catalog', async ({ request, bdd }) => {
-  await mintProduct(request, bdd, 'smoke');
+Given('a product exists in the catalog', async ({ api, bdd }) => {
+  await mintProduct(api, bdd, 'smoke');
 });
 
 When('I search for the product', async ({ page, bdd }) => {
@@ -151,8 +151,8 @@ Then('a confirmation toast shows the product name', async ({ page, bdd }) => {
   await expect(toast).toContainText(bdd.productName || '');
 });
 
-Given(/^a product priced at \$([\d.]+) exists in the catalog$/, async ({ request, bdd }, price: string) => {
-  await mintProduct(request, bdd, 'priced', Number(price));
+Given(/^a product priced at \$([\d.]+) exists in the catalog$/, async ({ api, bdd }, price: string) => {
+  await mintProduct(api, bdd, 'priced', Number(price));
 });
 
 When('I open the cart', async ({ page }) => {
@@ -221,9 +221,9 @@ Then('the confirmation lists the product', async ({ page, bdd }) => {
   await expect(new CheckoutPage(page).confirmation).toContainText(bdd.productName || '');
 });
 
-Then('the displayed order total equals the sum of the line totals', async ({ page, request, bdd }) => {
+Then('the displayed order total equals the sum of the line totals', async ({ page, api, bdd }) => {
   const orderId = (await new CheckoutPage(page).orderId.textContent()) || '';
-  const order = await (await request.get(`/api/orders/${orderId.trim()}`)).json();
+  const order = await (await api.get(`/api/orders/${orderId.trim()}`)).json();
   const sum = (order.items as Array<{ price: number; qty: number }>).reduce(
     (a, i) => a + i.price * i.qty,
     0
@@ -425,8 +425,8 @@ Then("the order request payload contains the card's last 4 digits", async ({ bdd
 /* api.feature — product catalog endpoints                             */
 /* ------------------------------------------------------------------ */
 
-When(/I request (GET|POST|PUT|PATCH|DELETE) (\S+)/, async ({ request, bdd }, method: string, path: string) => {
-  const res = await (request as any)[method.toLowerCase()](path);
+When(/I request (GET|POST|PUT|PATCH|DELETE) (\S+)/, async ({ api, bdd }, method: string, path: string) => {
+  const res = await (api as any)[method.toLowerCase()](path);
   bdd.lastResponse = res;
   try {
     bdd.lastJson = await res.json();
@@ -515,8 +515,8 @@ Then('the response is 404 with JSON content and an error field', async ({ bdd })
   expect(bdd.lastJson).toHaveProperty('error');
 });
 
-When('I create a product named {string} priced at {float}', async ({ request, bdd }, name: string, price: number) => {
-  const res = await request.post('/api/products', {
+When('I create a product named {string} priced at {float}', async ({ api, bdd }, name: string, price: number) => {
+  const res = await api.post('/api/products', {
     data: { name, price, category: 'test', stock: 100 }
   });
   bdd.lastResponse = res;
@@ -532,8 +532,8 @@ Then('the response is 201 and the product is returned', async ({ bdd }) => {
   expect(bdd.lastJson).toHaveProperty('id');
 });
 
-When('I patch the product price to {float}', async ({ request, bdd }, price: number) => {
-  const res = await request.patch(`/api/products/${bdd.productId}`, { data: { price } });
+When('I patch the product price to {float}', async ({ api, bdd }, price: number) => {
+  const res = await api.patch(`/api/products/${bdd.productId}`, { data: { price } });
   bdd.lastResponse = res;
   bdd.lastJson = await res.json();
 });
@@ -543,8 +543,8 @@ Then('the response is 200 and the price is {float}', async ({ bdd }, price: numb
   expect(bdd.lastJson?.price).toBe(price);
 });
 
-When('I create a product with a negative price', async ({ request, bdd }) => {
-  const res = await request.post('/api/products', {
+When('I create a product with a negative price', async ({ api, bdd }) => {
+  const res = await api.post('/api/products', {
     data: { name: 'BDD Bad Price', price: -5, category: 'test' }
   });
   bdd.lastResponse = res;
@@ -560,16 +560,16 @@ Then('the response is 400 with an error field', async ({ bdd }) => {
   expect(bdd.lastJson).toHaveProperty('error');
 });
 
-When('I delete the product', async ({ request, bdd }) => {
-  bdd.lastResponse = await request.delete(`/api/products/${bdd.productId}`);
+When('I delete the product', async ({ api, bdd }) => {
+  bdd.lastResponse = await api.delete(`/api/products/${bdd.productId}`);
 });
 
 Then('the response is 204', async ({ bdd }) => {
   expect(bdd.lastResponse?.status()).toBe(204);
 });
 
-Then('requesting the product afterwards returns 404', async ({ request, bdd }) => {
-  const res = await request.get(`/api/products/${bdd.productId}`);
+Then('requesting the product afterwards returns 404', async ({ api, bdd }) => {
+  const res = await api.get(`/api/products/${bdd.productId}`);
   expect(res.status()).toBe(404);
 });
 
@@ -577,35 +577,35 @@ Then('requesting the product afterwards returns 404', async ({ request, bdd }) =
 /* api.feature — cart endpoints                                        */
 /* ------------------------------------------------------------------ */
 
-Given(/^a product priced at \$([\d.]+) exists$/, async ({ request, bdd }, price: string) => {
-  await mintProduct(request, bdd, 'api', Number(price));
+Given(/^a product priced at \$([\d.]+) exists$/, async ({ api, bdd }, price: string) => {
+  await mintProduct(api, bdd, 'api', Number(price));
 });
 
-When('I add {int} units to my cart', async ({ request, bdd }, qty: number) => {
-  bdd.lastResponse = await request.post('/api/cart/items', {
+When('I add {int} units to my cart', async ({ api, bdd }, qty: number) => {
+  bdd.lastResponse = await api.post('/api/cart/items', {
     headers: bdd.cartHeaders,
     data: { productId: bdd.productId, qty }
   });
 });
 
-Then('my cart line shows quantity {int}', async ({ request, bdd }, qty: number) => {
-  const cart = await (await request.get('/api/cart', { headers: bdd.cartHeaders })).json();
+Then('my cart line shows quantity {int}', async ({ api, bdd }, qty: number) => {
+  const cart = await (await api.get('/api/cart', { headers: bdd.cartHeaders })).json();
   const line = (cart.items as Array<{ productId: string; qty: number }>).find(
     (i) => i.productId === bdd.productId
   );
   expect(line?.qty).toBe(qty);
 });
 
-Then(/^the line total is (\d+) x \$([\d.]+)$/, async ({ request, bdd }, qty: string, unit: string) => {
-  const cart = await (await request.get('/api/cart', { headers: bdd.cartHeaders })).json();
+Then(/^the line total is (\d+) x \$([\d.]+)$/, async ({ api, bdd }, qty: string, unit: string) => {
+  const cart = await (await api.get('/api/cart', { headers: bdd.cartHeaders })).json();
   const line = (cart.items as Array<{ productId: string; qty: number; price: number }>).find(
     (i) => i.productId === bdd.productId
   );
   expect((line?.qty || 0) * (line?.price || 0)).toBeCloseTo(Number(qty) * Number(unit), 2);
 });
 
-When('I add an unknown product to my cart', async ({ request, bdd }) => {
-  bdd.lastResponse = await request.post('/api/cart/items', {
+When('I add an unknown product to my cart', async ({ api, bdd }) => {
+  bdd.lastResponse = await api.post('/api/cart/items', {
     headers: bdd.cartHeaders,
     data: { productId: 'no-such-product', qty: 1 }
   });
@@ -615,8 +615,8 @@ Then('the response is 404', async ({ bdd }) => {
   expect(bdd.lastResponse?.status()).toBe(404);
 });
 
-When(/^I add (\S+) with quantity (\d+)$/, async ({ request, bdd }, productId: string, qty: string) => {
-  bdd.lastResponse = await request.post('/api/cart/items', {
+When(/^I add (\S+) with quantity (\d+)$/, async ({ api, bdd }, productId: string, qty: string) => {
+  bdd.lastResponse = await api.post('/api/cart/items', {
     headers: bdd.cartHeaders,
     data: { productId, qty: Number(qty) }
   });
@@ -626,45 +626,45 @@ Then('the response is 400', async ({ bdd }) => {
   expect(bdd.lastResponse?.status()).toBe(400);
 });
 
-Given('a product exists and 1 unit is in my cart', async ({ request, bdd }) => {
-  await mintProduct(request, bdd, 'qty');
-  await request.post('/api/cart/items', {
+Given('a product exists and 1 unit is in my cart', async ({ api, bdd }) => {
+  await mintProduct(api, bdd, 'qty');
+  await api.post('/api/cart/items', {
     headers: bdd.cartHeaders,
     data: { productId: bdd.productId, qty: 1 }
   });
 });
 
-When('I set the quantity to {int}', async ({ request, bdd }, qty: number) => {
-  bdd.lastResponse = await request.patch(`/api/cart/items/${bdd.productId}`, {
+When('I set the quantity to {int}', async ({ api, bdd }, qty: number) => {
+  bdd.lastResponse = await api.patch(`/api/cart/items/${bdd.productId}`, {
     headers: bdd.cartHeaders,
     data: { qty }
   });
 });
 
-Then('the cart line shows quantity {int}', async ({ request, bdd }, qty: number) => {
-  const cart = await (await request.get('/api/cart', { headers: bdd.cartHeaders })).json();
+Then('the cart line shows quantity {int}', async ({ api, bdd }, qty: number) => {
+  const cart = await (await api.get('/api/cart', { headers: bdd.cartHeaders })).json();
   const line = (cart.items as Array<{ productId: string; qty: number }>).find(
     (i) => i.productId === bdd.productId
   );
   expect(line?.qty).toBe(qty);
 });
 
-When('I remove the line from my cart', async ({ request, bdd }) => {
-  bdd.lastResponse = await request.delete(`/api/cart/items/${bdd.productId}`, {
+When('I remove the line from my cart', async ({ api, bdd }) => {
+  bdd.lastResponse = await api.delete(`/api/cart/items/${bdd.productId}`, {
     headers: bdd.cartHeaders
   });
 });
 
-Then('the product is no longer in my cart', async ({ request, bdd }) => {
-  const cart = await (await request.get('/api/cart', { headers: bdd.cartHeaders })).json();
+Then('the product is no longer in my cart', async ({ api, bdd }) => {
+  const cart = await (await api.get('/api/cart', { headers: bdd.cartHeaders })).json();
   const line = (cart.items as Array<{ productId: string }>).find(
     (i) => i.productId === bdd.productId
   );
   expect(line).toBeUndefined();
 });
 
-Then('removing it again returns 404', async ({ request, bdd }) => {
-  const res = await request.delete(`/api/cart/items/${bdd.productId}`, {
+Then('removing it again returns 404', async ({ api, bdd }) => {
+  const res = await api.delete(`/api/cart/items/${bdd.productId}`, {
     headers: bdd.cartHeaders
   });
   expect(res.status()).toBe(404);
@@ -681,24 +681,24 @@ const VALID_ORDER = {
   payment: { cardLast4: '4242' }
 };
 
-Given('{int} units of a product are in my cart', async ({ request, bdd }, qty: number) => {
-  await mintProduct(request, bdd, 'order');
-  await request.post('/api/cart/items', {
+Given('{int} units of a product are in my cart', async ({ api, bdd }, qty: number) => {
+  await mintProduct(api, bdd, 'order');
+  await api.post('/api/cart/items', {
     headers: bdd.cartHeaders,
     data: { productId: bdd.productId, qty }
   });
 });
 
-Given('{int} unit of a product is in my cart', async ({ request, bdd }, qty: number) => {
-  await mintProduct(request, bdd, 'order1');
-  await request.post('/api/cart/items', {
+Given('{int} unit of a product is in my cart', async ({ api, bdd }, qty: number) => {
+  await mintProduct(api, bdd, 'order1');
+  await api.post('/api/cart/items', {
     headers: bdd.cartHeaders,
     data: { productId: bdd.productId, qty }
   });
 });
 
-When('I place an order with valid buyer details', async ({ request, bdd }) => {
-  const res = await request.post('/api/orders', {
+When('I place an order with valid buyer details', async ({ api, bdd }) => {
+  const res = await api.post('/api/orders', {
     headers: bdd.cartHeaders,
     data: VALID_ORDER
   });
@@ -737,16 +737,16 @@ Then('the order total equals the sum of the line totals', async ({ bdd }) => {
   expect(bdd.lastJson?.total).toBeCloseTo(sum, 2);
 });
 
-Then('my cart no longer contains the product', async ({ request, bdd }) => {
-  const cart = await (await request.get('/api/cart', { headers: bdd.cartHeaders })).json();
+Then('my cart no longer contains the product', async ({ api, bdd }) => {
+  const cart = await (await api.get('/api/cart', { headers: bdd.cartHeaders })).json();
   const line = (cart.items as Array<{ productId: string }>).find(
     (i) => i.productId === bdd.productId
   );
   expect(line).toBeUndefined();
 });
 
-Then('I can retrieve the order by its id', async ({ request, bdd }) => {
-  const res = await request.get(`/api/orders/${bdd.orderId}`, { headers: bdd.cartHeaders });
+Then('I can retrieve the order by its id', async ({ api, bdd }) => {
+  const res = await api.get(`/api/orders/${bdd.orderId}`, { headers: bdd.cartHeaders });
   expect(res.status()).toBe(200);
 });
 
@@ -756,8 +756,8 @@ Given('my cart is empty', async ({ bdd }) => {
   };
 });
 
-When('I place an order', async ({ request, bdd }) => {
-  const res = await request.post('/api/orders', {
+When('I place an order', async ({ api, bdd }) => {
+  const res = await api.post('/api/orders', {
     headers: bdd.cartHeaders,
     data: VALID_ORDER
   });
@@ -773,8 +773,8 @@ Then('the response is 422', async ({ bdd }) => {
   expect(bdd.lastResponse?.status()).toBe(422);
 });
 
-When('I place an order with email {string}', async ({ request, bdd }, email: string) => {
-  const res = await request.post('/api/orders', {
+When('I place an order with email {string}', async ({ api, bdd }, email: string) => {
+  const res = await api.post('/api/orders', {
     headers: bdd.cartHeaders,
     data: { ...VALID_ORDER, email }
   });
@@ -786,8 +786,8 @@ When('I place an order with email {string}', async ({ request, bdd }, email: str
   }
 });
 
-When('I download the receipt for the order', async ({ request, bdd }) => {
-  bdd.lastResponse = await request.get(`/api/orders/${bdd.orderId}/receipt`, {
+When('I download the receipt for the order', async ({ api, bdd }) => {
+  bdd.lastResponse = await api.get(`/api/orders/${bdd.orderId}/receipt`, {
     headers: bdd.cartHeaders
   });
 });
@@ -812,8 +812,8 @@ Then('the CSV contains the product name', async ({ bdd }) => {
   expect(text).toContain(bdd.productName || '');
 });
 
-Then('downloading the receipt for an unknown order returns 404', async ({ request, bdd }) => {
-  const res = await request.get('/api/orders/no-such-order/receipt', {
+Then('downloading the receipt for an unknown order returns 404', async ({ api, bdd }) => {
+  const res = await api.get('/api/orders/no-such-order/receipt', {
     headers: bdd.cartHeaders
   });
   expect(res.status()).toBe(404);
@@ -869,10 +869,10 @@ Given('I am on a product detail page', async ({ page, bdd }) => {
   await catalogPage.openProduct('prod-1');
 });
 
-Given('I am on the checkout shipping step', async ({ page, request, bdd }) => {
+Given('I am on the checkout shipping step', async ({ page, api, bdd }) => {
   // Ensure the cart has an item so checkout is reachable.
   const headers = bdd.cartHeaders;
-  await request.post('/api/cart/items', {
+  await api.post('/api/cart/items', {
     headers,
     data: { productId: 'prod-1', qty: 1 }
   });
@@ -983,8 +983,8 @@ Then('the toggle reports aria-checked={string}', async ({ page }, value: string)
 /* datepicker.feature                                                  */
 /* ------------------------------------------------------------------ */
 
-Given('I have a product in my cart', async ({ request, bdd }) => {
-  const res = await request.post('/api/cart/items', {
+Given('I have a product in my cart', async ({ api, bdd }) => {
+  const res = await api.post('/api/cart/items', {
     headers: bdd.cartHeaders,
     data: { productId: 'prod-1', qty: 1 }
   });
@@ -1065,9 +1065,9 @@ Then('the date portion matches the New Zealand locale rendering', async ({ page 
 /* dialogs.feature                                                     */
 /* ------------------------------------------------------------------ */
 
-Given('my cart contains one line item', async ({ page, request, bdd }) => {
+Given('my cart contains one line item', async ({ page, api, bdd }) => {
   const headers = bdd.cartHeaders;
-  await request.post('/api/cart/items', {
+  await api.post('/api/cart/items', {
     headers,
     data: { productId: 'prod-1', qty: 1 }
   });
@@ -1221,10 +1221,10 @@ When('I click the modal backdrop', async ({ page }) => {
 /* popup.feature                                                       */
 /* ------------------------------------------------------------------ */
 
-Given('I have placed an order for {string}', async ({ page, request, bdd }, name: string) => {
+Given('I have placed an order for {string}', async ({ page, api, bdd }, name: string) => {
   const headers = bdd.cartHeaders;
   const productId = name === 'Aurora Wireless Headphones' ? 'prod-1' : 'prod-1';
-  await request.post('/api/cart/items', { headers, data: { productId, qty: 1 } });
+  await api.post('/api/cart/items', { headers, data: { productId, qty: 1 } });
   if (!bdd.cartPinned) {
     await page.addInitScript((cartId: string) => {
       try {
@@ -2104,24 +2104,24 @@ Then('the real product catalog renders once the response arrives', async ({ page
 // api-schema.feature
 // ---------------------------------------------------------------------------
 
-When('I send a GET request to {string}', async ({ request, bdd }, path: string) => {
-  await apiSend(request, bdd, 'GET', path);
+When('I send a GET request to {string}', async ({ api, bdd }, path: string) => {
+  await apiSend(api, bdd, 'GET', path);
 });
 
-When('I send a POST request to {string} with a valid product payload', async ({ request, bdd }, path: string) => {
-  const res = await apiSend(request, bdd, 'POST', path, { name: 'Schema Widget', price: 9.99, category: 'test' });
+When('I send a POST request to {string} with a valid product payload', async ({ api, bdd }, path: string) => {
+  const res = await apiSend(api, bdd, 'POST', path, { name: 'Schema Widget', price: 9.99, category: 'test' });
   if (res.status() === 201) {
     const body = bdd.lastJson as any;
     bdd.productId = body.id;
   }
 });
 
-When('I send a POST request to {string} with a negative price', async ({ request, bdd }, path: string) => {
-  await apiSend(request, bdd, 'POST', path, { name: 'Bad Widget', price: -5, category: 'test' });
+When('I send a POST request to {string} with a negative price', async ({ api, bdd }, path: string) => {
+  await apiSend(api, bdd, 'POST', path, { name: 'Bad Widget', price: -5, category: 'test' });
 });
 
-When('I send a POST request to {string} with wrong credentials', async ({ request, bdd }, path: string) => {
-  await apiSend(request, bdd, 'POST', path, { username: 'admin', password: 'wrong' });
+When('I send a POST request to {string} with wrong credentials', async ({ api, bdd }, path: string) => {
+  await apiSend(api, bdd, 'POST', path, { username: 'admin', password: 'wrong' });
 });
 
 Then('the response status is {int}', async ({ bdd }, status: number) => {
@@ -2208,11 +2208,11 @@ Then('the error mentions the undocumented status code', async ({ bdd }) => {
 // download.feature
 // ---------------------------------------------------------------------------
 
-Given('my cart contains the {string}', async ({ request, bdd }, _name: string) => {
-  await request.post('/api/cart/items', { headers: bdd.cartHeaders, data: { productId: 'prod-1', qty: 1 } });
+Given('my cart contains the {string}', async ({ api, bdd }, _name: string) => {
+  await api.post('/api/cart/items', { headers: bdd.cartHeaders, data: { productId: 'prod-1', qty: 1 } });
 });
 
-Given('I have completed checkout with valid details', async ({ page, request, bdd }) => {
+Given('I have completed checkout with valid details', async ({ page, api, bdd }) => {
   await page.goto('/');
   await page.getByTestId('nav-cart').click();
   await page.getByTestId('checkout-button').click();
@@ -2352,8 +2352,8 @@ Then('the price of prod-1 reads {string}', async ({ page }, price: string) => {
   await expect(page.getByTestId('product-price-prod-1')).toHaveText(price);
 });
 
-Then('the first product has a {string} of {int}', async ({ request }, field: string, value: number) => {
-  const body = await (await request.get('/api/products')).json();
+Then('the first product has a {string} of {int}', async ({ api }, field: string, value: number) => {
+  const body = await (await api.get('/api/products')).json();
   expect(body[0][field]).toBe(value);
 });
 
@@ -2364,10 +2364,10 @@ Then('the first product has a {string} of {int}', async ({ request }, field: str
 const SQLI_PAYLOADS = [`' OR '1'='1`, `' OR '1'='1' --`, `'; DROP TABLE users; --`, `" OR "" = "`, `' UNION SELECT 1,2,3 --`];
 const XSS_PAYLOADS = [`<script>alert(1)</script>`, `"><svg onload=alert(1)>`, `';alert(1);//`];
 
-When('I attempt to log in with each classic SQL injection payload', async ({ request, bdd }) => {
+When('I attempt to log in with each classic SQL injection payload', async ({ api, bdd }) => {
   (bdd as any).loginAttempts = [];
   for (const payload of SQLI_PAYLOADS) {
-    const res = await request.post('/api/login', { data: { username: payload, password: payload } });
+    const res = await api.post('/api/login', { data: { username: payload, password: payload } });
     (bdd as any).loginAttempts.push({ res, body: await res.json() });
   }
 });
@@ -2396,23 +2396,23 @@ Then('no session token is issued', async ({ bdd }) => {
   if ((bdd as any).lastJson) expect((bdd as any).lastJson.token).toBeUndefined();
 });
 
-When('I attempt to log in with JSON operator payloads as credentials', async ({ request, bdd }) => {
-  const res = await request.post('/api/login', { data: { username: { $gt: '' }, password: { $gt: '' } } });
+When('I attempt to log in with JSON operator payloads as credentials', async ({ api, bdd }) => {
+  const res = await api.post('/api/login', { data: { username: { $gt: '' }, password: { $gt: '' } } });
   bdd.lastResponse = res;
   bdd.lastJson = await res.json();
 });
 
-When('I attempt to log in with an empty body, blank credentials, or a missing password', async ({ request, bdd }) => {
+When('I attempt to log in with an empty body, blank credentials, or a missing password', async ({ api, bdd }) => {
   (bdd as any).loginAttempts = [];
   for (const data of [{}, { username: '', password: '' }, { username: 'admin' }]) {
-    const res = await request.post('/api/login', { data });
+    const res = await api.post('/api/login', { data });
     (bdd as any).loginAttempts.push({ res, body: await res.json() });
   }
 });
 
-When('I log in with an unknown username and with a wrong password', async ({ request, bdd }) => {
-  (bdd as any).wrongUser = await (await request.post('/api/login', { data: { username: 'nobody', password: 'secret' } })).json();
-  (bdd as any).wrongPass = await (await request.post('/api/login', { data: { username: 'admin', password: 'wrong' } })).json();
+When('I log in with an unknown username and with a wrong password', async ({ api, bdd }) => {
+  (bdd as any).wrongUser = await (await api.post('/api/login', { data: { username: 'nobody', password: 'secret' } })).json();
+  (bdd as any).wrongPass = await (await api.post('/api/login', { data: { username: 'admin', password: 'wrong' } })).json();
 });
 
 Then('both responses are identical', async ({ bdd }) => {
@@ -2423,10 +2423,10 @@ Then('there is no user-enumeration oracle', async ({ bdd }) => {
   expect((bdd as any).wrongUser).toEqual((bdd as any).wrongPass);
 });
 
-When('I attempt 10 rapid logins with wrong passwords', async ({ request, bdd }) => {
+When('I attempt 10 rapid logins with wrong passwords', async ({ api, bdd }) => {
   (bdd as any).loginAttempts = [];
   for (let i = 0; i < 10; i++) {
-    const res = await request.post('/api/login', { data: { username: 'admin', password: `guess-${i}` } });
+    const res = await api.post('/api/login', { data: { username: 'admin', password: `guess-${i}` } });
     (bdd as any).loginAttempts.push({ res });
   }
 });
@@ -2435,10 +2435,10 @@ Then('every attempt returns {int}', async ({ bdd }, status: number) => {
   for (const a of (bdd as any).loginAttempts) expect(a.res.status()).toBe(status);
 });
 
-When('I search products with each SQL injection payload', async ({ request, bdd }) => {
+When('I search products with each SQL injection payload', async ({ api, bdd }) => {
   (bdd as any).searchAttempts = [];
   for (const payload of SQLI_PAYLOADS) {
-    const res = await request.get(`/api/products?q=${encodeURIComponent(payload)}`);
+    const res = await api.get(`/api/products?q=${encodeURIComponent(payload)}`);
     (bdd as any).searchAttempts.push({ res, text: await res.text() });
   }
 });
@@ -2459,21 +2459,21 @@ Then('the body parses as valid JSON', async ({ bdd }) => {
   for (const a of attempts) expect(() => JSON.parse(a.text)).not.toThrow();
 });
 
-When('I search products with each XSS payload', async ({ request, bdd }) => {
+When('I search products with each XSS payload', async ({ api, bdd }) => {
   (bdd as any).searchAttempts = [];
   for (const payload of XSS_PAYLOADS) {
-    const res = await request.get(`/api/products?q=${encodeURIComponent(payload)}`);
+    const res = await api.get(`/api/products?q=${encodeURIComponent(payload)}`);
     (bdd as any).searchAttempts.push({ res, text: await res.text() });
   }
 });
 
 
-When('I request traversal-style URLs against the products and orders APIs', async ({ request, bdd }) => {
+When('I request traversal-style URLs against the products and orders APIs', async ({ api, bdd }) => {
   (bdd as any).traversalBodies = [];
   for (const url of ['/api/products/%2e%2e/%2e%2e/etc/passwd', '/api/products?q=../../etc/passwd', '/api/orders/%2e%2e/%2e%2e/etc/passwd']) {
-    (bdd as any).traversalBodies.push(await (await request.get(url)).text());
+    (bdd as any).traversalBodies.push(await (await api.get(url)).text());
   }
-  const res = await request.get('/api/products?q=..%2f..%2fetc%2fpasswd');
+  const res = await api.get('/api/products?q=..%2f..%2fetc%2fpasswd');
   (bdd as any).traversalJsonRes = res;
 });
 
@@ -2490,9 +2490,9 @@ Then('query-string traversal still returns JSON with status 200', async ({ bdd }
   expect(res.status()).toBe(200);
 });
 
-When('I POST malformed JSON to the products API and to the login API', async ({ request, bdd }) => {
-  const product = await request.post('/api/products', { data: 'not-json{', headers: { 'Content-Type': 'application/json' } });
-  const login = await request.post('/api/login', { data: '{"username":', headers: { 'Content-Type': 'application/json' } });
+When('I POST malformed JSON to the products API and to the login API', async ({ api, bdd }) => {
+  const product = await api.post('/api/products', { data: 'not-json{', headers: { 'Content-Type': 'application/json' } });
+  const login = await api.post('/api/login', { data: '{"username":', headers: { 'Content-Type': 'application/json' } });
   (bdd as any).malformed = [
     { res: product, text: await product.text() },
     { res: login, text: await login.text() }
@@ -2511,11 +2511,11 @@ Then('neither body contains a stack trace or {string}', async ({ bdd }, text: st
   }
 });
 
-When('I call API routes with the wrong HTTP method', async ({ request, bdd }) => {
+When('I call API routes with the wrong HTTP method', async ({ api, bdd }) => {
   (bdd as any).methodAttempts = [];
   const cases: Array<[string, string]> = [['GET', '/api/login'], ['DELETE', '/api/products'], ['PUT', '/api/cart'], ['PATCH', '/api/orders']];
   for (const [method, url] of cases) {
-    const res = await request.fetch(url, { method });
+    const res = await api.fetch(url, { method });
     (bdd as any).methodAttempts.push({ res, text: await res.text() });
   }
 });
@@ -2533,10 +2533,10 @@ Given('my isolated cart', async ({ bdd }) => {
   expect(bdd.cartHeaders['X-Cart-Id']).toBeTruthy();
 });
 
-When('I add prod-1 with quantities -5, 0, 1.5, and 99999', async ({ request, bdd }) => {
+When('I add prod-1 with quantities -5, 0, 1.5, and 99999', async ({ api, bdd }) => {
   (bdd as any).qtyAttempts = [];
   for (const qty of [-5, 0, 1.5, 99999]) {
-    const res = await request.post('/api/cart/items', { headers: bdd.cartHeaders, data: { productId: 'prod-1', qty } });
+    const res = await api.post('/api/cart/items', { headers: bdd.cartHeaders, data: { productId: 'prod-1', qty } });
     (bdd as any).qtyAttempts.push(res.status());
   }
 });
@@ -2545,19 +2545,19 @@ Then('each attempt returns 400', async ({ bdd }) => {
   for (const s of (bdd as any).qtyAttempts) expect(s).toBe(400);
 });
 
-When('I set an existing cart line to -2', async ({ request, bdd }) => {
-  await request.post('/api/cart/items', { headers: bdd.cartHeaders, data: { productId: 'prod-1', qty: 1 } });
-  const res = await request.patch('/api/cart/items/prod-1', { headers: bdd.cartHeaders, data: { qty: -2 } });
+When('I set an existing cart line to -2', async ({ api, bdd }) => {
+  await api.post('/api/cart/items', { headers: bdd.cartHeaders, data: { productId: 'prod-1', qty: 1 } });
+  const res = await api.patch('/api/cart/items/prod-1', { headers: bdd.cartHeaders, data: { qty: -2 } });
   bdd.lastResponse = res;
-  await request.delete('/api/cart/items/prod-1', { headers: bdd.cartHeaders });
+  await api.delete('/api/cart/items/prod-1', { headers: bdd.cartHeaders });
 });
 
-When('I upload a product image with a script-tag filename', async ({ request, bdd }) => {
+When('I upload a product image with a script-tag filename', async ({ api, bdd }) => {
   const boundary = '----pentestboundary';
   const body =
     `------pentestboundary\r\nContent-Disposition: form-data; name="file"; filename="<script>alert(1)</script>.png"\r\n` +
     `Content-Type: image/png\r\n\r\nimagedata\r\n------pentestboundary--\r\n`;
-  const res = await request.post('/api/products/prod-1/image', {
+  const res = await api.post('/api/products/prod-1/image', {
     data: body,
     headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` }
   });
@@ -2571,18 +2571,18 @@ Then('the stored filename contains no {string} or {string}', async ({ bdd }, a: 
   expect(filename).not.toContain(b);
 });
 
-When('I submit an order', async ({ request, bdd }) => {
-  const res = await request.post('/api/orders', {
+When('I submit an order', async ({ api, bdd }) => {
+  const res = await api.post('/api/orders', {
     headers: bdd.cartHeaders,
     data: { name: 'Mallory', email: 'mallory@example.com', address: '1 Evil St', payment: { cardLast4: '0000' } }
   });
   bdd.lastResponse = res;
 });
 
-When('I request the homepage, the payment frame, and the products API', async ({ request, bdd }) => {
+When('I request the homepage, the payment frame, and the products API', async ({ api, bdd }) => {
   (bdd as any).headerChecks = [];
   for (const url of ['/', '/payment-frame', '/api/products']) {
-    (bdd as any).headerChecks.push(await request.get(url));
+    (bdd as any).headerChecks.push(await api.get(url));
   }
 });
 
@@ -2650,16 +2650,16 @@ When('I complete the shipping and payment steps', async ({ page, bdd }) => {
 // security.feature
 // ---------------------------------------------------------------------------
 
-When('I request the DemoMart homepage', async ({ request, bdd }) => {
-  bdd.lastResponse = await request.get('/');
+When('I request the DemoMart homepage', async ({ api, bdd }) => {
+  bdd.lastResponse = await api.get('/');
 });
 
 Then('the response carries X-Content-Type-Options: nosniff', async ({ bdd }) => {
   expect(bdd.lastResponse?.headers()['x-content-type-options']).toBe('nosniff');
 });
 
-Given('a product exists whose name contains an image-tag XSS payload', async ({ request, bdd }) => {
-  const created = await request.post('/api/products', {
+Given('a product exists whose name contains an image-tag XSS payload', async ({ api, bdd }) => {
+  const created = await api.post('/api/products', {
     data: { name: '<img src=x onerror=alert(1)>', price: 1, category: 'test' }
   });
   const product = await created.json();
@@ -2671,7 +2671,7 @@ When('I search the catalog for that product', async ({ page }) => {
   await page.getByTestId('search-input').fill('src=x');
 });
 
-Then('the product name renders as escaped text, never as HTML', async ({ page, request, bdd }) => {
+Then('the product name renders as escaped text, never as HTML', async ({ page, api, bdd }) => {
   const id = (bdd as any).xssProductId;
   try {
     await expect(page.getByTestId(`product-card-${id}`)).toBeVisible();
@@ -2679,7 +2679,7 @@ Then('the product name renders as escaped text, never as HTML', async ({ page, r
     expect(html).not.toContain('<img');
     expect(html).toContain('&lt;img');
   } finally {
-    await request.delete(`/api/products/${id}`);
+    await api.delete(`/api/products/${id}`);
   }
 });
 
@@ -2687,8 +2687,8 @@ Then('the product name renders as escaped text, never as HTML', async ({ page, r
 // upload.feature
 // ---------------------------------------------------------------------------
 
-When('I upload an image for prod-1 with a script-tag filename', async ({ request, bdd }) => {
-  const response = await request.post('/api/products/prod-1/image', {
+When('I upload an image for prod-1 with a script-tag filename', async ({ api, bdd }) => {
+  const response = await api.post('/api/products/prod-1/image', {
     multipart: {
       image: {
         name: '<script>alert(1)</script>.png',

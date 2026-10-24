@@ -11,8 +11,8 @@ import { validateResponse } from '../test-data/schema-validator';
  * its documentation, this is the spec that goes red first.
  */
 test.describe('API schema validation', () => {
-  test('GET /api/products matches the OpenAPI schema', async ({ request }) => {
-    const res = await request.get('/api/products');
+  test('GET /api/products matches the OpenAPI schema', async ({ api }) => {
+    const res = await api.get('/api/products');
     expect(res.status()).toBe(200);
     const result = validateResponse({
       method: 'GET',
@@ -24,10 +24,8 @@ test.describe('API schema validation', () => {
     expect(result.valid).toBe(true);
   });
 
-  test('POST /api/products 201 and 400 payloads match their schemas', async ({
-    request,
-  }) => {
-    const ok = await request.post('/api/products', {
+  test('POST /api/products 201 and 400 payloads match their schemas', async ({ api }) => {
+    const ok = await api.post('/api/products', {
       data: { name: 'Schema Test Widget', price: 9.99, category: 'test' },
     });
     expect(ok.status()).toBe(201);
@@ -41,9 +39,9 @@ test.describe('API schema validation', () => {
 
     // Clean up the created product so the seeded catalog is untouched.
     const created = await ok.json();
-    await request.delete(`/api/products/${created.id}`);
+    await api.delete(`/api/products/${created.id}`);
 
-    const bad = await request.post('/api/products', {
+    const bad = await api.post('/api/products', {
       data: { name: 'Bad Widget', price: -5 },
     });
     expect(bad.status()).toBe(400);
@@ -56,10 +54,8 @@ test.describe('API schema validation', () => {
     expect(badResult.errors, 'schema violations').toEqual([]);
   });
 
-  test('GET /api/products/{id} 200 and 404 payloads match their schemas', async ({
-    request,
-  }) => {
-    const ok = await request.get('/api/products/prod-1');
+  test('GET /api/products/{id} 200 and 404 payloads match their schemas', async ({ api }) => {
+    const ok = await api.get('/api/products/prod-1');
     expect(ok.status()).toBe(200);
     const okResult = validateResponse({
       method: 'GET',
@@ -69,7 +65,7 @@ test.describe('API schema validation', () => {
     });
     expect(okResult.errors, 'schema violations').toEqual([]);
 
-    const missing = await request.get('/api/products/no-such-product');
+    const missing = await api.get('/api/products/no-such-product');
     expect(missing.status()).toBe(404);
     const missingResult = validateResponse({
       method: 'GET',
@@ -80,10 +76,8 @@ test.describe('API schema validation', () => {
     expect(missingResult.errors, 'schema violations').toEqual([]);
   });
 
-  test('POST /api/login 401 payload matches the error schema', async ({
-    request,
-  }) => {
-    const res = await request.post('/api/login', {
+  test('POST /api/login 401 payload matches the error schema', async ({ api }) => {
+    const res = await api.post('/api/login', {
       data: { username: 'admin', password: 'wrong' },
     });
     expect(res.status()).toBe(401);
@@ -96,10 +90,8 @@ test.describe('API schema validation', () => {
     expect(result.errors, 'schema violations').toEqual([]);
   });
 
-  test('unknown /api routes return 404 and the validator fails loudly', async ({
-    request,
-  }) => {
-    const res = await request.get('/api/does-not-exist');
+  test('unknown /api routes return 404 and the validator fails loudly', async ({ api }) => {
+    const res = await api.get('/api/does-not-exist');
     expect(res.status()).toBe(404);
     // The API returns a proper 404, but the path is not in the OpenAPI doc,
     // so the validator must fail loudly instead of passing silently.
