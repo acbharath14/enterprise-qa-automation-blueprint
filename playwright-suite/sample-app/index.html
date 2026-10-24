@@ -576,9 +576,10 @@
         }
         connectedCallback() {
           const value = parseFloat(this.getAttribute('value') || '0');
-          const full = Math.round(value);
+          const full = Math.floor(value);
+          const half = value - full >= 0.5 ? 1 : 0;
           this.shadowRoot.innerHTML =
-            '<span aria-label="Rated ' + value + ' out of 5">' + '★'.repeat(full) + '☆'.repeat(5 - full) + '</span>';
+            '<span aria-label="Rated ' + value + ' out of 5">' + '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(5 - full - half) + '</span>';
         }
       }
       customElements.define('star-rating', StarRating);

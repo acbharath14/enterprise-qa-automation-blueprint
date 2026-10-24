@@ -309,7 +309,15 @@ Then('each full page shows exactly 6 product cards', async ({ bdd }) => {
 Then(
   /^the (\S+) card shows (name|price|category|rating) "([^"]+)"$/,
   async ({ page }, id: string, field: string, expected: string) => {
-    await expect(new CatalogPage(page).productCard(id)).toContainText(expected);
+    if (field === 'rating') {
+      const value = parseFloat(expected);
+      const full = Math.floor(value);
+      const half = value - full >= 0.5 ? 1 : 0;
+      const stars = '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(5 - full - half);
+      await expect(new CatalogPage(page).productCard(id)).toContainText(stars);
+    } else {
+      await expect(new CatalogPage(page).productCard(id)).toContainText(expected);
+    }
   }
 );
 
