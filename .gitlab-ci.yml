@@ -397,10 +397,11 @@ notify:
 # =============================================================================
 # 6. newman-health — hourly API health check (mirrors GitHub `newman`).
 #    Runs ONLY from the hourly Newman pipeline schedule: Build ->
-#    Pipeline schedules, cron `17 * * * *`, branch main, with schedule
-#    variable NEWMAN_ONLY=true. The other 5 jobs carry a matching
+#    Pipeline schedules, cron `17 9-17 * * 1-5` (weekdays 9am-5pm ET),
+#    branch main, with schedule input newman_only=true. The other 5 jobs
+#    carry a matching
 #    NEWMAN_ONLY exclusion rule, so that schedule runs this job alone;
-#    the weekly regression schedule (no variable) runs the full suite.
+#    the weekly regression schedule (no input) runs the full suite.
 # =============================================================================
 newman-health:
   extends: .imac-runner
@@ -429,46 +430,65 @@ newman-health:
     - |
       if newman run newman/health-check.postman_collection.json \
         -e newman/local.postman_environment.json \
-        -r htmlextra \
+        -r htmlextra,json \
         --reporter-htmlextra-export newman-report.html \
-        --reporter-htmlextra-title "DemoMart API Health Check"; then
+        --reporter-htmlextra-title "DemoMart API Health Check" \
+        --reporter-json-export newman-summary.json; then
         echo 0 > /tmp/newman-exit-code
       else
         echo 1 > /tmp/newman-exit-code
       fi
-    # Failure alert via Resend (mirrors the GitHub workflow email).
+    # Report email via Resend on EVERY run (pass and fail) — the HTML
+    # report is attached, so the inbox carries the report, not just a link.
     - |
-      if [ "$(cat /tmp/newman-exit-code)" = "1" ]; then
-        node <<'NODEEOF'
-        const https = require('https');
-        const runUrl = process.env.CI_PIPELINE_URL;
-        const body = {
-          from: 'QA Automation <onboarding@resend.dev>',
-          to: [process.env.ALERT_TO],
-          subject: `ALERT: Newman API health check FAILED (pipeline #${process.env.CI_PIPELINE_ID})`,
-          html: `<p>The hourly Newman API health check failed.</p><p><a href="${runUrl}">View pipeline</a></p>`,
-        };
-        const data = JSON.stringify(body);
-        const req = https.request('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
-            'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(data),
-          },
-        }, (res) => {
-          let out = '';
-          res.on('data', (c) => out += c);
-          res.on('end', () => {
-            console.log('Resend status:', res.statusCode, out);
-            if (res.statusCode >= 300) process.exit(1);
-          });
+      node <<'NODEEOF'
+      const https = require('https');
+      const fs = require('fs');
+      const code = fs.readFileSync('/tmp/newman-exit-code', 'utf8').trim();
+      const passed = code === '0';
+      let stats = '';
+      try {
+        const summary = JSON.parse(fs.readFileSync('newman-summary.json', 'utf8'));
+        const s = summary.run.stats;
+        stats = `<p>Requests: ${s.requests.total} total, ${s.requests.failed} failed. ` +
+          `Assertions: ${s.assertions.total} total, ${s.assertions.failed} failed.</p>`;
+      } catch (e) {
+        stats = '<p>Summary counts unavailable (newman-summary.json missing).</p>';
+      }
+      let attachments = [];
+      try {
+        attachments.push({
+          filename: 'newman-report.html',
+          content: fs.readFileSync('newman-report.html').toString('base64'),
         });
-        req.on('error', (e) => { console.error(e.message); process.exit(1); });
-        req.write(data);
-        req.end();
+      } catch (e) { console.log('Report attachment skipped:', e.message); }
+      const body = {
+        from: 'QA Automation <onboarding@resend.dev>',
+        to: [process.env.ALERT_TO],
+        subject: `Newman API health check ${passed ? 'PASSED' : 'FAILED'} (pipeline #${process.env.CI_PIPELINE_ID})`,
+        html: `<p>The hourly Newman API health check ${passed ? 'passed' : 'failed'}.</p>${stats}` +
+          `<p><a href="${process.env.CI_PIPELINE_URL}">View pipeline</a> | ` +
+          `<a href="${process.env.CI_JOB_URL}">View job</a></p>` +
+          `<p>Full HTML report attached (also in the job artifacts for 14 days).</p>`,
+        attachments,
+      };
+      const data = JSON.stringify(body);
+      const req = https.request('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + process.env.RESEND_API_KEY,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(data),
+        },
+      }, (res) => {
+        let out = '';
+        res.on('data', (c) => out += c);
+        res.on('end', () => console.log('Resend status:', res.statusCode, out));
+      });
+      req.on('error', (e) => console.error('Resend error (job result unchanged):', e.message));
+      req.write(data);
+      req.end();
       NODEEOF
-      fi
     - exit $(cat /tmp/newman-exit-code)
   artifacts:
     when: always
