@@ -1,5 +1,7 @@
 {
   "devDependencies": {
     "playwright-bdd": "^9.2.1"
-  }
+  },
+  "name": "enterprise-qa-automation-blueprint",
+  "private": true
 }

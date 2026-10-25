@@ -5,6 +5,10 @@ allure-results/
 allure-report/
 coverage/
 .env
+.env.*
+*.log
+dist/
+*.tsbuildinfo
 .DS_Store
 Thumbs.db
 .idea/
