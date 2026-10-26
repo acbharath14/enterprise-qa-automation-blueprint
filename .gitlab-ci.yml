@@ -438,24 +438,64 @@ newman-health:
       else
         echo 1 > /tmp/newman-exit-code
       fi
-    # Report email via Resend on EVERY run (pass and fail) — the full HTML
-    # report is embedded in the email body AND attached (the attachment stays
-    # for sharing; email clients strip the report's JavaScript, so its
-    # expand/collapse controls only work in the attachment).
+    # Report email via Resend on EVERY run (pass and fail) — the body carries
+    # an email-native summary (inline styles + tables only, so it renders in
+    # every mail client including Outlook desktop); the full Newman HTML
+    # report stays attached for detail and sharing (a full report pasted into
+    # a body loses its styling — clients strip <style>/<script> and Gmail
+    # clips bodies over ~102KB).
     - |
       node <<'NODEEOF'
       const https = require('https');
       const fs = require('fs');
       const code = fs.readFileSync('/tmp/newman-exit-code', 'utf8').trim();
       const passed = code === '0';
-      let stats = '';
+      // Email-native summary: inline styles + tables ONLY. No <style> block,
+      // no <script>, no external references — the subset every mail client
+      // renders, including Outlook desktop. The full Newman report is NOT
+      // pasted into the body anymore (clients strip its styling); it stays
+      // attached, where it opens in a browser with full CSS/JS.
+      const esc = (s) => String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+      const passedColor = '#1a7f37';
+      const failedColor = '#cf222e';
+      const cellStyle = 'padding: 6px 8px; border: 1px solid #d0d7de;';
+      const headStyle = cellStyle + ' background-color: #f6f8fa; text-align: left;';
+      let countsHtml = '';
+      let rowsHtml = '';
       try {
         const summary = JSON.parse(fs.readFileSync('newman-summary.json', 'utf8'));
         const s = summary.run.stats;
-        stats = `<p>Requests: ${s.requests.total} total, ${s.requests.failed} failed. ` +
+        countsHtml = `<p>Requests: ${s.requests.total} total, ${s.requests.failed} failed. ` +
           `Assertions: ${s.assertions.total} total, ${s.assertions.failed} failed.</p>`;
+        const rows = (summary.run.executions || []).map((ex) => {
+          const name = (ex.item && ex.item.name) || 'Unnamed request';
+          const code = (ex.response && ex.response.code) || '—';
+          const failed = (ex.assertions || []).filter((a) => !a.skipped && a.error != null);
+          const result = failed.length > 0 ? 'FAIL' : 'PASS';
+          const resultColor = failed.length > 0 ? failedColor : passedColor;
+          const failedText = failed.map((a) => {
+            const msg = typeof a.error === 'string' ? a.error : (a.error && a.error.message) || 'failed';
+            return `${a.assertion}: ${msg}`;
+          }).join('; ').slice(0, 300);
+          return `<tr><td style="${cellStyle}">${esc(name)}</td>` +
+            `<td style="${cellStyle}">${esc(code)}</td>` +
+            `<td style="${cellStyle} font-weight: bold; color: ${resultColor};">${result}</td>` +
+            `<td style="${cellStyle}">${failed.length > 0 ? esc(failedText) : '—'}</td></tr>`;
+        }).join('');
+        if (rows) {
+          rowsHtml = `<table cellpadding="0" cellspacing="0" style="border-collapse: collapse; font-size: 14px;">` +
+            `<tr><th style="${headStyle}">Request</th>` +
+            `<th style="${headStyle}">HTTP</th>` +
+            `<th style="${headStyle}">Result</th>` +
+            `<th style="${headStyle}">Failed checks</th></tr>` +
+            rows + `</table>`;
+        }
       } catch (e) {
-        stats = '<p>Summary counts unavailable (newman-summary.json missing).</p>';
+        countsHtml = '<p>Summary counts unavailable (newman-summary.json missing).</p>';
       }
       let reportHtml = null;
       try {
@@ -468,18 +508,23 @@ newman-health:
           content: Buffer.from(reportHtml).toString('base64'),
         });
       }
-      const summaryHtml = `<p>The hourly Newman API health check ${passed ? 'passed' : 'failed'}.</p>${stats}` +
+      const emailHtml = `<div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #24292f;">` +
+        `<p style="font-size: 18px; font-weight: bold; color: ${passed ? passedColor : failedColor};">Newman API health check ${passed ? 'PASSED' : 'FAILED'}</p>` +
+        countsHtml + rowsHtml +
         `<p><a href="${process.env.CI_PIPELINE_URL}">View pipeline</a> | ` +
         `<a href="${process.env.CI_JOB_URL}">View job</a></p>` +
-        `<p>Full HTML report attached (also in the job artifacts for 14 days).</p>`;
+        (reportHtml !== null
+          ? '<p>Full HTML report attached (also in the job artifacts for 14 days).</p>'
+          : '<p>Full HTML report was not generated for this run.</p>') +
+        `</div>`;
       const body = {
         from: 'QA Automation <onboarding@resend.dev>',
         to: [process.env.ALERT_TO],
         subject: `Newman API health check ${passed ? 'PASSED' : 'FAILED'} (pipeline #${process.env.CI_PIPELINE_ID})`,
-        html: reportHtml !== null ? reportHtml : summaryHtml,
+        html: emailHtml,
         text: `The hourly Newman API health check ${passed ? 'passed' : 'failed'}. ` +
           `Pipeline: ${process.env.CI_PIPELINE_URL} Job: ${process.env.CI_JOB_URL} ` +
-          `(Full HTML report attached.)`,
+          (reportHtml !== null ? '(Full HTML report attached.)' : '(No report file to attach.)'),
         attachments,
       };
       const data = JSON.stringify(body);
