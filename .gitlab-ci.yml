@@ -317,6 +317,8 @@ pages:
     # allure-commandline is a Java app; the Playwright image ships no JRE.
     - apt-get update -qq && apt-get install -y -qq default-jre-headless
     - npm install -g allure-commandline
+    - printf 'Pipeline=%s\nCommit=%s\n' "$CI_PIPELINE_URL" "$CI_COMMIT_SHA" > allure-results/environment.properties
+    - printf 'Pipeline=%s\nCommit=%s\n' "$CI_PIPELINE_URL" "$CI_COMMIT_SHA" > showcase-allure-results/environment.properties
     - allure generate allure-results showcase-allure-results -o public/allure --clean
     - mkdir -p public/playwright-report-showcase
     - cp -r showcase-playwright-report/. public/playwright-report-showcase/
@@ -356,33 +358,9 @@ notify:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: always
   script:
-    # Step 1: build the summary. GitHub used GITHUB_OUTPUT to pass counts
-    # between steps; here we write a dotenv file and source it in the same job.
-    - |
-      node <<'NODEEOF'
-      const fs = require('fs');
-      const path = require('path');
-      // Deduplicate: group by testCaseId (stable across retries), keep the LAST result
-      // (Allure writes one file per attempt; the final attempt is the true outcome).
-      const byTest = new Map();
-      const files = fs.readdirSync('notify-results')
-        .filter(f => f.endsWith('-result.json'))
-        .map(f => ({ f, mtime: fs.statSync(path.join('notify-results', f)).mtimeMs }))
-        .sort((a, b) => a.mtime - b.mtime);
-      for (const { f } of files) {
-        const r = JSON.parse(fs.readFileSync(path.join('notify-results', f), 'utf8'));
-        const key = r.testCaseId || r.historyId || (r.fullName + '|' + r.name);
-        byTest.set(key, r.status);
-      }
-      const counts = { passed: 0, failed: 0, skipped: 0, broken: 0 };
-      for (const status of byTest.values()) {
-        if (counts[status] !== undefined) counts[status]++;
-      }
-      const total = Object.values(counts).reduce((a, b) => a + b, 0);
-      const env = { TOTAL: total, PASSED: counts.passed, FAILED: counts.failed, SKIPPED: counts.skipped, BROKEN: counts.broken };
-      fs.writeFileSync('summary.env', Object.entries(env).map(([k, v]) => k + '=' + v).join('\n') + '\n');
-      console.log('Summary: ' + JSON.stringify({ total, ...counts }));
-      NODEEOF
+    # Step 1: single source of truth - same counter the gate and the
+    # GitHub email use. Reads the exact merged set the report generated from.
+    - node playwright-suite/scripts/count-results.mjs notify-results --exclude-showcase --dotenv summary.env
     # Step 2: send via Resend.
     - set -a; . ./summary.env; set +a
     - |
@@ -411,7 +389,7 @@ notify:
         subject: `E2E summary: ${summary.passed} passed, ${summary.failed} failed, ${summary.skipped} skipped (pipeline #${process.env.CI_PIPELINE_ID})`,
         html: `
           <h2>Playwright E2E — execution summary</h2>
-          <p>Repo: ${process.env.CI_PROJECT_PATH} · Branch: main · <a href="${runUrl}">pipeline #${process.env.CI_PIPELINE_ID}</a></p>
+          <p>Repo: ${process.env.CI_PROJECT_PATH} · Branch: main · <a href="${runUrl}">pipeline #${process.env.CI_PIPELINE_ID}</a> · Commit: ${process.env.CI_COMMIT_SHORT_SHA}</p>
           <div style="width:100%;max-width:500px;background:#eee;border-radius:4px;overflow:hidden;white-space:nowrap;font-size:0;">${bar(summary.passed, '#22c55e')}${bar(summary.failed, '#ef4444')}${bar(summary.skipped, '#f59e0b')}${bar(summary.broken, '#a855f7')}</div>
           <ul>
             <li>Total: ${summary.total}</li>
@@ -419,6 +397,7 @@ notify:
             <li><span style="color:#ef4444;">■</span> Failed: ${summary.failed} (${pct(summary.failed)}%)</li>
             <li><span style="color:#f59e0b;">■</span> Skipped: ${summary.skipped} (${pct(summary.skipped)}%)</li>
             <li><span style="color:#a855f7;">■</span> Broken: ${summary.broken}</li>
+            <li>Showcase (intentional): ${process.env.SHOWCASE_FAILED}/${process.env.SHOWCASE_TOTAL} failed — demonstration only, excluded from totals</li>
           </ul>
           <p><a href="${pagesUrl}/allure/">Allure report</a> ·
           <a href="${pagesUrl}/playwright-report-showcase/">Failure showcase (HTML)</a> ·
