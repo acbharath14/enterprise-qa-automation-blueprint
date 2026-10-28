@@ -250,9 +250,9 @@ jobs:
 
   notify:
     timeout-minutes: 10
-    # Email execution summary after every main run (push, schedule, manual).
+    # Email execution summary after every run (push, PR, schedule, manual).
     needs: [test, publish-report]
-    if: always() && github.ref == 'refs/heads/main'
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -312,7 +312,7 @@ jobs:
             subject: \`E2E summary: \${summary.passed} passed, \${summary.failed} failed, \${summary.skipped} skipped (run #${{ github.run_number }})\`,
             html: \`
               <h2>Playwright E2E — execution summary</h2>
-              <p>Repo: ${{ github.repository }} · Branch: main · <a href=\"\${runUrl}\">workflow run #${{ github.run_number }}</a></p>
+              <p>Repo: ${{ github.repository }} · Branch: ${{ github.ref_name }} · <a href=\"\${runUrl}\">workflow run #${{ github.run_number }}</a></p>
               <div style=\"width:100%;max-width:500px;background:#eee;border-radius:4px;overflow:hidden;white-space:nowrap;font-size:0;\">\${bar(summary.passed, '#22c55e')}\${bar(summary.failed, '#ef4444')}\${bar(summary.skipped, '#f59e0b')}\${bar(summary.broken, '#a855f7')}</div>
               <ul>
                 <li>Total: \${summary.total}</li>
