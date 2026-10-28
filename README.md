@@ -242,9 +242,9 @@ npx playwright test -c playwright.bdd.config.ts  # run the generated suite
   hand — edit the `.feature` files and re-run `bddgen`.
 - The BDD config inherits projects, webServer, reporters, and globalSetup
   from `playwright.config.ts`; only the test directory differs.
-- CI runs this suite as a separate, non-gating job
-  (`.github/workflows/e2e-bdd.yml`, `continue-on-error: true`; same on
-  GitLab) while it burns down — a red BDD run does not block a PR.
+- CI runs this suite as a separate, non-gating job on GitHub
+  (`.github/workflows/e2e-bdd.yml`, `continue-on-error: true`); it is
+  no longer run on GitLab. A red BDD run does not block a PR.
 
 ## Make it yours
 
@@ -312,7 +312,7 @@ Every push/PR touching `playwright-suite/` runs the suite split across 2 shards 
 
 ### GitLab CI on a self-hosted runner
 
-The same pipeline runs on GitLab CI via `.gitlab-ci.yml` — a port of the GitHub workflow with the same core jobs: sharded Playwright tests, the GO/NO-GO quality gate, Pact contract tests, report publishing, and the Resend email summary (plus Newman-health and a non-gating BDD job).
+The same pipeline runs on GitLab CI via `.gitlab-ci.yml` — a port of the GitHub workflow with the same core jobs: sharded Playwright tests, the GO/NO-GO quality gate, Pact contract tests, report publishing, and the Resend email summary (plus Newman-health).
 
 GitHub remains the source of truth. The `mirror-to-gitlab.yml` workflow pushes `main` and tags to the GitLab project on every push — a push mirror, because GitLab pull mirroring requires a Premium tier. Jobs run on a self-hosted GitLab Runner (Docker executor, tagged `imac,docker`); the Playwright Docker image ships the browsers, so there is no install step.
 
