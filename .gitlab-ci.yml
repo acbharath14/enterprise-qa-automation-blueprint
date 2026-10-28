@@ -44,6 +44,7 @@ spec:
 # =============================================================================
 
 stages:
+  - build
   - test
   - verify
   - report
@@ -71,6 +72,53 @@ variables:
   NEWMAN_ONLY: "$[[ inputs.newman_only ]]"
 
 # =============================================================================
+# build — visible app-build gate, no deploy (local server only)
+# Proves `npm ci` succeeds and the app boots and serves. The server started
+# here lives and dies inside this job: GitLab jobs run in separate containers,
+# so this cannot hand a running server to `test`. The test job still starts
+# its own server via Playwright's webServer block, unchanged. This job exists
+# so the pipeline graph shows the build before the suite validates it.
+# =============================================================================
+build:
+  extends: [.imac-runner, .npm-cache]
+  stage: build
+  image: node:20
+  timeout: 10m
+  interruptible: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $NEWMAN_ONLY == "true"
+      when: never # Newman-only schedules skip the regression jobs
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - cd playwright-suite
+    - npm ci
+    # Start the app exactly as Playwright's webServer does, then prove it
+    # boots and serves before any test job runs.
+    - node server.mjs &
+    - SERVER_PID=$!
+    - |
+      node <<'NODEEOF'
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+      const url = 'http://127.0.0.1:4173/api/products';
+      (async () => {
+        for (let i = 1; i <= 30; i++) {
+          try {
+            const res = await fetch(url);
+            if (res.ok) {
+              console.log('app healthy: GET /api/products -> ' + res.status);
+              process.exit(0);
+            }
+          } catch (e) { /* not up yet */ }
+          await sleep(1000);
+        }
+        console.error('app did not become healthy within 30s');
+        process.exit(1);
+      })();
+      NODEEOF
+    - kill $SERVER_PID
+
+# =============================================================================
 # 1. test — Playwright suite, 2 shards (mirrors GitHub `strategy.matrix`)
 # =============================================================================
 test:
@@ -83,6 +131,9 @@ test:
   parallel:
     matrix:
       - SHARD: ["1", "2"]
+  needs:
+    - job: build
+      artifacts: false
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $NEWMAN_ONLY == "true"
       when: never # Newman-only schedules skip the regression jobs
