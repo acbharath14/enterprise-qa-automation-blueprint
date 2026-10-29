@@ -2,6 +2,7 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { createStore } from './db/store.mjs';
 
 const port = Number(process.env.PORT || 4173);
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
@@ -35,26 +36,20 @@ function round2(n) {
 }
 
 // ---------------------------------------------------------------------------
-// Demo store data. Deterministic seed; the API mutates it in memory.
+// Demo store data lives behind the store interface (db/store.mjs): Postgres
+// when DATABASE_URL is set, the original in-memory implementation otherwise.
+// Initializing the store is the boot sequence for the Postgres path (connect,
+// apply schema, seed); with DATABASE_URL unset it is instant and this server
+// behaves exactly as it did before the store existed.
 // ---------------------------------------------------------------------------
 
-const seedProducts = [
-  { id: 'prod-1', name: 'Aurora Wireless Headphones', category: 'electronics', price: 129.99, rating: 4.5, stock: 24, description: 'Over-ear Bluetooth headphones with active noise cancellation and 30-hour battery life.' },
-  { id: 'prod-2', name: 'Beacon 4K Monitor', category: 'electronics', price: 349.0, rating: 4.7, stock: 12, description: '27-inch 4K IPS display with HDR support and height-adjustable stand.' },
-  { id: 'prod-3', name: 'Cipher Mechanical Keyboard', category: 'electronics', price: 89.95, rating: 4.3, stock: 40, description: 'Hot-swappable mechanical keyboard with tactile switches and per-key RGB.' },
-  { id: 'prod-4', name: 'Dynamo Running Shoes', category: 'apparel', price: 119.5, rating: 4.6, stock: 30, description: 'Lightweight road-running shoes with responsive foam cushioning.' },
-  { id: 'prod-5', name: 'Aurora Denim Jacket', category: 'apparel', price: 79.0, rating: 4.2, stock: 18, description: 'Classic-fit denim jacket in washed indigo with brass buttons.' },
-  { id: 'prod-6', name: 'Beacon Cotton T-Shirt', category: 'apparel', price: 24.99, rating: 4.0, stock: 100, description: 'Everyday crew-neck tee in 100% combed cotton, pre-shrunk.' },
-  { id: 'prod-7', name: 'Cipher Ceramic Pour-Over Set', category: 'home', price: 45.0, rating: 4.8, stock: 15, description: 'Hand-glazed ceramic dripper, carafe, and walnut collar for slow mornings.' },
-  { id: 'prod-8', name: 'Dynamo Bamboo Cutting Board', category: 'home', price: 32.5, rating: 4.4, stock: 50, description: 'Reversible bamboo cutting board with juice groove and non-slip feet.' },
-  { id: 'prod-9', name: 'Aurora LED Desk Lamp', category: 'home', price: 59.99, rating: 4.1, stock: 22, description: 'Dimmable LED desk lamp with five color temperatures and USB charging port.' },
-  { id: 'prod-10', name: 'Beacon Yoga Mat', category: 'sports', price: 39.95, rating: 4.6, stock: 35, description: '6mm non-slip yoga mat with alignment lines and carry strap.' },
-  { id: 'prod-11', name: 'Cipher Insulated Water Bottle', category: 'sports', price: 29.0, rating: 4.7, stock: 80, description: '750ml vacuum-insulated bottle, keeps drinks cold 24 hours.' },
-  { id: 'prod-12', name: 'Dynamo Resistance Band Set', category: 'sports', price: 49.99, rating: 4.3, stock: 28, description: 'Five stackable resistance bands with handles, door anchor, and carry bag.' },
-];
-
-let products = seedProducts.map((p) => ({ ...p }));
-let nextProductId = 13;
+let store;
+try {
+  store = await createStore();
+} catch (err) {
+  console.error(`[db] ${err.message}`);
+  process.exit(1);
+}
 // Carts are keyed by the X-Cart-Id request header (each browser context /
 // test sends its own id, so parallel tests never share cart state). Requests
 // without the header share the 'demo' cart, preserving the hand-driven UX.
@@ -71,13 +66,6 @@ function getCart(req) {
 function setCart(req, lines) {
   carts.set(cartIdOf(req), lines);
 }
-let orders = [];
-let nextOrderId = 1;
-
-function findProduct(id) {
-  return products.find((p) => p.id === id);
-}
-
 function productValidationError(body, { partial = false } = {}) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return 'Request body must be a JSON object';
@@ -111,13 +99,12 @@ function productValidationError(body, { partial = false } = {}) {
   return null;
 }
 
-function cartView(cart) {
-  const items = cart
-    .filter((line) => findProduct(line.productId))
-    .map((line) => {
-      const p = findProduct(line.productId);
-      return { productId: line.productId, qty: line.qty, name: p.name, price: p.price };
-    });
+async function cartView(cart) {
+  const items = [];
+  for (const line of cart) {
+    const p = await store.getProduct(line.productId);
+    if (p) items.push({ productId: line.productId, qty: line.qty, name: p.name, price: p.price });
+  }
   const subtotal = round2(items.reduce((sum, i) => sum + i.price * i.qty, 0));
   return { items, subtotal };
 }
@@ -129,7 +116,7 @@ const server = http.createServer(async (req, res) => {
   // ---- Products -----------------------------------------------------------
   if (url === '/api/products' && method === 'GET') {
     const params = new URL(req.url, 'http://localhost').searchParams;
-    let list = [...products];
+    let list = await store.listProducts();
     const q = params.get('q');
     if (q) list = list.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()));
     const category = params.get('category');
@@ -148,37 +135,35 @@ const server = http.createServer(async (req, res) => {
       json(res, 400, { error: err });
       return;
     }
-    const product = {
-      id: `prod-${nextProductId++}`,
+    const product = await store.createProduct({
       name: body.name.trim(),
       category: body.category.trim(),
       price: body.price,
       rating: body.rating ?? 0,
       stock: body.stock ?? 0,
       description: body.description ?? '',
-    };
-    products.push(product);
+    });
     json(res, 201, product);
     return;
   }
   const productMatch = /^\/api\/products\/([^/]+)$/.exec(url);
   if (productMatch) {
     const id = decodeURIComponent(productMatch[1]);
-    const idx = products.findIndex((p) => p.id === id);
+    const current = await store.getProduct(id);
     if (method === 'GET') {
-      if (idx === -1) {
+      if (!current) {
         json(res, 404, { error: 'Product not found' });
         return;
       }
-      json(res, 200, products[idx]);
+      json(res, 200, current);
       return;
     }
     if (method === 'DELETE') {
-      if (idx === -1) {
+      if (!current) {
         json(res, 404, { error: 'Product not found' });
         return;
       }
-      products.splice(idx, 1);
+      await store.deleteProduct(id);
       // Drop the deleted product's lines from every cart.
       for (const [cartId, lines] of carts) {
         carts.set(
@@ -191,7 +176,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     if (method === 'PUT' || method === 'PATCH') {
-      if (idx === -1) {
+      if (!current) {
         json(res, 404, { error: 'Product not found' });
         return;
       }
@@ -201,9 +186,9 @@ const server = http.createServer(async (req, res) => {
         json(res, 400, { error: err });
         return;
       }
-      const current = products[idx];
+      let saved;
       if (method === 'PUT') {
-        products[idx] = {
+        saved = await store.saveProduct({
           id: current.id,
           name: body.name.trim(),
           category: body.category.trim(),
@@ -211,31 +196,31 @@ const server = http.createServer(async (req, res) => {
           rating: body.rating ?? 0,
           stock: body.stock ?? 0,
           description: body.description ?? '',
-        };
+        });
       } else {
         const next = { ...current, ...body, id: current.id };
         if (body.name) next.name = body.name.trim();
         if (body.category) next.category = body.category.trim();
-        products[idx] = next;
+        saved = await store.saveProduct(next);
       }
-      json(res, 200, products[idx]);
+      json(res, 200, saved);
       return;
     }
   }
 
   // ---- Cart (single demo cart) ---------------------------------------------
   if (url === '/api/cart' && method === 'GET') {
-    json(res, 200, cartView(getCart(req)));
+    json(res, 200, await cartView(getCart(req)));
     return;
   }
   if (url === '/api/cart' && method === 'DELETE') {
     setCart(req, []);
-    json(res, 200, cartView(getCart(req)));
+    json(res, 200, await cartView(getCart(req)));
     return;
   }
   if (url === '/api/cart/items' && method === 'POST') {
     const body = await readJsonBody(req);
-    const product = body && findProduct(body.productId);
+    const product = body && (await store.getProduct(body.productId));
     if (!product) {
       json(res, 404, { error: 'Product not found' });
       return;
@@ -254,7 +239,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (line) line.qty = newQty;
     else cart.push({ productId: product.id, qty });
-    json(res, 200, cartView(cart));
+    json(res, 200, await cartView(cart));
     return;
   }
   const cartItemMatch = /^\/api\/cart\/items\/([^/]+)$/.exec(url);
@@ -268,7 +253,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (method === 'DELETE') {
       setCart(req, cart.filter((l) => l.productId !== pid));
-      json(res, 200, cartView(getCart(req)));
+      json(res, 200, await cartView(getCart(req)));
       return;
     }
     if (method === 'PATCH') {
@@ -278,14 +263,14 @@ const server = http.createServer(async (req, res) => {
         json(res, 400, { error: 'qty must be a non-negative integer' });
         return;
       }
-      const product = findProduct(pid);
+      const product = await store.getProduct(pid);
       if (qty > product.stock) {
         json(res, 400, { error: `Only ${product.stock} in stock` });
         return;
       }
       if (qty === 0) setCart(req, cart.filter((l) => l.productId !== pid));
       else line.qty = qty;
-      json(res, 200, cartView(getCart(req)));
+      json(res, 200, await cartView(getCart(req)));
       return;
     }
   }
@@ -314,25 +299,23 @@ const server = http.createServer(async (req, res) => {
       json(res, 400, { error: 'payment.cardLast4 must be 4 digits' });
       return;
     }
-    const view = cartView(getCart(req));
+    const view = await cartView(getCart(req));
     if (view.items.length === 0) {
       json(res, 422, { error: 'Cart is empty' });
       return;
     }
-    const order = {
-      id: `ord-${nextOrderId++}`,
+    const order = await store.createOrder({
+      customerName: body.name,
       items: view.items,
       total: view.subtotal,
-      status: 'confirmed',
-    };
-    orders.push(order);
+    });
     setCart(req, []);
     json(res, 201, order);
     return;
   }
   const receiptMatch = /^\/api\/orders\/([^/]+)\/receipt$/.exec(url);
   if (receiptMatch && method === 'GET') {
-    const order = orders.find((o) => o.id === decodeURIComponent(receiptMatch[1]));
+    const order = await store.getOrder(decodeURIComponent(receiptMatch[1]));
     if (!order) {
       json(res, 404, { error: 'Order not found' });
       return;
@@ -358,7 +341,7 @@ const server = http.createServer(async (req, res) => {
   }
   const orderMatch = /^\/api\/orders\/([^/]+)$/.exec(url);
   if (orderMatch && method === 'GET') {
-    const order = orders.find((o) => o.id === decodeURIComponent(orderMatch[1]));
+    const order = await store.getOrder(decodeURIComponent(orderMatch[1]));
     if (!order) {
       json(res, 404, { error: 'Order not found' });
       return;
@@ -372,7 +355,7 @@ const server = http.createServer(async (req, res) => {
   // body and sanitized, mirroring the old sample app's upload endpoint.
   const imageMatch = /^\/api\/products\/([^/]+)\/image$/.exec(url);
   if (imageMatch && method === 'POST') {
-    const product = findProduct(decodeURIComponent(imageMatch[1]));
+    const product = await store.getProduct(decodeURIComponent(imageMatch[1]));
     if (!product) {
       json(res, 404, { error: 'Product not found' });
       return;
@@ -383,6 +366,7 @@ const server = http.createServer(async (req, res) => {
     // would otherwise be an XSS vector.
     const filename = match ? match[1].replace(/[<>\"']/g, '') : 'unknown';
     product.image = filename;
+    await store.saveProduct(product);
     json(res, 200, { ok: true, filename });
     return;
   }

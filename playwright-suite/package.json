@@ -22,7 +22,12 @@
     "test:headed": "playwright test --headed --project=chromium",
     "test:mobile": "playwright test --grep @mobile",
     "test:smoke": "playwright test --grep @smoke",
-    "baseline:update": "node scripts/update-baseline.mjs"
+    "baseline:update": "node scripts/update-baseline.mjs",
+    "db:up": "docker compose -f ../docker-compose.yml up -d",
+    "db:down": "docker compose -f ../docker-compose.yml down"
   },
-  "version": "0.2.0"
+  "version": "0.2.0",
+  "dependencies": {
+    "pg": "^8.23.1"
+  }
 }
