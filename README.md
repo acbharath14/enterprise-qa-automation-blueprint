@@ -58,8 +58,10 @@ flowchart LR
 │   │                                    # OpenAPI document (local $refs, {param} path templates)
 │   ├── playwright.config.ts         # projects (chromium/firefox/webkit/mobile/dark/tz/authed + auth
 │   │                                # setup), retries, reporters, trace+video-on-failure, auto-started webServer
-│   ├── playwright.bdd.config.ts     # BDD-only config: inherits playwright.config.ts and points
-│   │                                # testDir at the generated BDD specs (see "BDD (Gherkin) suite")
+│   ├── playwright.bdd.config.ts     # BDD config: features/ -> .features-gen/ (see "BDD (Gherkin) suite" below)
+│   ├── playwright.contract.config.ts # Pact contract-test config (see test:contract)
+│   ├── features/                    # Gherkin suite: *.feature + steps/ (see "BDD (Gherkin) suite" below)
+│   ├── contract/                    # Pact specs + recorded pacts
 │   └── package.json                 # scripts: test, test:smoke, test:a11y, test:headed, report,
 │                                    # baseline:update
 ├── docs/
@@ -245,17 +247,24 @@ npm run baseline:update
 
 The first command re-captures the PNG; the second re-encodes it into `test-data/visual-baseline.b64.partN`, which is the file actually committed. The PNG itself is materialized from that text by `global-setup.ts` before every run, so a fresh clone needs no manual steps. Review the new screenshot before committing — a baseline update should be a deliberate, reviewed change.
 
-## BDD (Gherkin) suite
+### BDD (Gherkin) suite
 
-The same behaviors also exist as Gherkin scenarios in `playwright-suite/features/` (43 feature files, steps in `features/steps/`), executed with playwright-bdd. The BDD suite has its **own config** — `playwright.bdd.config.ts` inherits everything from `playwright.config.ts` and only changes where tests come from, so the two suites cannot drift in setup, and enabling BDD never displaces the spec suite:
+The `features/` directory holds the same storefront behavior as Gherkin
+(`*.feature` + `steps/`), run through a separate config so the main suite
+and the BDD suite can never drift apart in setup. From `playwright-suite/`:
 
 ```bash
-cd playwright-suite
-npx bddgen -c playwright.bdd.config.ts        # generate specs into .features-gen/
-npx playwright test -c playwright.bdd.config.ts
+npx bddgen -c playwright.bdd.config.ts        # generate tests into .features-gen/ (do this after editing any .feature file)
+npx playwright test -c playwright.bdd.config.ts  # run the generated suite
 ```
 
-In CI the BDD suite runs in dedicated, **non-gating** jobs — GitHub's `e2e-bdd.yml` workflow (`continue-on-error`) and the `bdd` job in `.gitlab-ci.yml` (`allow_failure`) — publishing its own reports while the suite is brought fully green. The release signal still comes from the spec suite and the quality gate.
+- `.features-gen/` is generated output: never edit the `.spec.js` files by
+  hand — edit the `.feature` files and re-run `bddgen`.
+- The BDD config inherits projects, webServer, reporters, and globalSetup
+  from `playwright.config.ts`; only the test directory differs.
+- CI runs this suite as a separate, non-gating job on GitHub
+  (`.github/workflows/e2e-bdd.yml`, `continue-on-error: true`); it is
+  no longer run on GitLab. A red BDD run does not block a PR.
 
 ## Make it yours
 
@@ -323,7 +332,7 @@ Every push/PR touching `playwright-suite/` runs the suite split across 2 shards 
 
 ### GitLab CI on a self-hosted runner
 
-The same pipeline runs on GitLab CI via `.gitlab-ci.yml` — a port of the GitHub workflow with the same core jobs: sharded Playwright tests, the GO/NO-GO quality gate, Pact contract tests, report publishing, and the Resend email summary — plus two GitLab-side additions: the non-gating `bdd` job (see above) and `newman-health`, an hourly Newman health check.
+The same pipeline runs on GitLab CI via `.gitlab-ci.yml` — a port of the GitHub workflow with the same core jobs: sharded Playwright tests, the GO/NO-GO quality gate, Pact contract tests, report publishing, and the Resend email summary (plus Newman-health).
 
 GitHub remains the source of truth. The `mirror-to-gitlab.yml` workflow pushes `main` and tags to the GitLab project on every push — a push mirror, because GitLab pull mirroring requires a Premium tier. Jobs run on a self-hosted GitLab Runner (Docker executor, tagged `imac,docker`); the Playwright Docker image ships the browsers, so there is no install step.
 
