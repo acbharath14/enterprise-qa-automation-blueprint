@@ -3,7 +3,7 @@ import { PactV3, MatchersV3, Verifier } from '@pact-foundation/pact';
 import path from 'node:path';
 
 const { like, eachLike } = MatchersV3;
-const pactsDir = path.resolve(__dirname, 'pacts');
+const pactsDir = path.join(__dirname, 'pacts');
 
 function newPact() {
   return new PactV3({

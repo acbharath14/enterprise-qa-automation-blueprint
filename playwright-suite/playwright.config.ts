@@ -78,6 +78,8 @@ export default defineConfig({
   fullyParallel: true,
   workers: process.env.CI ? 4 : 8,
   retries: process.env.CI ? 2 : 0,
+  // A stray test.only would otherwise run one test green on CI and look like a pass.
+  forbidOnly: !!process.env.CI,
   // step-log: one console line per action/assertion step, so the CI job log
   // shows what each test validated without opening any report.
   reporter: process.env.CI

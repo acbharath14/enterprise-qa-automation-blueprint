@@ -171,7 +171,7 @@ Then('the cart subtotal equals the sum of the line totals', async ({ page }) => 
   const cart = new CartPage(page);
   const subtotal = money(await cart.subtotal.textContent());
   const lineTotals = await page
-    .locator('[data-testid^="cart-line-total-"]')
+    .getByTestId(/^cart-line-total-/)
     .allTextContents()
     .then((texts) => texts.map((t) => money(t)));
   const sum = lineTotals.reduce((a, b) => a + b, 0);
@@ -1165,7 +1165,7 @@ When('I reset the category filter to {string}', async ({ page }, label: string) 
 });
 
 Then('every visible card is in the {string} category', async ({ page }, category: string) => {
-  const categories = await page.locator('[data-testid^="product-category-"]').allTextContents();
+  const categories = await page.getByTestId(/^product-category-/).allTextContents();
   expect(categories.length).toBeGreaterThan(0);
   for (const c of categories) {
     expect(c).toBe(category);
@@ -1291,10 +1291,9 @@ Then('a new tab opens at the receipt URL', async ({ page }) => {
 });
 
 Then('the receipt tab shows CSV content with a {string} header', async ({ page }, header: string) => {
-  const popup = (page as unknown as Record<string, unknown>).receiptPopup as {
-    locator: (sel: string) => { toContainText: (t: string) => Promise<void> };
-    close: () => Promise<void>;
-  };
+  // receiptPopup is the real Playwright Page from page.waitForEvent('popup')
+  // (see the 'I click {string}' step), so this stays a web-first assertion.
+  const popup = (page as unknown as Record<string, unknown>).receiptPopup as Page;
   await expect(popup.locator('body')).toContainText(header);
   await popup.close();
 });
@@ -1406,7 +1405,7 @@ Then('the visible card prices are in descending order', async ({ page }) => {
 });
 
 Then('the visible product names are in alphabetical order', async ({ page }) => {
-  const names = await page.locator('[data-testid^="product-name-"]').allTextContents();
+  const names = await page.getByTestId(/^product-name-/).allTextContents();
   expect(names.length).toBeGreaterThan(0);
   const sorted = [...names].sort((a, b) => a.localeCompare(b));
   expect(names).toEqual(sorted);
@@ -1989,7 +1988,6 @@ Then('the address field still shows {string}', async ({ page }, value: string) =
  *   bdd.cartHeaders (X-Cart-Id isolation).
  * - No trailing commas in multiline calls (repo pins TypeScript 7.0.2).
  */
-import type { APIRequestContext } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { validateResponse } from '../../test-data/schema-validator';
 import { makeProducts, makeOrder, makeCustomer, createRng } from '../../test-data/factory';
@@ -2622,7 +2620,8 @@ Then('the catalog heading is visible within 8 seconds', async ({ page }) => {
 Then('the response is successful within 2 seconds', async ({ bdd }) => {
   const start = Date.now();
   // Re-issue to measure timing precisely.
-  expect(bdd.lastResponse?.ok()).toBeTruthy();
+  if (!bdd.lastResponse) throw new Error('no response recorded by a previous step');
+  await expect(bdd.lastResponse).toBeOK();
   expect(Date.now() - start).toBeLessThan(2000);
 });
 

@@ -20,6 +20,7 @@
     "test:browserstack": "playwright test --project=browserstack",
     "test:contract": "playwright test --config=playwright.contract.config.ts",
     "test:headed": "playwright test --headed --project=chromium",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "test:mobile": "playwright test --grep @mobile",
     "test:smoke": "playwright test --grep @smoke",
     "baseline:update": "node scripts/update-baseline.mjs",

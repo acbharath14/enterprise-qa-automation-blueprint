@@ -13,7 +13,7 @@ test.describe('category filter', () => {
     const cards = catalogPage.grid.getByTestId(/^product-card-/);
     await expect(cards).toHaveCount(3);
     const categories = await page
-      .locator('[data-testid^="product-category-"]')
+      .getByTestId(/^product-category-/)
       .allTextContents();
     expect(categories).toHaveLength(3);
     for (const category of categories) {

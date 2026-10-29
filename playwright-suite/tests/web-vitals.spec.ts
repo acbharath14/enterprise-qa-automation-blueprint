@@ -8,6 +8,15 @@ test.skip(
   'Core Web Vitals APIs are Chromium-only',
 );
 
+// Window globals this suite uses to ferry PerformanceObserver data out of
+// page.evaluate() calls. Declared once here so no `as any` casts are needed.
+declare global {
+  interface Window {
+    __inpDurations?: number[];
+    __inpObserver?: PerformanceObserver;
+  }
+}
+
 /**
  * Core Web Vitals — Google's user-perceived performance metrics, measured
  * on the DemoMart storefront. Thresholds are Google's "good" ratings:
@@ -29,7 +38,10 @@ test('LCP: largest contentful paint under 2.5s', async ({ page }) => {
         // buffered: true captures the entry even if paint happened before we observe
         const observer = new PerformanceObserver((list) => {
           const entries = list.getEntries();
-          const last = entries[entries.length - 1] as any;
+          const last = entries[entries.length - 1] as PerformanceEntry & {
+            renderTime?: number;
+            loadTime?: number;
+          };
           resolve(last.renderTime || last.loadTime || 0);
           observer.disconnect();
         });
@@ -47,13 +59,20 @@ test('CLS: cumulative layout shift under 0.1', async ({ page }) => {
   await page.goto('/');
   // Let the page settle — catalog render and late layout settle here
   await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(1000);
+  // Layout-shift entries arrive asynchronously after render: wait until at
+  // least one exists instead of sleeping a fixed second. A page with no
+  // shifts at all times out here, which is itself a passing CLS signal.
+  await page
+    .waitForFunction(() => performance.getEntriesByType('layout-shift').length > 0, null, { timeout: 2000 })
+    .catch(() => {});
 
   const cls = await page.evaluate(() => {
     let value = 0;
-    for (const entry of performance.getEntriesByType('layout-shift') as any[]) {
+    for (const entry of performance.getEntriesByType('layout-shift') as Array<
+      PerformanceEntry & { hadRecentInput?: boolean; value?: number }
+    >) {
       // Ignore shifts caused by recent user input (expected, not jank)
-      if (!entry.hadRecentInput) value += entry.value;
+      if (!entry.hadRecentInput) value += entry.value ?? 0;
     }
     return value;
   });
@@ -67,31 +86,42 @@ test('INP: interaction responds within 200ms', async ({ page }) => {
 
   // Observe long event-timing entries (interactions)
   await page.evaluate(() => {
-    (window as any).__inpDurations = [];
+    window.__inpDurations = [];
     const observer = new PerformanceObserver((list) => {
-      for (const entry of list.getEntries() as any[]) {
-        (window as any).__inpDurations.push(entry.duration);
+      for (const entry of list.getEntries() as Array<PerformanceEntry & { duration?: number }>) {
+        window.__inpDurations?.push(entry.duration ?? 0);
       }
     });
     observer.observe({ type: 'event', buffered: true });
-    (window as any).__inpObserver = observer;
+    window.__inpObserver = observer;
   });
 
-  // Interact: add a product to the cart and type in the search box
+  // Interact: add a product to the cart and type in the search box.
+  // The search box is optional (not every viewport shows it); the test
+  // records which interactions actually ran so the report shows what the
+  // INP number was measured from — a skipped interaction is no longer silent.
+  const interactions = ['add-to-cart'];
   await page.getByTestId('add-to-cart-prod-1').click();
   try {
     const searchBox = page.getByTestId('search-input');
     if (await searchBox.isVisible({ timeout: 2000 })) {
       await searchBox.fill('test', { timeout: 2000 });
+      interactions.push('search-fill');
     }
   } catch {
     // Non-critical: the add-to-cart click above already provides interaction
   }
-  await page.waitForTimeout(1000);
+  test.info().annotations.push({ type: 'INP interactions', description: interactions.join(', ') });
+
+  // Event-timing entries land asynchronously after the interaction: wait
+  // until the observer recorded something instead of sleeping a fixed second.
+  await page
+    .waitForFunction(() => (window.__inpDurations?.length ?? 0) > 0, null, { timeout: 3000 })
+    .catch(() => {});
 
   const maxDuration = await page.evaluate(() => {
-    const durations = (window as any).__inpDurations as number[];
-    (window as any).__inpObserver?.disconnect();
+    const durations = window.__inpDurations ?? [];
+    window.__inpObserver?.disconnect();
     return durations.length ? Math.max(...durations) : 0;
   });
 

@@ -70,9 +70,13 @@ export function evidenceApi(request: APIRequestContext, testInfo: TestInfo): API
     return res;
   };
 
-  const fetchCall = async (urlOrRequest: any, opts: any = {}) => {
+  const fetchCall = async (urlOrRequest: string | Request, opts: Record<string, unknown> = {}) => {
     const started = Date.now();
-    const res = await request.fetch(urlOrRequest, opts);
+    const fetchFn = request.fetch as unknown as (
+      u: string | Request,
+      o: Record<string, unknown>,
+    ) => Promise<APIResponse>;
+    const res = await fetchFn(urlOrRequest, opts);
     const method =
       typeof urlOrRequest === 'string' ? (opts.method as string) || 'GET' : urlOrRequest.method;
     await record(method.toUpperCase(), opts, res);
@@ -88,8 +92,8 @@ export function evidenceApi(request: APIRequestContext, testInfo: TestInfo): API
     delete: call('DELETE'),
     head: call('HEAD'),
     fetch: fetchCall,
-    storageState: (opts: any) => request.storageState(opts),
-    dispose: (opts: any) => request.dispose(opts)
+    storageState: (opts?: Parameters<APIRequestContext['storageState']>[0]) => request.storageState(opts),
+    dispose: (opts?: Parameters<APIRequestContext['dispose']>[0]) => request.dispose(opts),
   };
   return wrapped as unknown as APIRequestContext;
 }

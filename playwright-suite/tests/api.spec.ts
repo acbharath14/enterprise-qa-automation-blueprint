@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/test';
+import { test, expect, mintTestProduct, cleanupTestProduct, newCartId } from '../fixtures/test';
 import type { APIRequestContext } from '@playwright/test';
 
 /**
@@ -8,12 +8,13 @@ import type { APIRequestContext } from '@playwright/test';
  * instead of `request` for every /api/cart* and /api/orders* call.
  */
 function cartApi(request: APIRequestContext, testInfo: { workerIndex: number }) {
-  const headers = { 'X-Cart-Id': `api-${testInfo.workerIndex}-${Date.now()}` };
+  const headers = { 'X-Cart-Id': newCartId('api', testInfo.workerIndex) };
   const withHeaders = (opts: Record<string, unknown> = {}) => ({
     ...opts,
     headers: { ...((opts.headers as Record<string, string>) || {}), ...headers },
   });
   return {
+    headers,
     get: (url: string, opts?: Record<string, unknown>) => request.get(url, withHeaders(opts)),
     post: (url: string, opts?: Record<string, unknown>) => request.post(url, withHeaders(opts)),
     patch: (url: string, opts?: Record<string, unknown>) => request.patch(url, withHeaders(opts)),
@@ -25,12 +26,13 @@ function cartApi(request: APIRequestContext, testInfo: { workerIndex: number }) 
 /**
  * Direct API tests (no browser): pin the contract of the DemoMart backend
  * the storefront consumes. UI specs prove the journey; these prove the API
- * itself. The demo cart is shared server-side, so cart/order tests reset it.
+ * itself. Every test addresses its own isolated cart through the capi()
+ * wrapper (X-Cart-Id header) — no shared cart, nothing to reset.
  */
 test.describe('products API', () => {
   test('lists the seeded products', async ({ api }) => {
     const res = await api.get('/api/products');
-    expect(res.ok()).toBeTruthy();
+    await expect(res).toBeOK();
     expect(res.headers()['content-type']).toContain('application/json');
     const body = await res.json();
     const ids = body.map((p: { id: string }) => p.id);
@@ -75,7 +77,7 @@ test.describe('products API', () => {
 
   test('get-by-id returns the product; unknown id is a JSON 404', async ({ api }) => {
     const res = await api.get('/api/products/prod-1');
-    expect(res.ok()).toBeTruthy();
+    await expect(res).toBeOK();
     expect((await res.json()).name).toBe('Aurora Wireless Headphones');
 
     const missing = await api.get('/api/products/nope');
@@ -122,19 +124,6 @@ test.describe('products API', () => {
  * workers never interfere. Tests assert only on their own lines and check
  * money math by internal consistency (subtotal === sum of line totals).
  */
-async function mintProduct(request: any, tag: string): Promise<string> {
-  const res = await request.post('/api/products', {
-    data: { name: `Cart Test ${tag} ${Date.now()}`, price: 42.5, category: 'test', stock: 100 },
-  });
-  expect(res.status()).toBe(201);
-  return (await res.json()).id as string;
-}
-
-async function removeLine(request: any, productId: string) {
-  await request.delete(`/api/cart/items/${productId}`);
-  await request.delete(`/api/products/${productId}`);
-}
-
 function lineTotal(line: { price: number; qty: number }): number {
   return Math.round(line.price * line.qty * 100) / 100;
 }
@@ -142,7 +131,7 @@ function lineTotal(line: { price: number; qty: number }): number {
 test.describe('cart API', () => {
   test('cart math is internally consistent', async ({ api }, testInfo) => {
     const capi = cartApi(api, testInfo);
-    const pid = await mintProduct(api, 'math');
+    const pid = await mintTestProduct(api, 'math');
     try {
       await capi.post('/api/cart/items', { data: { productId: pid, qty: 5 } });
       const cart = await (await capi.get('/api/cart')).json();
@@ -154,7 +143,7 @@ test.describe('cart API', () => {
       const expected = cart.items.reduce((sum: number, i: { price: number; qty: number }) => sum + i.price * i.qty, 0);
       expect(cart.subtotal).toBeCloseTo(expected, 2);
     } finally {
-      await removeLine(capi, pid);
+      await cleanupTestProduct(api, pid, capi.headers);
     }
   });
 
@@ -173,7 +162,7 @@ test.describe('cart API', () => {
 
   test('quantity updates and removal work', async ({ api }, testInfo) => {
     const capi = cartApi(api, testInfo);
-    const pid = await mintProduct(api, 'qty');
+    const pid = await mintTestProduct(api, 'qty');
     try {
       await capi.post('/api/cart/items', { data: { productId: pid, qty: 1 } });
       const updated = await capi.patch(`/api/cart/items/${pid}`, { data: { qty: 4 } });
@@ -192,7 +181,7 @@ test.describe('cart API', () => {
 test.describe('orders API', () => {
   test('checkout creates an order and clears its lines', async ({ api }, testInfo) => {
     const capi = cartApi(api, testInfo);
-    const pid = await mintProduct(api, 'order');
+    const pid = await mintTestProduct(api, 'order');
     try {
       await capi.post('/api/cart/items', { data: { productId: pid, qty: 2 } });
       const res = await capi.post('/api/orders', {
@@ -235,7 +224,7 @@ test.describe('orders API', () => {
     });
     expect(empty.status()).toBe(422);
 
-    const pid = await mintProduct(api, 'badorder');
+    const pid = await mintTestProduct(api, 'badorder');
     try {
       await capi.post('/api/cart/items', { data: { productId: pid, qty: 1 } });
       const badEmail = await capi.post('/api/orders', {
@@ -243,13 +232,13 @@ test.describe('orders API', () => {
       });
       expect(badEmail.status()).toBe(400);
     } finally {
-      await removeLine(capi, pid);
+      await cleanupTestProduct(api, pid, capi.headers);
     }
   });
 
   test('receipt downloads as CSV', async ({ api }, testInfo) => {
     const capi = cartApi(api, testInfo);
-    const pid = await mintProduct(api, 'receipt');
+    const pid = await mintTestProduct(api, 'receipt');
     try {
       await capi.post('/api/cart/items', { data: { productId: pid, qty: 1 } });
       const order = await (
@@ -263,7 +252,7 @@ test.describe('orders API', () => {
       expect(res.headers()['content-disposition']).toContain(`receipt-${order.id}.csv`);
       const csv = await res.text();
       expect(csv).toContain('product,quantity,unit_price,line_total');
-      expect(csv).toContain(`Cart Test receipt`);
+      expect(csv).toContain('Fixture receipt');
       expect((await capi.get('/api/orders/nope/receipt')).status()).toBe(404);
     } finally {
       await api.delete(`/api/products/${pid}`);

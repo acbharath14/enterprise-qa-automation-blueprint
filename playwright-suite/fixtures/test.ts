@@ -8,6 +8,15 @@ import { CheckoutPage } from '../pages/CheckoutPage';
 import { LoginPage } from '../pages/LoginPage';
 
 /**
+ * One cart-id format for the whole suite: prefix scopes the id to its owner
+ * (fixture, api, bdd), workerIndex keeps parallel workers apart, Date.now()
+ * keeps sequential tests apart.
+ */
+export function newCartId(prefix: string, workerIndex: number): string {
+  return `${prefix}-${workerIndex}-${Date.now()}`;
+}
+
+/**
  * Mints a uniquely-named product for the test and returns its id.
  *
  * Cart isolation: the server keys carts by the X-Cart-Id header, so every
@@ -15,8 +24,16 @@ import { LoginPage } from '../pages/LoginPage';
  * id via addInitScript (before first navigation) and expose it as `headers`
  * for direct API calls — UI steps and API calls then address the same cart.
  * Stock is generous on purpose so cart repairs never 400 on the stock cap.
+ *
+ * House rules for minted products (category 'test'):
+ * - Fixture teardown deletes the product, but a killed worker (or CI timeout
+ *   kill) can orphan it — with Postgres the orphans accumulate instead of
+ *   evaporating like the old in-memory store. That is accepted: nothing in
+ *   the suite asserts global product counts, so orphans are inert. Keep it
+ *   that way — assert on the seeded set or your own minted products, never
+ *   on totals.
  */
-async function mintTestProduct(request: APIRequestContext, tag: string): Promise<string> {
+export async function mintTestProduct(request: APIRequestContext, tag: string): Promise<string> {
   const res = await request.post('/api/products', {
     data: { name: `Fixture ${tag} ${Date.now()}`, price: 42.5, category: 'test', stock: 100000 },
   });
@@ -24,11 +41,11 @@ async function mintTestProduct(request: APIRequestContext, tag: string): Promise
   return ((await res.json()).id as string);
 }
 
-async function cleanupTestProduct(
+export async function cleanupTestProduct(
   request: APIRequestContext,
   productId: string,
   headers: Record<string, string> = {},
-) {
+): Promise<void> {
   await request.delete(`/api/cart/items/${productId}`, { headers });
   await request.delete(`/api/products/${productId}`);
 }
@@ -64,7 +81,7 @@ export const test = base.extend<Fixtures>({
     await use(productPage);
   },
   cart: async ({ page, request }, use, testInfo) => {
-    const cartId = `fixture-${testInfo.workerIndex}-${Date.now()}`;
+    const cartId = newCartId('fixture', testInfo.workerIndex);
     const headers = { 'X-Cart-Id': cartId };
     const productId = await mintTestProduct(request, 'cart');
     // Pin the page's session cart to our known id *before* first navigation,
@@ -85,7 +102,7 @@ export const test = base.extend<Fixtures>({
     await cleanupTestProduct(request, productId, headers);
   },
   checkout: async ({ page, request }, use, testInfo) => {
-    const cartId = `fixture-${testInfo.workerIndex}-${Date.now()}`;
+    const cartId = newCartId('fixture', testInfo.workerIndex);
     const headers = { 'X-Cart-Id': cartId };
     const productId = await mintTestProduct(request, 'checkout');
     await page.addInitScript((id: string) => {

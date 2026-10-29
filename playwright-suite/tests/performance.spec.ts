@@ -15,7 +15,7 @@ test('storefront becomes interactive within budget', async ({ page }) => {
 test('products API responds within budget', async ({ request }) => {
   const start = Date.now();
   const res = await request.get('/api/products');
-  expect(res.ok()).toBeTruthy();
+  await expect(res).toBeOK();
   expect(Date.now() - start).toBeLessThan(2000);
 });
 
