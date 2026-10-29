@@ -80,6 +80,16 @@ test:
   timeout: 30m
   interruptible: true # cancels redundant pipelines; needs the project setting
                       # "Auto-cancel redundant pipelines" enabled to take effect
+  # Phase 2 (DB validation): this job runs its own Postgres 16 service
+  # (alias `postgres`); DATABASE_URL makes the suite run against real
+  # Postgres instead of memory. Parallel shards each get their own
+  # service instance, so shards stay isolated. No readiness wait is
+  # needed: `npm ci` below takes far longer than Postgres startup.
+  services:
+    - name: postgres:16
+      alias: postgres
+  variables:
+    DATABASE_URL: postgres://demomart:demomart@postgres:5432/demomart
   parallel:
     matrix:
       - SHARD: ["1", "2"]

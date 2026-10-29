@@ -329,6 +329,8 @@ GitHub remains the source of truth. The `mirror-to-gitlab.yml` workflow pushes `
 
 Setup on the GitLab project: two masked CI/CD variables (`RESEND_API_KEY`, `ALERT_TO`), and any scheduled runs as pipeline schedules in the GitLab UI. Reports publish to GitLab Pages. Two schedules drive the automation: a weekly full regression, and an hourly Newman-only run — that schedule sets the `newman_only` pipeline input (declared in the `.gitlab-ci.yml` `spec: inputs` header) to `true`, which runs only `newman-health` and skips the regression jobs.
 
+**Postgres in CI (DB validation Phase 2):** the `test` job runs a `postgres:16` service (alias `postgres`) with `DATABASE_URL=postgres://demomart:demomart@postgres:5432/demomart`, so the suite runs against real Postgres instead of memory. Postgres runtime remains unproven until a first green CI run.
+
 ## Troubleshooting
 
 | Symptom | Fix |
