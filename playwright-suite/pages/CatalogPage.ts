@@ -70,7 +70,7 @@ export class CatalogPage {
   }
 
   cardPrices(): Promise<number[]> {
-    return this.grid.locator('[data-testid^="product-price-"]').allTextContents().then((texts) =>
+    return this.grid.getByTestId(/^product-price-/).allTextContents().then((texts) =>
       texts.map((t) => Number(t.replace(/[^0-9.]/g, ''))),
     );
   }

@@ -118,8 +118,6 @@ export function makeOrder(
   rng: () => number = Math.random,
   overrides: Partial<Order> = {},
 ): Order {
-  const first = pick(rng, FIRST);
-  const last = pick(rng, LAST);
   const items: OrderItem[] = Array.from({ length: int(rng, 1, 3) }, () => {
     const p = makeProduct(rng);
     const qty = int(rng, 1, 3);

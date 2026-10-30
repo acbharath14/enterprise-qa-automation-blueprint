@@ -27,7 +27,7 @@ test.describe('catalog sort', () => {
     await catalogPage.sortBy('name');
     await expect(catalogPage.productCard('prod-9')).toBeVisible();
     const names = await page
-      .locator('[data-testid^="product-name-"]')
+      .getByTestId(/^product-name-/)
       .allTextContents();
     expect(names.length).toBeGreaterThan(0);
     const sorted = [...names].sort((a, b) => a.localeCompare(b));

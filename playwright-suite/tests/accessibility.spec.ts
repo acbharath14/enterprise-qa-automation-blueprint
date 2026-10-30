@@ -1,7 +1,8 @@
 import { test, expect } from '../fixtures/test';
+import type { Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-async function noSeriousViolations(page: any, view: string) {
+async function noSeriousViolations(page: Page, view: string) {
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa'])
     .analyze();

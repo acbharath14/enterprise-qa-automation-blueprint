@@ -40,7 +40,7 @@ test.describe('store smoke', () => {
     await expect(page.getByTestId('product-card-prod-1')).toBeVisible();
     await expect(page.getByTestId('product-name-prod-1')).toHaveText('Aurora Wireless Headphones');
     // Six products per page, twelve seeded in total.
-    await expect(page.locator('[data-testid^="product-card-"]')).toHaveCount(6);
+    await expect(page.getByTestId(/^product-card-/)).toHaveCount(6);
     await expect(page.getByTestId('catalog-page-info')).toHaveText(/Page 1 of \d+/);
   });
 
