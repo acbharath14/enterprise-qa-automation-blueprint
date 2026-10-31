@@ -294,7 +294,10 @@ zap-baseline:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   allow_failure: true
   script:
-    - apt-get update -qq && apt-get install -y -qq curl nodejs npm > /dev/null 2>&1
+    - NODE_VERSION="v20.18.0"
+    - curl -fsSL "https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-x64.tar.xz" | tar -xJ
+    - export PATH="$PWD/node-${NODE_VERSION}-linux-x64/bin:$PATH"
+    - node --version && npm --version
     - cd playwright-suite && npm ci --no-audit --no-fund 2>&1 | tail -2
     - (node server.mjs > /tmp/app.log 2>&1 &)
     - for i in $(seq 1 30); do curl -sf http://127.0.0.1:4173/api/products >/dev/null && break; sleep 1; done
