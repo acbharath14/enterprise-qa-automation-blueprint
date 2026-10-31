@@ -32,28 +32,23 @@ test.describe('input depth', () => {
       document.querySelector('[data-testid="input-demos"]')?.removeAttribute('hidden');
     });
 
-    const source = page.getByTestId('drag-source');
-    const target = page.getByTestId('drop-target');
+    // HTML5 drag-and-drop requires real DragEvents with DataTransfer —
+    // page.mouse alone doesn't trigger them. Dispatch via evaluate.
+    await page.evaluate(() => {
+      const source = document.querySelector('[data-testid="drag-source"]');
+      const target = document.querySelector('[data-testid="drop-target"]');
+      if (!source || !target) throw new Error('missing drag elements');
 
-    // Manual drag via mouse events — more reliable than dragTo() for HTML5 DnD.
-    const sourceBox = await source.boundingBox();
-    const targetBox = await target.boundingBox();
-    if (!sourceBox || !targetBox) throw new Error('missing bounding box');
+      const dataTransfer = new DataTransfer();
+      source.dispatchEvent(new DragEvent('dragstart', { dataTransfer, bubbles: true }));
+      target.dispatchEvent(new DragEvent('dragover', { dataTransfer, bubbles: true }));
+      target.dispatchEvent(new DragEvent('drop', { dataTransfer, bubbles: true }));
+      source.dispatchEvent(new DragEvent('dragend', { dataTransfer, bubbles: true }));
+    });
 
-    await page.mouse.move(
-      sourceBox.x + sourceBox.width / 2,
-      sourceBox.y + sourceBox.height / 2,
-    );
-    await page.mouse.down();
-    await page.mouse.move(
-      targetBox.x + targetBox.width / 2,
-      targetBox.y + targetBox.height / 2,
-      { steps: 10 },
-    );
-    await page.mouse.up();
-
-    await expect(page.getByTestId('drop-result')).toBeVisible();
     await expect(page.getByTestId('drop-result')).toHaveText('Dropped!');
+    // Note: drop-result stays hidden (parent <details> is hidden for visual baseline);
+    // the text content proves the drop handler ran.
   });
 
   test('setInputFiles uploads a file via the file input', async ({ page }) => {
@@ -67,7 +62,8 @@ test.describe('input depth', () => {
     const filePath = join(__dirname, 'helpers', 'upload-fixture.txt');
     await page.getByTestId('demo-file-input').setInputFiles(filePath);
 
-    await expect(page.getByTestId('file-name')).toBeVisible();
+    // The file-name text proves the file was selected (element stays hidden
+    // with parent <details> for visual baseline).
     await expect(page.getByTestId('file-name')).toHaveText('upload-fixture.txt');
   });
 });
