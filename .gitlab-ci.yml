@@ -136,6 +136,10 @@ test:
   services:
     - name: postgres:16
       alias: postgres
+      variables:
+        POSTGRES_USER: demomart
+        POSTGRES_PASSWORD: demomart
+        POSTGRES_DB: demomart
   variables:
     DATABASE_URL: postgres://demomart:demomart@postgres:5432/demomart
   parallel:
