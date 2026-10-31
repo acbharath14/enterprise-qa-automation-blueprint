@@ -27,12 +27,30 @@ test.describe('input depth', () => {
 
   test('dragTo moves the draggable onto the drop target', async ({ page }) => {
     await page.goto('/');
-    // Open the demos section (it's a <details>, collapsed by default).
-    await page.getByTestId('input-demos').click();
+    // Open the demos section via JS (it's hidden to preserve the visual baseline).
+    await page.evaluate(() => {
+      document.querySelector('[data-testid="input-demos"]')?.removeAttribute('hidden');
+    });
 
     const source = page.getByTestId('drag-source');
     const target = page.getByTestId('drop-target');
-    await source.dragTo(target);
+
+    // Manual drag via mouse events — more reliable than dragTo() for HTML5 DnD.
+    const sourceBox = await source.boundingBox();
+    const targetBox = await target.boundingBox();
+    if (!sourceBox || !targetBox) throw new Error('missing bounding box');
+
+    await page.mouse.move(
+      sourceBox.x + sourceBox.width / 2,
+      sourceBox.y + sourceBox.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      targetBox.x + targetBox.width / 2,
+      targetBox.y + targetBox.height / 2,
+      { steps: 10 },
+    );
+    await page.mouse.up();
 
     await expect(page.getByTestId('drop-result')).toBeVisible();
     await expect(page.getByTestId('drop-result')).toHaveText('Dropped!');
@@ -40,7 +58,10 @@ test.describe('input depth', () => {
 
   test('setInputFiles uploads a file via the file input', async ({ page }) => {
     await page.goto('/');
-    await page.getByTestId('input-demos').click();
+    // Open the demos section via JS (hidden to preserve the visual baseline).
+    await page.evaluate(() => {
+      document.querySelector('[data-testid="input-demos"]')?.removeAttribute('hidden');
+    });
 
     // Create a real file on disk for the upload.
     const filePath = join(__dirname, 'helpers', 'upload-fixture.txt');

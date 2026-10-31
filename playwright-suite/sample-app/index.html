@@ -378,7 +378,8 @@
           <button class="secondary" data-testid="catalog-next">Next →</button>
         </div>
         <!-- Input demos (for input-depth.spec.ts) — not part of the storefront -->
-        <details data-testid="input-demos">
+        <!-- Hidden by default to avoid breaking the visual baseline; specs open it via JS -->
+        <details data-testid="input-demos" hidden>
           <summary>Input demos</summary>
           <div>
             <div data-testid="drag-source" draggable="true" style="width:60px;height:60px;background:#3b82f6;color:#fff;display:flex;align-items:center;justify-content:center;cursor:grab;">Drag</div>

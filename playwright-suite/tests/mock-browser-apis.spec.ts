@@ -13,6 +13,8 @@ import { test, expect } from '../fixtures/test';
 test.describe('mock browser APIs', () => {
   test('setGeolocation mocks the GPS coordinates', async ({ page, context }) => {
     // Mock a location (Herndon, VA) before the page reads it.
+    // Grant permission first — getCurrentPosition requires it.
+    await context.grantPermissions(['geolocation']);
     await context.setGeolocation({ latitude: 38.97163, longitude: -77.3861 });
     await page.goto('/');
 
