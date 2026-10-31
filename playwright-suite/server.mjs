@@ -401,6 +401,18 @@ const server = http.createServer(async (req, res) => {
     json(res, 404, { error: 'Not found' });
     return;
   }
+  // Serve the demo service worker with correct MIME type (for service-worker.spec.ts)
+  if (url === '/sw-demo.js') {
+    const swPath = path.join(rootDir, 'sample-app', 'sw-demo.js');
+    try {
+      const js = await readFile(swPath, 'utf8');
+      res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8', ...securityHeaders });
+      res.end(js);
+    } catch {
+      json(res, 404, { error: 'Not found' });
+    }
+    return;
+  }
   const html = await readFile(appPath, 'utf8');
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', ...securityHeaders });
   res.end(html);

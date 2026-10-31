@@ -377,6 +377,21 @@
           <span data-testid="catalog-page-info"></span>
           <button class="secondary" data-testid="catalog-next">Next →</button>
         </div>
+        <!-- Input demos (for input-depth.spec.ts) — not part of the storefront -->
+        <!-- Hidden by default to avoid breaking the visual baseline; specs open it via JS -->
+        <details data-testid="input-demos" hidden>
+          <summary>Input demos</summary>
+          <div>
+            <div data-testid="drag-source" draggable="true" style="width:60px;height:60px;background:#3b82f6;color:#fff;display:flex;align-items:center;justify-content:center;cursor:grab;">Drag</div>
+            <div data-testid="drop-target" style="width:120px;height:60px;border:2px dashed #94a3b8;display:flex;align-items:center;justify-content:center;margin-top:8px;">Drop here</div>
+            <p data-testid="drop-result" hidden>Dropped!</p>
+          </div>
+          <div style="margin-top:12px;">
+            <label for="demo-file">Upload a file:</label>
+            <input data-testid="demo-file-input" id="demo-file" type="file" />
+            <p data-testid="file-name" hidden></p>
+          </div>
+        </details>
       </section>
 
       <!-- Product detail -->
@@ -1004,6 +1019,30 @@
         $('[data-testid="search-input"]').addEventListener('input', (e) => { filters.q = e.target.value; page = 1; loadCatalog(); });
         $('[data-testid="category-filter"]').addEventListener('change', (e) => { filters.category = e.target.value; page = 1; loadCatalog(); });
         $('[data-testid="sort-select"]').addEventListener('change', (e) => { filters.sort = e.target.value; page = 1; loadCatalog(); });
+        // Input demos (drag-drop + file input) — for input-depth.spec.ts
+        const dragSource = $('[data-testid="drag-source"]');
+        const dropTarget = $('[data-testid="drop-target"]');
+        if (dragSource && dropTarget) {
+          dragSource.addEventListener('dragstart', (e) => e.dataTransfer.setData('text/plain', 'dragged'));
+          dropTarget.addEventListener('dragover', (e) => e.preventDefault());
+          dropTarget.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (e.dataTransfer.getData('text/plain') === 'dragged') {
+              $('[data-testid="drop-result"]').hidden = false;
+            }
+          });
+        }
+        const fileInput = $('[data-testid="demo-file-input"]');
+        if (fileInput) {
+          fileInput.addEventListener('change', (e) => {
+            const f = e.target.files[0];
+            if (f) {
+              const out = $('[data-testid="file-name"]');
+              out.textContent = f.name;
+              out.hidden = false;
+            }
+          });
+        }
         $('[data-testid="price-max-slider"]').addEventListener('input', (e) => {
           filters.maxPrice = Number(e.target.value);
           $('[data-testid="price-max-output"]').textContent = money(filters.maxPrice);

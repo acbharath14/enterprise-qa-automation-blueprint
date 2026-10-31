@@ -266,6 +266,63 @@ npx playwright test -c playwright.bdd.config.ts  # run the generated suite
   (`.github/workflows/e2e-bdd.yml`, `continue-on-error: true`); it is
   no longer run on GitLab. A red BDD run does not block a PR.
 
+### UI mode (watch + time-travel debugging)
+
+```bash
+npx playwright test --ui
+```
+
+UI mode is Playwright's watch mode: it lists every spec, re-runs on file
+save, and lets you step through each action on a timeline — click any step
+to see the DOM, console, and network at that moment. Use it when a test
+fails and the trace alone doesn't explain why: the time-travel scrubber
+shows what the page looked like *before* the failing assertion, not just
+after.
+
+### VS Code extension
+
+Install "Playwright Test for VSCode" from the marketplace. You get:
+- Green run buttons inline above each `test()` — no terminal needed.
+- "Pick locator" — click any element in a headed run and it copies the
+  recommended locator (`getByRole`, `getByTestId`, …) to your clipboard.
+- "Record new" — performs actions in the browser and appends the
+  generated code to the spec.
+
+If the inline run buttons don't appear: check **Editor › Code Lens** is
+enabled in VS Code settings, then run *Developer: Reload Window*.
+
+### Docker (local)
+
+The GitLab pipeline already runs the suite in Playwright's Docker image.
+To reproduce that environment locally:
+
+```bash
+docker run --rm --network host -v $(pwd):/work -w /work \
+  mcr.microsoft.com/playwright:v1.64.1-noble \
+  npx playwright test --project=chromium
+```
+
+`--network host` lets the container reach the sample app on your
+localhost. This is the closest you get to CI without pushing.
+
+### Traces and debug
+
+Failures already capture a trace (`trace: retain-on-failure`). To open one:
+
+```bash
+npx playwright show-trace test-results/<spec-name>-chromium/trace.zip
+```
+
+For step-through debugging of a single spec:
+
+```bash
+PWDEBUG=1 npx playwright test tests/store-smoke.spec.ts --project=chromium
+```
+
+`PWDEBUG=1` opens the Playwright Inspector — set breakpoints, step over
+actions, and inspect locators live. `npx playwright test --debug` is the
+same thing as a CLI flag.
+
 ## Make it yours
 
 Adapting this framework to your application is three steps. Here is each one with a concrete example.
