@@ -40,10 +40,17 @@ test.describe('service worker offline fallback', () => {
 
   test('service worker is registered and active', async ({ page }) => {
     await page.goto('/');
+    // Wait for the SW to fully activate (not just "activating").
     const state = await page.evaluate(async () => {
-      await navigator.serviceWorker.register('/sw-demo.js');
-      const reg = await navigator.serviceWorker.ready;
-      return reg.active?.state;
+      const reg = await navigator.serviceWorker.register('/sw-demo.js');
+      // Poll until activated (max 10s).
+      for (let i = 0; i < 100; i++) {
+        const r = await navigator.serviceWorker.ready;
+        if (r.active?.state === 'activated') return 'activated';
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      const final = await navigator.serviceWorker.ready;
+      return final.active?.state;
     });
     expect(state).toBe('activated');
   });
