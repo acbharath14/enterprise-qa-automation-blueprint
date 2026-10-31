@@ -70,6 +70,8 @@ export default defineConfig({
   testDir: './tests',
   // Materializes the committed visual baseline (stored as base64 text) before tests run.
   globalSetup: './global-setup.ts',
+  // Dumps run metadata to test-results/run-meta.json after all tests.
+  globalTeardown: './global-teardown.ts',
   // OS-independent screenshot names: the visual baseline is captured on a
   // Mac (no Linux browsers handy) but asserted on Linux CI. Font rendering
   // differs slightly across OSes; the spec's maxDiffPixelRatio absorbs it.

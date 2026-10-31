@@ -1,0 +1,2 @@
+DemoMart file-upload fixture.
+Used by input-depth.spec.ts to test setInputFiles.
