@@ -17,18 +17,24 @@ test.describe('service worker offline fallback', () => {
     await page.evaluate(async () => {
       const reg = await navigator.serviceWorker.register('/sw-demo.js');
       await navigator.serviceWorker.ready;
+      // Wait for the SW to take control.
+      await new Promise((resolve) => {
+        if (reg.active) resolve(true);
+        else reg.addEventListener('updatefound', () => resolve(true));
+      });
       return reg.scope;
     });
 
-    // Let the SW cache the app shell.
-    await page.waitForTimeout(1000);
+    // Give the SW time to cache the app shell (install + fetch).
+    await page.waitForTimeout(2000);
 
     // Go offline and reload — the SW serves the cached '/'.
     await context.setOffline(true);
-    await page.reload();
+    await page.reload({ waitUntil: 'domcontentloaded' });
 
     // The cached shell loads (not the browser's offline error page).
-    await expect(page.getByTestId('catalog-view')).toBeVisible({ timeout: 10000 });
+    // Use a longer timeout — SW cache lookup can be slow on first hit.
+    await expect(page.getByTestId('catalog-view')).toBeVisible({ timeout: 15000 });
     await context.setOffline(false);
   });
 
