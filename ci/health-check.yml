@@ -47,6 +47,7 @@ jobs:
         with:
           name: newman-report
           path: reports/newman-report.html
+          retention-days: 7
 
       - name: Email report on failure
         if: steps.newman.outputs.failed == 'true'
@@ -70,3 +71,4 @@ jobs:
                 html: ("<h2>API Health Check Failed</h2><p>Run: <a href="" + $run_url + "">view run</a></p><p>The hourly Postman/Newman health check found failing assertions. Full report attached.</p>"),
                 attachments: [{filename: "newman-report.html", content: $b64}]}')" \
           && echo "Alert email sent" || echo "Alert email failed"
+
