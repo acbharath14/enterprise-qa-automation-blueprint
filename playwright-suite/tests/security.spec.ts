@@ -4,22 +4,19 @@ import { test, expect } from '../fixtures/test';
  * Baseline security checks even a demo app should model: secure headers,
  * JSON (not HTML) error responses, and no reflection of untrusted input.
  */
-test('HTML responses carry the nosniff header', async ({ request }) => {
-  const res = await request.get('/');
-  expect(res.headers()['x-content-type-options']).toBe('nosniff');
-});
-
-test('API responses carry the nosniff header', async ({ request }) => {
-  const res = await request.get('/api/products');
-  expect(res.headers()['x-content-type-options']).toBe('nosniff');
-});
-
-test('clickjacking defense header is present', async ({ request }) => {
-  for (const url of ['/', '/payment-frame', '/api/products']) {
+const nosniffCases = [
+  { name: 'HTML responses carry the nosniff header', url: '/' },
+  { name: 'API responses carry the nosniff header', url: '/api/products' },
+];
+for (const { name, url } of nosniffCases) {
+  test(name, async ({ request }) => {
     const res = await request.get(url);
-    expect(res.headers()['x-frame-options']).toBe('SAMEORIGIN');
-  }
-});
+    expect(res.headers()['x-content-type-options']).toBe('nosniff');
+  });
+}
+
+// The clickjacking defense header is covered by pentest.spec.ts
+// (byte-identical test; the pentest copy is canonical).
 
 test('product names are HTML-escaped in the catalog', async ({ page, request }) => {
   // A product name carrying markup must render as text, never as HTML.
