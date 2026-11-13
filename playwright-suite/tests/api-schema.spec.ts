@@ -1,5 +1,27 @@
 import { test, expect } from '../fixtures/test';
-import { validateResponse } from '../test-data/schema-validator';
+import { validateResponse, loadApiSpec } from '../test-data/schema-validator';
+import type { APIRequestContext } from '@playwright/test';
+
+/** Places one order via the API on an isolated cart and returns its id. */
+async function placeOrder(
+  api: APIRequestContext,
+  tag: string,
+): Promise<{ orderId: string; productId: string }> {
+  const headers = { 'X-Cart-Id': `schema-${tag}-${Date.now()}` };
+  const created = await api.post('/api/products', {
+    data: { name: `Schema ${tag} Widget`, price: 9.99, category: 'test', stock: 5 },
+  });
+  expect(created.status()).toBe(201);
+  const productId = (await created.json()).id as string;
+  await api.post('/api/cart/items', { headers, data: { productId, qty: 1 } });
+  const order = await (
+    await api.post('/api/orders', {
+      headers,
+      data: { name: 'Ada', email: 'ada@example.com', address: '1 Main St', payment: { cardLast4: '4242' } },
+    })
+  ).json();
+  return { orderId: order.id as string, productId };
+}
 
 /**
  * OpenAPI schema validation for the DemoMart store API.
@@ -74,6 +96,58 @@ test.describe('API schema validation', () => {
       body: await missing.json(),
     });
     expect(missingResult.errors, 'schema violations').toEqual([]);
+  });
+
+  test('POST /api/orders/{id}/cancel 200 and 404 payloads match their schemas', async ({ api }) => {
+    const { orderId, productId } = await placeOrder(api, 'cancel');
+    try {
+      const cancelled = await api.post(`/api/orders/${orderId}/cancel`);
+      expect(cancelled.status()).toBe(200);
+      const cancelledBody = await cancelled.json();
+      const cancelledResult = validateResponse({
+        method: 'POST',
+        path: `/api/orders/${orderId}/cancel`,
+        status: cancelled.status(),
+        body: cancelledBody,
+      });
+      expect(cancelledResult.errors, 'schema violations').toEqual([]);
+      expect(cancelledBody.status).toBe('cancelled');
+
+      const missing = await api.post('/api/orders/no-such-order/cancel');
+      expect(missing.status()).toBe(404);
+      const missingResult = validateResponse({
+        method: 'POST',
+        path: '/api/orders/no-such-order/cancel',
+        status: missing.status(),
+        body: await missing.json(),
+      });
+      expect(missingResult.errors, 'schema violations').toEqual([]);
+    } finally {
+      await api.delete(`/api/orders/${orderId}`);
+      await api.delete(`/api/products/${productId}`);
+    }
+  });
+
+  test('DELETE /api/orders/{id} is documented and removes the order', async ({ api }) => {
+    // A 204 carries no JSON body, so validateResponse cannot check it the
+    // way it checks the other endpoints: instead, assert the operation and
+    // its 204 response are documented, then assert the behavior matches.
+    const { doc } = loadApiSpec();
+    const deleteOp = doc.paths['/api/orders/{id}']?.delete;
+    expect(deleteOp, 'DELETE /api/orders/{id} is documented').toBeDefined();
+    expect(deleteOp?.responses?.['204'], '204 response is documented').toBeDefined();
+
+    const { orderId, productId } = await placeOrder(api, 'delete');
+    try {
+      const deleted = await api.delete(`/api/orders/${orderId}`);
+      expect(deleted.status()).toBe(204);
+      expect((await api.get(`/api/orders/${orderId}`)).status()).toBe(404);
+
+      const missing = await api.delete('/api/orders/no-such-order');
+      expect(missing.status()).toBe(404);
+    } finally {
+      await api.delete(`/api/products/${productId}`);
+    }
   });
 
   test('POST /api/login 401 payload matches the error schema', async ({ api }) => {

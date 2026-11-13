@@ -142,6 +142,53 @@ test('consumer: POST /api/orders checks out the cart @contract', async () => {
   });
 });
 
+test('consumer: POST /api/orders/{id}/cancel cancels an order @contract', async () => {
+  const provider = newPact();
+  provider
+    .given('an order exists')
+    .uponReceiving('a request to cancel an order')
+    .withRequest({ method: 'POST', path: '/api/orders/ord-1/cancel' })
+    .willRespondWith({
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: like({
+        id: 'ord-1',
+        items: eachLike({
+          productId: 'prod-1',
+          qty: 2,
+          name: 'Aurora Wireless Headphones',
+          price: 129.99,
+        }),
+        total: 259.98,
+        status: 'cancelled',
+      }),
+    });
+
+  await provider.executeTest(async (mockserver) => {
+    const res = await fetch(`${mockserver.url}/api/orders/ord-1/cancel`, {
+      method: 'POST',
+    });
+    expect(res.status).toBe(200);
+    expect((await res.json()).status).toBe('cancelled');
+  });
+});
+
+test('consumer: DELETE /api/orders/{id} deletes an order @contract', async () => {
+  const provider = newPact();
+  provider
+    .given('an order exists')
+    .uponReceiving('a request to delete an order')
+    .withRequest({ method: 'DELETE', path: '/api/orders/ord-1' })
+    .willRespondWith({ status: 204 });
+
+  await provider.executeTest(async (mockserver) => {
+    const res = await fetch(`${mockserver.url}/api/orders/ord-1`, {
+      method: 'DELETE',
+    });
+    expect(res.status).toBe(204);
+  });
+});
+
 test('provider: DemoMart honors the recorded store contracts @contract', async () => {
   const base = 'http://127.0.0.1:4173';
   const output = await new Verifier({
@@ -157,6 +204,31 @@ test('provider: DemoMart honors the recorded store contracts @contract', async (
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ productId: 'prod-1', qty: 2 }),
+        });
+      },
+      // The recorded file does not replay in definition order, so this
+      // handler must guarantee ord-1 itself: if the order is not there
+      // (deleted by an earlier replay, or never created), place one. The
+      // id is ord-1 again after a delete because the store derives the
+      // next id from the highest live suffix.
+      'an order exists': async () => {
+        const existing = await fetch(`${base}/api/orders/ord-1`);
+        if (existing.status === 200) return;
+        await fetch(`${base}/api/cart`, { method: 'DELETE' });
+        await fetch(`${base}/api/cart/items`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId: 'prod-1', qty: 1 }),
+        });
+        await fetch(`${base}/api/orders`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: 'Ada',
+            email: 'ada@example.com',
+            address: '1 Main St',
+            payment: { cardLast4: '4242' },
+          }),
         });
       },
     },

@@ -530,6 +530,7 @@
         <div class="confirm" data-testid="order-confirmation">
           <h1>Thank you for your order!</h1>
           <p>Order ID: <span class="order-id" data-testid="order-id"></span></p>
+          <p>Order status: <span data-testid="order-status">Confirmed</span></p>
           <p>Order placed: <span data-testid="order-timestamp"></span></p>
           <p>Total charged: <strong data-testid="order-total"></strong></p>
           <h2>Items</h2>
@@ -537,8 +538,11 @@
           <div style="display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap;">
             <a class="secondary" data-testid="download-receipt-button" href="#" download style="text-decoration: none; display: inline-block; padding: 10px 16px;">Download receipt (CSV)</a>
             <button class="secondary" data-testid="view-receipt-button">View receipt in new tab</button>
+            <button class="secondary" data-testid="cancel-order-button">Cancel order</button>
+            <button class="secondary" data-testid="delete-order-button">Delete order</button>
             <button class="primary" data-testid="confirmation-continue-button">Continue shopping</button>
           </div>
+          <p data-testid="order-deleted-message" hidden>This order has been deleted.</p>
         </div>
       </section>
 
@@ -964,10 +968,14 @@
         });
         if (status === 201) {
           $('[data-testid="order-id"]').textContent = body.id;
+          $('[data-testid="order-status"]').textContent = 'Confirmed';
           $('[data-testid="order-timestamp"]').textContent = new Date().toLocaleString();
           $('[data-testid="order-total"]').textContent = money(body.total);
           $('[data-testid="order-items"]').innerHTML = body.items
             .map((i) => `<li>${esc(i.name)} × ${i.qty} — ${money(i.price * i.qty)}</li>`).join('');
+          $('[data-testid="cancel-order-button"]').disabled = false;
+          $('[data-testid="delete-order-button"]').disabled = false;
+          $('[data-testid="order-deleted-message"]').hidden = true;
           const receiptUrl = `/api/orders/${encodeURIComponent(body.id)}/receipt`;
           $('[data-testid="download-receipt-button"]').setAttribute('href', receiptUrl);
           $('[data-testid="view-receipt-button"]').dataset.receiptUrl = receiptUrl;
@@ -990,6 +998,32 @@
         const label = $('[data-testid="user-label"]');
         label.hidden = !token;
         if (token) label.textContent = `Signed in as ${username || 'admin'}`;
+      }
+
+      function statusLabel(status) {
+        return status ? status[0].toUpperCase() + status.slice(1) : '';
+      }
+
+      async function cancelOrder() {
+        const id = $('[data-testid="order-id"]').textContent.trim();
+        if (!id) return;
+        const { status } = await req('POST', `/api/orders/${encodeURIComponent(id)}/cancel`);
+        if (status !== 200) { showToast('Could not cancel this order'); return; }
+        // Re-read the order from the server so the badge shows the persisted
+        // status, not just the cancel response.
+        const { body } = await req('GET', `/api/orders/${encodeURIComponent(id)}`);
+        $('[data-testid="order-status"]').textContent = statusLabel(body && body.status);
+        $('[data-testid="cancel-order-button"]').disabled = true;
+      }
+
+      async function deleteOrder() {
+        const id = $('[data-testid="order-id"]').textContent.trim();
+        if (!id) return;
+        const { status } = await req('DELETE', `/api/orders/${encodeURIComponent(id)}`);
+        if (status !== 204) { showToast('Could not delete this order'); return; }
+        $('[data-testid="cancel-order-button"]').disabled = true;
+        $('[data-testid="delete-order-button"]').disabled = true;
+        $('[data-testid="order-deleted-message"]').hidden = false;
       }
 
       async function doLogin(e) {
@@ -1175,6 +1209,8 @@
         $('[data-testid="checkout-back"]').addEventListener('click', () => { if (checkoutStep > 1) goStep(checkoutStep - 1); });
         $('[data-testid="back-to-cart-button"]').addEventListener('click', () => { renderCart(); show('cart'); });
         $('[data-testid="confirmation-continue-button"]').addEventListener('click', () => { loadCatalog(); show('catalog'); });
+        $('[data-testid="cancel-order-button"]').addEventListener('click', cancelOrder);
+        $('[data-testid="delete-order-button"]').addEventListener('click', deleteOrder);
         $('[data-testid="view-receipt-button"]').addEventListener('click', (e) => {
           const url = e.target.dataset.receiptUrl;
           if (url) window.open(url + '?inline=1', '_blank');

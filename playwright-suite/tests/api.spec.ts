@@ -95,10 +95,27 @@ test.describe('products API', () => {
     const id = product.id as string;
     try {
       expect(product).toMatchObject({ name: 'API Test Widget', price: 12.5 });
+      // Cross-check: the created row exists in Postgres (no-op in
+      // in-memory mode, where DATABASE_URL is unset).
+      await withDbClient(async (db) => {
+        const row = await db.queryOne<{ name: string; price_cents: number }>(
+          'SELECT name, price_cents FROM products WHERE id = $1',
+          [id],
+        );
+        expect(row?.name).toBe('API Test Widget');
+        expect(row?.price_cents).toBe(1250);
+      });
 
       const patched = await api.patch(`/api/products/${id}`, { data: { price: 15 } });
       expect(patched.status()).toBe(200);
       expect((await patched.json()).price).toBe(15);
+      await withDbClient(async (db) => {
+        const row = await db.queryOne<{ price_cents: number }>(
+          'SELECT price_cents FROM products WHERE id = $1',
+          [id],
+        );
+        expect(row?.price_cents).toBe(1500);
+      });
 
       const badCreate = await api.post('/api/products', { data: { price: -3 } });
       expect(badCreate.status()).toBe(400);
@@ -107,6 +124,13 @@ test.describe('products API', () => {
       const deleted = await api.delete(`/api/products/${id}`);
       expect(deleted.status()).toBe(204);
       expect((await api.get(`/api/products/${id}`)).status()).toBe(404);
+      await withDbClient(async (db) => {
+        const row = await db.queryOne<{ id: string }>(
+          'SELECT id FROM products WHERE id = $1',
+          [id],
+        );
+        expect(row).toBeUndefined();
+      });
     }
   });
 

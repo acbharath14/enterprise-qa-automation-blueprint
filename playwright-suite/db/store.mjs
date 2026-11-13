@@ -21,6 +21,8 @@
 //   deleteProduct(id)         -> boolean (true if the product existed)
 //   createOrder({ customerName, items, total }) -> Order
 //   getOrder(id)              -> Order | undefined
+//   setOrderStatus(id, status) -> Order | undefined (undefined if the order does not exist)
+//   deleteOrder(id)           -> boolean (true if the order existed)
 //
 // Product shape (API): { id, name, category, price, rating, stock,
 //                        description, image? }  -- `image` key present only
@@ -100,6 +102,18 @@ function createMemoryStore() {
     },
     async getOrder(id) {
       return orders.find((o) => o.id === id);
+    },
+    async setOrderStatus(id, status) {
+      const order = orders.find((o) => o.id === id);
+      if (!order) return undefined;
+      order.status = status;
+      return order;
+    },
+    async deleteOrder(id) {
+      const idx = orders.findIndex((o) => o.id === id);
+      if (idx === -1) return false;
+      orders.splice(idx, 1);
+      return true;
     },
   };
 }
@@ -186,6 +200,25 @@ async function createPostgresStore(connectionString) {
     return `${prefix}-${rows[0].next}`;
   }
 
+  // Reads one order with its items, in the API shape (decimal dollars).
+  // Shared by getOrder and setOrderStatus so both return identical payloads.
+  async function fetchOrder(id) {
+    const { rows } = await pool.query('SELECT * FROM orders WHERE id = $1', [id]);
+    if (!rows.length) return undefined;
+    const order = rows[0];
+    const itemsResult = await pool.query(
+      'SELECT product_id, name, qty, price_cents FROM order_items WHERE order_id = $1 ORDER BY position',
+      [id],
+    );
+    const items = itemsResult.rows.map((r) => ({
+      productId: r.product_id,
+      qty: r.qty,
+      name: r.name,
+      price: r.price_cents / 100,
+    }));
+    return { id: order.id, items, total: order.total_cents / 100, status: order.status };
+  }
+
   return {
     async listProducts() {
       // Numeric-suffix order == insertion order for prod-N ids, matching the
@@ -245,20 +278,17 @@ async function createPostgresStore(connectionString) {
       });
     },
     async getOrder(id) {
-      const { rows } = await pool.query('SELECT * FROM orders WHERE id = $1', [id]);
-      if (!rows.length) return undefined;
-      const order = rows[0];
-      const itemsResult = await pool.query(
-        'SELECT product_id, name, qty, price_cents FROM order_items WHERE order_id = $1 ORDER BY position',
-        [id],
-      );
-      const items = itemsResult.rows.map((r) => ({
-        productId: r.product_id,
-        qty: r.qty,
-        name: r.name,
-        price: r.price_cents / 100,
-      }));
-      return { id: order.id, items, total: order.total_cents / 100, status: order.status };
+      return fetchOrder(id);
+    },
+    async setOrderStatus(id, status) {
+      const { rowCount } = await pool.query('UPDATE orders SET status = $2 WHERE id = $1', [id, status]);
+      if (!rowCount) return undefined;
+      return fetchOrder(id);
+    },
+    async deleteOrder(id) {
+      // order_items rows go with the order (ON DELETE CASCADE).
+      const { rowCount } = await pool.query('DELETE FROM orders WHERE id = $1', [id]);
+      return rowCount > 0;
     },
   };
 }

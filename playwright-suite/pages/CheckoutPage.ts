@@ -28,6 +28,10 @@ export class CheckoutPage {
   readonly confirmation: Locator;
   readonly orderId: Locator;
   readonly orderTotal: Locator;
+  readonly orderStatus: Locator;
+  readonly cancelOrderButton: Locator;
+  readonly deleteOrderButton: Locator;
+  readonly orderDeletedMessage: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -56,6 +60,10 @@ export class CheckoutPage {
     this.confirmation = page.getByTestId('order-confirmation');
     this.orderId = page.getByTestId('order-id');
     this.orderTotal = page.getByTestId('order-total');
+    this.orderStatus = page.getByTestId('order-status');
+    this.cancelOrderButton = page.getByTestId('cancel-order-button');
+    this.deleteOrderButton = page.getByTestId('delete-order-button');
+    this.orderDeletedMessage = page.getByTestId('order-deleted-message');
   }
 
   /** Lands on checkout step 1. The cart must already hold items (the fixture sets this up via the API). */
@@ -99,5 +107,13 @@ export class CheckoutPage {
 
   async placeOrder() {
     await this.placeOrderButton.click();
+  }
+
+  async cancelOrder() {
+    await this.cancelOrderButton.click();
+  }
+
+  async deleteOrder() {
+    await this.deleteOrderButton.click();
   }
 }

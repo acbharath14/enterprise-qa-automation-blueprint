@@ -148,6 +148,7 @@ const ALLURE_SUITES: Record<string, [parentSuite: string, suite: string]> = {
   'controls.spec.ts': ['UI components', 'Form controls'],
   'datepicker.spec.ts': ['UI components', 'Date picker'],
   'datetime.spec.ts': ['UI components', 'Date and time'],
+  'db-validation.spec.ts': ['Store', 'DB validation'],
   'dialogs.spec.ts': ['UI components', 'Dialogs'],
   'download.spec.ts': ['UI components', 'File download'],
   'dropdown.spec.ts': ['UI components', 'Category filter'],
