@@ -61,6 +61,13 @@ const browserstackCaps = {
 // exception on every skipped test in Allure.
 const ignoreMobileSpecs = { testIgnore: /mobile\.spec\.ts/ };
 
+// Pure API specs use APIRequestContext (raw HTTP, no page, no browser), so
+// device options (viewport, colorScheme, timezoneId) cannot affect them.
+// They run once in the `api` project below instead of six times across the
+// browser projects. (api-mocked.spec.ts is NOT in this list: it drives
+// page.route, so it genuinely needs a browser.)
+const ignoreApiSpecs = { testIgnore: [/api\.spec\.ts/, /api-schema\.spec\.ts/] };
+
 // Local macOS workaround: Playwright 1.64+ does not ship Chromium for macOS 13.
 // Set USE_SYSTEM_CHROME=1 to drive the installed Google Chrome instead.
 // (CI uses Playwright's bundled Chromium and does not set this.)
@@ -100,16 +107,20 @@ export default defineConfig({
   projects: [
     // Authenticates once via the UI; the 'authed' project reuses the session.
     { name: 'setup', testMatch: /.*\.setup\.ts/ },
-    { name: 'chromium', ...ignoreMobileSpecs, use: { ...devices['Desktop Chrome'], ...chromeChannel } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] }, testIgnore: [/mobile\.spec\.ts/, /web-vitals/] },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] }, testIgnore: [/mobile\.spec\.ts/, /web-vitals/] },
-    { name: 'mobile', use: { ...devices['Pixel 7'], ...chromeChannel } },
-    { name: 'dark', ...ignoreMobileSpecs, use: { ...devices['Desktop Chrome'], colorScheme: 'dark', ...chromeChannel } },
+    { name: 'chromium', ...ignoreMobileSpecs, ...ignoreApiSpecs, use: { ...devices['Desktop Chrome'], ...chromeChannel } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] }, testIgnore: [/mobile\.spec\.ts/, /web-vitals/, /api\.spec\.ts/, /api-schema\.spec\.ts/] },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] }, testIgnore: [/mobile\.spec\.ts/, /web-vitals/, /api\.spec\.ts/, /api-schema\.spec\.ts/] },
+    { name: 'mobile', ...ignoreApiSpecs, use: { ...devices['Pixel 7'], ...chromeChannel } },
+    { name: 'dark', ...ignoreMobileSpecs, ...ignoreApiSpecs, use: { ...devices['Desktop Chrome'], colorScheme: 'dark', ...chromeChannel } },
     {
       name: 'tz',
       ...ignoreMobileSpecs,
+      ...ignoreApiSpecs,
       use: { ...devices['Desktop Chrome'], locale: 'en-NZ', timezoneId: 'Pacific/Auckland', ...chromeChannel },
     },
+    // Pure API specs, run once: APIRequestContext needs no browser, so no
+    // browser project runs them (see ignoreApiSpecs above).
+    { name: 'api', testMatch: [/api\.spec\.ts/, /api-schema\.spec\.ts/] },
     {
       name: 'authed',
       testMatch: /.*authed\.spec\.ts/,
