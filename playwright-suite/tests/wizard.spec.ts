@@ -57,4 +57,3 @@ test.describe('checkout wizard', () => {
     await expect(checkoutPage.addressInput).toHaveValue('2 Back Road');
   });
 });
-
