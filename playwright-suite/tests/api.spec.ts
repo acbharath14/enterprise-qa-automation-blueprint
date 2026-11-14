@@ -1,4 +1,5 @@
 import { test, expect, mintTestProduct, cleanupTestProduct, newCartId } from '../fixtures/test';
+import { withDbClient } from '../fixtures/db';
 import type { APIRequestContext } from '@playwright/test';
 
 /**
