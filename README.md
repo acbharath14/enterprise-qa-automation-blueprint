@@ -4,12 +4,12 @@
 
 A Playwright + TypeScript test framework built around a simple idea: smoke tests should produce a release signal, not just a pass/fail log. The suite runs against **DemoMart**, a small local e-commerce sample app (product catalog, cart, checkout, orders API), and the results feed into CI quality gates.
 
-**Who this is for:** testers and SDETs who want a working reference for how UI, API, accessibility, visual, performance, and security checks fit together in one suite — and a starting point they can adapt to their own application. If you are new to Playwright, start with [Getting started](#getting-started), then read [Repository tour](#repository-tour).
+**Who this is for:** testers and SDETs who want a working reference for how UI, API, accessibility, visual, performance, and security checks fit together in one suite, and a starting point they can adapt to their own application. If you are new to Playwright, start with [Getting started](#getting-started), then read [Repository tour](#repository-tour).
 
-**Latest test reports** — published from every `main` run:
+**Latest test reports**, published from every `main` run:
 - [Playwright HTML report](https://acbharath14.github.io/enterprise-qa-automation-blueprint/) (per-shard)
 - [Allure report](https://acbharath14.github.io/enterprise-qa-automation-blueprint/allure/) (trends, retries, history)
-- [Failure showcase](https://acbharath14.github.io/enterprise-qa-automation-blueprint/playwright-report-showcase/) — two intentional failures ([Allure view](https://acbharath14.github.io/enterprise-qa-automation-blueprint/allure/) under **Showcase › Intentional failures**), demonstrating failure capture (assertion diff, screenshot, video, trace)
+- [Failure showcase](https://acbharath14.github.io/enterprise-qa-automation-blueprint/playwright-report-showcase/): two intentional failures ([Allure view](https://acbharath14.github.io/enterprise-qa-automation-blueprint/allure/) under **Showcase › Intentional failures**), demonstrating failure capture (assertion diff, screenshot, video, trace)
 
 ## Architecture
 
@@ -60,7 +60,6 @@ flowchart LR
 │   │                                # setup), retries, reporters, trace+video-on-failure, auto-started webServer
 │   ├── playwright.bdd.config.ts     # BDD config: features/ -> .features-gen/ (see "BDD (Gherkin) suite" below)
 │   ├── playwright.contract.config.ts # Pact contract-test config (see test:contract)
-│   ├── features/                    # Gherkin suite: *.feature + steps/ (see "BDD (Gherkin) suite" below)
 │   ├── contract/                    # Pact specs + recorded pacts
 │   └── package.json                 # scripts: test, test:smoke, test:a11y, test:headed, report,
 │                                    # baseline:update
@@ -95,7 +94,7 @@ npx playwright install chromium
 npm test
 ```
 
-The sample app starts automatically — `playwright.config.ts` launches `node server.mjs` before the tests and shuts it down after. In the default in-memory mode there is nothing else to start.
+The sample app starts automatically: `playwright.config.ts` launches `node server.mjs` before the tests and shuts it down after. In the default in-memory mode there is nothing else to start.
 
 After the run, open the HTML report:
 
@@ -107,7 +106,7 @@ You should see all specs listed with pass/fail, timings, and (for failures) trac
 
 ## Database (optional Postgres persistence)
 
-By default the sample app keeps everything in memory — a fresh start is a clean catalog, which is what the suite assumes. If `DATABASE_URL` is set, `server.mjs` instead persists products and orders to **Postgres** (carts stay in-memory; they are per-test state). The API surface does not change — only where the data lives.
+By default the sample app keeps everything in memory: a fresh start is a clean catalog, which is what the suite assumes. If `DATABASE_URL` is set, `server.mjs` instead persists products and orders to **Postgres** (carts stay in-memory; they are per-test state). The API surface does not change, only where the data lives.
 
 ```bash
 cd playwright-suite
@@ -141,16 +140,19 @@ Self-isolation rules, so parallel workers never interfere: orders are located by
 | Smoke | `tests/store-smoke.spec.ts` | Critical paths work: catalog renders, add-to-cart updates the badge, cart totals are correct, checkout completes with an order id, demo login works (`@smoke`) |
 | Catalog | `tests/catalog.spec.ts` | Product grid renders the seeded catalog; search, category filter, and sorting drive it correctly |
 | Accessibility | `tests/accessibility.spec.ts` | axe-core scan, WCAG 2A/2AA (`@a11y` tag) + committed aria snapshot of the checkout form |
-| Keyboard | `tests/keyboard.spec.ts` | Tab order, focus, Enter/Space activation — what axe-core can't check |
-| Mobile | `tests/mobile.spec.ts` | `@mobile` tag: viewport meta tag, no horizontal overflow at 375px, touch-tap actions, hamburger nav — on the Pixel 7 `mobile` project (`npm run test:mobile`) or a real iPhone via the opt-in `browserstack` project (see below) |
+| Keyboard | `tests/keyboard.spec.ts` | Tab order, focus, Enter/Space activation: what axe-core can't check |
+| Actionability | `tests/actionability.spec.ts` | Auto-waiting: clicks wait for a disabled button to become enabled; fills wait for an input to become editable |
+| Mobile | `tests/mobile.spec.ts` | `@mobile` tag: viewport meta tag, no horizontal overflow at 375px, touch-tap actions, hamburger nav: on the Pixel 7 `mobile` project (`npm run test:mobile`) or a real iPhone via the opt-in `browserstack` project (see below) |
 | API | `tests/api.spec.ts` | Store API contract: products CRUD, cart math, order lifecycle, JSON error shapes. Each test gets an isolated cart via the `X-Cart-Id` header, so parallel workers never interfere |
-| API schema | `tests/api-schema.spec.ts` | Every store endpoint validates against `test-data/openapi.store.json` via the reusable AJV `validateResponse` helper — including negative cases (wrong types, extra/missing fields) and loud failures on undocumented paths |
+| API schema | `tests/api-schema.spec.ts` | Every store endpoint validates against `test-data/openapi.store.json` via the reusable AJV `validateResponse` helper: including negative cases (wrong types, extra/missing fields) and loud failures on undocumented paths |
 | Contract | `contract/pact-store.spec.ts` | Pact consumer + provider verification for the store API (`GET /api/products`, `POST /api/cart/items`, `POST /api/orders`, …) via `npm run test:contract`; contract files are committed at `contract/pacts/` |
 | DB validation | `tests/db-validation.spec.ts` | `@db` tag: reads Postgres directly to prove UI/API writes landed — order rows and lines, product rows, cancel/delete, money consistency. Runs only when `DATABASE_URL` is set; `api.spec.ts`, `store-smoke.spec.ts`, `wizard.spec.ts`, `forms.spec.ts` and `catalog.spec.ts` carry the same check as one extra assertion layer |
 | BDD | `features/*.feature` (43 files) | Gherkin scenarios mirroring the spec suite via playwright-bdd, generated into `.features-gen/` and run from `playwright.bdd.config.ts` — see [BDD (Gherkin) suite](#bdd-gherkin-suite) |
 | API mocking | `tests/api-mocked.spec.ts` | UI behavior when the products API returns 500s or slow responses |
+| Mock browser APIs | `tests/mock-browser-apis.spec.ts` | Browser API mocks: geolocation coordinates and permission grants, without user prompts |
 | Integration | `tests/integration.spec.ts` | UI calls the right API and renders its response (`waitForResponse`); attaches the raw response to the report |
 | Offline | `tests/offline.spec.ts` | Friendly message when the API is unreachable |
+| Service worker | `tests/service-worker.spec.ts` | Service worker: the cached app shell loads while offline |
 | Forms | `tests/forms.spec.ts` | Checkout validation: inline errors (soft assertions); valid submit sends the exact expected POST payload; `test.step` structure |
 | Radio group | `tests/radio.spec.ts` | Shipping/payment method radios: fieldset/legend semantics, single selection, arrow-key navigation |
 | Auth | `tests/auth.spec.ts` + `auth.setup.ts` | Demo login success/failure (`admin`/`secret`); setup project saves `storageState` reused by `authed.spec.ts` |
@@ -160,6 +162,7 @@ Self-isolation rules, so parallel workers never interfere: orders are located by
 | Table | `tests/table.spec.ts` | Catalog sorting ascending/descending |
 | Tabs | `tests/tabs.spec.ts` | Product-detail tabs (Description/Reviews/Shipping): ARIA tablist, arrow-key navigation |
 | Search | `tests/search.spec.ts` | Catalog search: debounced results, keyboard selection, ARIA states |
+| Other locators | `tests/other-locators.spec.ts` | Locator strategies: CSS, XPath, and combined locators for elements without a test id |
 | Loading skeletons | `tests/skeletons.spec.ts` | Catalog load shows skeleton placeholders, then real products replace them |
 | Date picker | `tests/datepicker.spec.ts` | Checkout delivery-date picker: fill and confirmation |
 | Wizard | `tests/wizard.spec.ts` | Multi-step checkout: per-step validation, back/next, review and submit (`test.step` structure) |
@@ -173,18 +176,23 @@ Self-isolation rules, so parallel workers never interfere: orders are located by
 | iFrame | `tests/iframe.spec.ts` | Same-origin payment frame in checkout via `frameLocator` |
 | Shadow DOM | `tests/shadowdom.spec.ts` | Star-rating web component inside an open shadow root (Playwright pierces it automatically) |
 | Controls | `tests/controls.spec.ts` | Price-range slider updates its output; theme toggle flips design tokens |
+| Input depth | `tests/input-depth.spec.ts` | Deeper input APIs: selectOption, dragTo, and related input actions |
 | Datetime | `tests/datetime.spec.ts` | Order timestamp rendering under emulated locale/timezone (`tz` project: Pacific/Auckland, en-NZ) |
+| Clock | `tests/clock.spec.ts` | Mocked time: frozen timestamps make time-dependent assertions deterministic |
 | Popup | `tests/popup.spec.ts` | View-receipt opens the receipt in a new tab (`waitForEvent('popup')`); new page is asserted and closed |
 | Visual | `tests/visual.spec.ts` | Storefront layout regression vs. committed baseline (dynamic regions masked; chromium-only) |
 | Theme | `tests/theme.spec.ts` | Dark/light toggle flips design tokens across the storefront |
 | Performance | `tests/performance.spec.ts` | Load budgets, API latency budget, zero console/page errors |
 | Web Vitals | `tests/web-vitals.spec.ts` | Core Web Vitals via PerformanceObserver: LCP < 2.5s, CLS < 0.1, INP < 200ms (Google's "good" thresholds) |
-| Load / stress | `k6/` | k6 smoke, load (50 VUs, SLO thresholds), and stress (to 300 VUs) tests against the store API — see `k6/README.md` |
-| API health checks | `newman/` | Postman collection (7 requests, 17 assertions) for the store API, run hourly via Newman in CI; HTML report + email alert on failure — see `newman/README.md` |
+| Load / stress | `k6/` | k6 smoke, load (50 VUs, SLO thresholds), and stress (to 300 VUs) tests against the store API: see `k6/README.md` |
+| API health checks | `newman/` | Postman collection (7 requests, 17 assertions) for the store API, run hourly via Newman in CI; HTML report + email alert on failure: see `newman/README.md` |
 | Security | `tests/security.spec.ts`, `tests/pentest.spec.ts` | Security headers, JSON 404s, no reflection of untrusted input; attack simulations (`npx playwright test --grep @pentest`): SQLi/NoSQLi/XSS/traversal payload batteries, login attacks, cart quantity abuse, clickjacking headers |
 | Test data | `test-data/factory.ts` (+ `tests/factory.spec.ts`) | Seedable data factory (mulberry32 PRNG): `makeProducts(n, seed)` is identical on every run, varied across seeds; generates products/carts/orders matching the store API shapes |
+| Test annotations | `tests/test-annotations.spec.ts` | Test annotations: slow, fixme, and annotation metadata |
+| Codegen example | `tests/example.codegen.spec.ts` | Codegen example: login specs cleaned up from raw recorded output into getByRole/getByTestId form |
+| Failure showcase | `tests/failure-showcase.spec.ts` | Two intentional failures (wrong price assertion; missing discount field) demonstrating failure capture: assertion diff, screenshot, video, trace |
 
-**Understanding the test types:** each spec file focuses on one quality attribute so failures point at the *kind* of problem, not just the page. `store-smoke.spec.ts` answers "is the app up?"; `api.spec.ts` answers "is the contract intact?"; `visual.spec.ts` answers "did the layout change?". When you add coverage for your app, follow the same rule — one file per question.
+**Understanding the test types:** each spec file focuses on one quality attribute so failures point at the *kind* of problem, not just the page. `store-smoke.spec.ts` answers "is the app up?"; `api.spec.ts` answers "is the contract intact?"; `visual.spec.ts` answers "did the layout change?". When you add coverage for your app, follow the same rule: one file per question.
 
 ## Running tests
 
@@ -211,7 +219,7 @@ npx playwright test --debug tests/store-smoke.spec.ts      # step-through debugg
 ### Real devices (BrowserStack)
 
 The `mobile` project is emulation. For a real device, the framework ships an
-opt-in `browserstack` project — the specs run unchanged; Playwright just
+opt-in `browserstack` project: the specs run unchanged; Playwright just
 connects to a real iPhone over CDP instead of launching a local browser.
 
 ```bash
@@ -223,13 +231,13 @@ connects to a real iPhone over CDP instead of launching a local browser.
 BROWSERSTACK_USERNAME=you BROWSERSTACK_ACCESS_KEY=xxx npm run test:browserstack
 ```
 
-- The project only exists when both env vars are set — without them,
+- The project only exists when both env vars are set. Without them,
   `npx playwright test` behaves exactly as before.
 - It targets an iPhone via WebKit (`browser: 'safari'` caps). Device and OS
   are configurable: `BROWSERSTACK_DEVICE='iPhone 14' BROWSERSTACK_OS_VERSION=16`.
 - Real Android needs Playwright's experimental `_android` API, which can't be
-  expressed in config — so the project is iOS-only for now.
-- The project only runs `@mobile`-tagged specs — enforced in the config, so
+  expressed in config, so the project is iOS-only for now.
+- The project only runs `@mobile`-tagged specs. This is enforced in the config, so
   even a bare `npx playwright test --project=browserstack` can't accidentally
   burn device minutes on the desktop suite.
 - CI: add the two values as repository secrets and start the Local tunnel
@@ -250,7 +258,7 @@ TEST_ENV=prod npm run test:smoke         # smoke only against prod
 ```
 
 - `dev` (default) points at the local sample app (`http://127.0.0.1:4173`).
-- `staging` / `prod` ship as placeholders — replace the URLs with yours.
+- `staging` / `prod` ship as placeholders: replace the URLs with yours.
 - Never run write-heavy specs (wizard, upload, feedback) against prod unless
   prod is the intended target; `test:smoke` and `test:contract` are the safe
   read-only choices there.
@@ -262,7 +270,7 @@ npx playwright test visual --project=chromium --update-snapshots
 npm run baseline:update
 ```
 
-The first command re-captures the PNG; the second re-encodes it into `test-data/visual-baseline.b64.partN`, which is the file actually committed. The PNG itself is materialized from that text by `global-setup.ts` before every run, so a fresh clone needs no manual steps. Review the new screenshot before committing — a baseline update should be a deliberate, reviewed change.
+The first command re-captures the PNG; the second re-encodes it into `test-data/visual-baseline.b64.partN`, which is the file actually committed. The PNG itself is materialized from that text by `global-setup.ts` before every run, so a fresh clone needs no manual steps. Review the new screenshot before committing: a baseline update should be a deliberate, reviewed change.
 
 ### BDD (Gherkin) suite
 
@@ -276,7 +284,7 @@ npx playwright test -c playwright.bdd.config.ts  # run the generated suite
 ```
 
 - `.features-gen/` is generated output: never edit the `.spec.js` files by
-  hand — edit the `.feature` files and re-run `bddgen`.
+  hand. Edit the `.feature` files and re-run `bddgen`.
 - The BDD config inherits projects, webServer, reporters, and globalSetup
   from `playwright.config.ts`; only the test directory differs.
 - CI runs this suite as a separate, non-gating job on GitHub
@@ -290,7 +298,7 @@ npx playwright test --ui
 ```
 
 UI mode is Playwright's watch mode: it lists every spec, re-runs on file
-save, and lets you step through each action on a timeline — click any step
+save, and lets you step through each action on a timeline. Click any step
 to see the DOM, console, and network at that moment. Use it when a test
 fails and the trace alone doesn't explain why: the time-travel scrubber
 shows what the page looked like *before* the failing assertion, not just
@@ -299,10 +307,10 @@ after.
 ### VS Code extension
 
 Install "Playwright Test for VSCode" from the marketplace. You get:
-- Green run buttons inline above each `test()` — no terminal needed.
-- "Pick locator" — click any element in a headed run and it copies the
+- Green run buttons inline above each `test()`: no terminal needed.
+- "Pick locator": click any element in a headed run and it copies the
   recommended locator (`getByRole`, `getByTestId`, …) to your clipboard.
-- "Record new" — performs actions in the browser and appends the
+- "Record new": performs actions in the browser and appends the
   generated code to the spec.
 
 If the inline run buttons don't appear: check **Editor › Code Lens** is
@@ -336,7 +344,7 @@ For step-through debugging of a single spec:
 PWDEBUG=1 npx playwright test tests/store-smoke.spec.ts --project=chromium
 ```
 
-`PWDEBUG=1` opens the Playwright Inspector — set breakpoints, step over
+`PWDEBUG=1` opens the Playwright Inspector: set breakpoints, step over
 actions, and inspect locators live. `npx playwright test --debug` is the
 same thing as a CLI flag.
 
@@ -344,13 +352,13 @@ same thing as a CLI flag.
 
 Adapting this framework to your application is three steps. Here is each one with a concrete example.
 
-**1. Point it at your app.** For a deployed environment, override the base URL — no config edit needed:
+**1. Point it at your app.** For a deployed environment, override the base URL: no config edit needed.
 
 ```bash
 BASE_URL=https://staging.myapp.com npx playwright test
 ```
 
-(When you stop using the sample app, delete the `webServer` block in `playwright.config.ts` — it only exists to serve the demo.)
+(When you stop using the sample app, delete the `webServer` block in `playwright.config.ts`. It only exists to serve the demo.)
 
 **2. Add a page object.** Selectors and page actions live in `pages/`, never in test files:
 
@@ -400,19 +408,19 @@ Tag it (`@smoke`, `@a11y`) if it belongs in a filtered run, data-drive it from `
 
 ## How CI Works
 
-Every push/PR touching `playwright-suite/` runs the suite split across 2 shards (4 workers each) covering all 8 projects. HTML and Allure reports are uploaded as artifacts per shard. On `main`, the merged report publishes to [GitHub Pages](https://acbharath14.github.io/enterprise-qa-automation-blueprint/). A scheduled run every Monday keeps the badge honest.
+Every push to `main` and every pull request that touches `playwright-suite/` runs the suite split across 2 shards (4 workers each) covering all 8 projects. HTML and Allure reports are uploaded as artifacts per shard. On `main`, the merged report publishes to [GitHub Pages](https://acbharath14.github.io/enterprise-qa-automation-blueprint/). A scheduled run every Monday at 06:00 UTC keeps the suite exercised even without new commits.
 
-**Failure debugging:** Each shard writes a failure summary table (test name + first error line) to the GitHub Step Summary on the run page — no artifact download needed for triage. The email notification includes a visual pass/fail bar and deduplicated counts (retries count once, by final outcome).
+**Failure debugging:** Each shard writes a failure summary table (test name + first error line) to the GitHub Step Summary on the run page: no artifact download needed for triage. The email notification includes a visual pass/fail bar and deduplicated counts (retries count once, by final outcome).
 
 ### GitLab CI on a self-hosted runner
 
-The same pipeline runs on GitLab CI via `.gitlab-ci.yml` — a port of the GitHub workflow with the same core jobs: sharded Playwright tests, the GO/NO-GO quality gate, Pact contract tests, report publishing, and the Resend email summary (plus Newman-health).
+The same pipeline runs on GitLab CI via `.gitlab-ci.yml`: a port of the GitHub workflow with the same core jobs (sharded Playwright tests, the GO/NO-GO quality gate, Pact contract tests, report publishing, and the Resend email summary, plus Newman-health).
 
-GitHub remains the source of truth. The `mirror-to-gitlab.yml` workflow pushes `main` and tags to the GitLab project on every push — a push mirror, because GitLab pull mirroring requires a Premium tier. Jobs run on a self-hosted GitLab Runner (Docker executor, tagged `imac,docker`); the Playwright Docker image ships the browsers, so there is no install step.
+GitHub remains the source of truth. The `mirror-to-gitlab.yml` workflow pushes `main` and tags to the GitLab project on every push: a push mirror, because GitLab pull mirroring requires a Premium tier. Jobs run on a self-hosted GitLab Runner (Docker executor, tagged `imac,docker`); the Playwright Docker image ships the browsers, so there is no install step.
 
-Setup on the GitLab project: two masked CI/CD variables (`RESEND_API_KEY`, `ALERT_TO`), and any scheduled runs as pipeline schedules in the GitLab UI. Reports publish to GitLab Pages. Two schedules drive the automation: a weekly full regression, and an hourly Newman-only run — that schedule sets the `newman_only` pipeline input (declared in the `.gitlab-ci.yml` `spec: inputs` header) to `true`, which runs only `newman-health` and skips the regression jobs.
+Setup on the GitLab project: two masked CI/CD variables (`RESEND_API_KEY`, `ALERT_TO`), and any scheduled runs as pipeline schedules in the GitLab UI. Reports publish to GitLab Pages. Two schedules drive the automation: a weekly full regression, and an hourly Newman-only run. That schedule sets the `newman_only` pipeline input (declared in the `.gitlab-ci.yml` `spec: inputs` header) to `true`, which runs only `newman-health` and skips the regression jobs.
 
-**Postgres in CI (DB validation Phase 2):** the `test` job runs a `postgres:16` service (alias `postgres`) with `DATABASE_URL=postgres://demomart:demomart@postgres:5432/demomart`, so the suite runs against real Postgres instead of memory. Postgres runtime remains unproven until a first green CI run.
+**Postgres in CI:** the `test` job runs a `postgres:16` service (alias `postgres`) with `DATABASE_URL=postgres://demomart:demomart@postgres:5432/demomart`, so the suite runs against real Postgres instead of memory.
 
 ## Troubleshooting
 
@@ -420,13 +428,12 @@ Setup on the GitLab project: two masked CI/CD variables (`RESEND_API_KEY`, `ALER
 |---|---|
 | `Executable doesn't exist` on first run | `npx playwright install chromium` (browsers are a separate download) |
 | `EADDRINUSE` on port 4173 | another copy of the sample server is running: `lsof -ti:4173 \| xargs kill` |
-| Visual test fails after you changed the UI | intentional — regenerate the baseline (see above) and commit it |
+| Visual test fails after you changed the UI | intentional: regenerate the baseline (see above) and commit it |
 | Tests pass locally but fail in CI | check for timing assumptions and unmasked dynamic content; open the trace from the CI artifact |
 | `npm test` feels slow | run a slice: `npm run test:smoke` or `--project=chromium` while developing |
-| Page shows raw text instead of rendering | `index.html` was pushed base64-encoded — push raw HTML content via the API, not base64 |
-| `getByLabel` matches multiple elements | another component uses the same label text — use `getByRole` with a specific role, or scope to a region |
+| `getByLabel` matches multiple elements | another component uses the same label text: use `getByRole` with a specific role, or scope to a region |
 | Allure shows skips as failures | use `testIgnore` in the Playwright config for browser-exclusive tests instead of `test.skip()` |
-| `[db] DATABASE_URL is set but Postgres could not be initialized` | Postgres isn't running — start Docker Desktop, then `npm run db:up` from `playwright-suite/` |
+| `[db] DATABASE_URL is set but Postgres could not be initialized` | Postgres isn't running: start Docker Desktop, then `npm run db:up` from `playwright-suite/` |
 
 ## License
 
