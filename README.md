@@ -115,7 +115,7 @@ DATABASE_URL=postgres://demomart:demomart@localhost:5432/demomart npm start
 npm run db:down      # stops Postgres (data survives in the named volume)
 ```
 
-On boot with `DATABASE_URL` set, the server applies `db/schema.sql` (idempotent) and seeds the 12 catalog products if the table is empty. If Postgres is unreachable it refuses to start: it never silently falls back to in-memory, so a green run in this mode really ran against the database.
+On boot with `DATABASE_URL` set, the server applies `db/schema.sql` (idempotent) and seeds the 12 catalog products if the table is empty. If Postgres is unreachable it refuses to start — it never silently falls back to in-memory, so a green run in this mode really ran against the database.
 
 ## Database validation
 
@@ -147,7 +147,7 @@ Self-isolation rules, so parallel workers never interfere: orders are located by
 | API schema | `tests/api-schema.spec.ts` | Every store endpoint validates against `test-data/openapi.store.json` via the reusable AJV `validateResponse` helper: including negative cases (wrong types, extra/missing fields) and loud failures on undocumented paths |
 | Contract | `contract/pact-store.spec.ts` | Pact consumer + provider verification for the store API (`GET /api/products`, `POST /api/cart/items`, `POST /api/orders`, …) via `npm run test:contract`; contract files are committed at `contract/pacts/` |
 | DB validation | `tests/db-validation.spec.ts` | `@db` tag: reads Postgres directly to prove UI/API writes landed — order rows and lines, product rows, cancel/delete, money consistency. Runs only when `DATABASE_URL` is set; `api.spec.ts`, `store-smoke.spec.ts`, `wizard.spec.ts`, `forms.spec.ts` and `catalog.spec.ts` carry the same check as one extra assertion layer |
-| BDD | `features/*.feature` (43 files) | Gherkin scenarios mirroring the spec suite via playwright-bdd, generated into `.features-gen/` and run from `playwright.bdd.config.ts`: see [BDD (Gherkin) suite](#bdd-gherkin-suite) |
+| BDD | `features/*.feature` (43 files) | Gherkin scenarios mirroring the spec suite via playwright-bdd, generated into `.features-gen/` and run from `playwright.bdd.config.ts` — see [BDD (Gherkin) suite](#bdd-gherkin-suite) |
 | API mocking | `tests/api-mocked.spec.ts` | UI behavior when the products API returns 500s or slow responses |
 | Mock browser APIs | `tests/mock-browser-apis.spec.ts` | Browser API mocks: geolocation coordinates and permission grants, without user prompts |
 | Integration | `tests/integration.spec.ts` | UI calls the right API and renders its response (`waitForResponse`); attaches the raw response to the report |
