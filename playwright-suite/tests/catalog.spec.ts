@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/test';
+import { withDbClient } from '../fixtures/db';
 import type { CatalogPage } from '../pages/CatalogPage';
 
 /**
@@ -44,6 +45,22 @@ test.describe('catalog', () => {
     for (let n = 1; n <= 12; n++) {
       expect(seen, `seeded product prod-${n} renders`).toContain(`prod-${n}`);
     }
+    // DB mirror: the seeded set the UI renders is the seeded set Postgres
+    // holds (no-op in in-memory mode). Only the seeded set is compared —
+    // concurrently-running specs mint and delete products, so the full
+    // table is never a stable snapshot.
+    await withDbClient(async (db) => {
+      const rows = await db.query<{ id: string }>(
+        "SELECT id FROM products WHERE id LIKE 'prod-%' ORDER BY id",
+      );
+      const dbSeeded = rows.map((r) => r.id).filter((id) => /^prod-(1[0-2]|[1-9])$/.test(id));
+      expect(dbSeeded.sort()).toEqual(
+        Array.from({ length: 12 }, (_, i) => `prod-${i + 1}`).sort(),
+      );
+      for (const id of dbSeeded) {
+        expect(seen, `DB product ${id} renders`).toContain(id);
+      }
+    });
   });
 
   test('cards show name, price, category and rating', async ({

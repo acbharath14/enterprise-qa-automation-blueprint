@@ -245,3 +245,30 @@ it — one config change turned the whole pipeline red. `playwright.bdd.config.t
 now inherits the main config and overrides only `testDir`; BDD enablement is a
 CI-job decision (dedicated jobs on GitHub and GitLab), never a shared-config
 edit. Both BDD jobs are non-gating while the suite is brought to green.
+
+## DB validation reads Postgres directly (Phases 3 + 4)
+
+Phase 3 completed the order CRUD surface the persistence layer was missing:
+`POST /api/orders/:id/cancel` and `DELETE /api/orders/:id`, with matching
+store methods (`setOrderStatus`, `deleteOrder`) on both the memory and
+Postgres implementations, Cancel/Delete buttons on the order-confirmation
+view, and OpenAPI + Pact coverage for both endpoints. Cancel is idempotent
+(re-cancel returns 200); delete relies on the `ON DELETE CASCADE` from
+`order_items` to the order row.
+
+Phase 4 proves the writes actually landed. `tests/db-validation.spec.ts`
+(tagged `@db`) reads Postgres directly through the `db` fixture in
+`fixtures/db.ts` — order rows and lines, product rows, cancel/delete
+behavior, and internal money consistency — and the existing flow specs
+carry the same check as one extra assertion layer via `withDbClient`.
+The suite stays green without Postgres: the DB specs skip when
+`DATABASE_URL` is unset, and `withDbClient` returns null so flow tests
+never skip in in-memory mode. Money is compared in integer cents, never
+floats (pg returns NUMERIC as a string and SUM/COUNT as bigint strings).
+Self-isolation keeps parallel workers honest: orders are located by the id
+the UI or API returned, test-created products are deleted via SQL in a
+`finally` block, and nothing asserts on global row counts — the seeded
+catalog is read-only in tests. One tooling limit is documented, not
+worked around: `validateResponse` cannot check a 204 (no JSON body by
+design), so the DELETE schema test asserts the operation and its 204 are
+documented and then asserts the behavior matches.

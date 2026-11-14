@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/test';
+import { withDbClient } from '../fixtures/db';
 import { placeOrderWithRetry } from './helpers/order-retry';
 
 test.describe('checkout form validation', () => {
@@ -51,6 +52,19 @@ test.describe('checkout form validation', () => {
         address: '1 Payload Lane',
         shippingMethod: 'standard',
         payment: { cardLast4: '1234' }
+      });
+      // DB cross-check: the payload the form sent is the row Postgres
+      // stored (no-op in in-memory mode, where DATABASE_URL is unset).
+      const orderId = (await checkoutPage.orderId.textContent())?.trim() ?? '';
+      await withDbClient(async (db) => {
+        const row = await db.queryOne<{
+          customer_name: string;
+          status: string;
+          total_cents: number;
+        }>('SELECT customer_name, status, total_cents FROM orders WHERE id = $1', [orderId]);
+        expect(row?.customer_name).toBe('Payload Buyer');
+        expect(row?.status).toBe('confirmed');
+        expect(row?.total_cents).toBe(4250);
       });
     });
   });

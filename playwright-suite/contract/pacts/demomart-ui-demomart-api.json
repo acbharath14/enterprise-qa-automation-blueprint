@@ -172,6 +172,73 @@
         },
         "status": 200
       }
+    },
+    {
+      "description": "a request to cancel an order",
+      "providerStates": [
+        {
+          "name": "an order exists"
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "path": "/api/orders/ord-1/cancel"
+      },
+      "response": {
+        "body": {
+          "id": "ord-1",
+          "items": [
+            {
+              "name": "Aurora Wireless Headphones",
+              "price": 129.99,
+              "productId": "prod-1",
+              "qty": 2
+            }
+          ],
+          "status": "cancelled",
+          "total": 259.98
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.items": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a request to delete an order",
+      "providerStates": [
+        {
+          "name": "an order exists"
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "path": "/api/orders/ord-1"
+      },
+      "response": {
+        "status": 204
+      }
     }
   ],
   "metadata": {

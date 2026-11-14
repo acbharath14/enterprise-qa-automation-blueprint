@@ -339,6 +339,18 @@ const server = http.createServer(async (req, res) => {
     res.end(csv);
     return;
   }
+  const cancelMatch = /^\/api\/orders\/([^/]+)\/cancel$/.exec(url);
+  if (cancelMatch && method === 'POST') {
+    // Cancelling is idempotent: an already-cancelled order returns 200
+    // with its current state instead of an error.
+    const updated = await store.setOrderStatus(decodeURIComponent(cancelMatch[1]), 'cancelled');
+    if (!updated) {
+      json(res, 404, { error: 'Order not found' });
+      return;
+    }
+    json(res, 200, updated);
+    return;
+  }
   const orderMatch = /^\/api\/orders\/([^/]+)$/.exec(url);
   if (orderMatch && method === 'GET') {
     const order = await store.getOrder(decodeURIComponent(orderMatch[1]));
@@ -347,6 +359,16 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     json(res, 200, order);
+    return;
+  }
+  if (orderMatch && method === 'DELETE') {
+    const deleted = await store.deleteOrder(decodeURIComponent(orderMatch[1]));
+    if (!deleted) {
+      json(res, 404, { error: 'Order not found' });
+      return;
+    }
+    res.writeHead(204, { ...securityHeaders });
+    res.end();
     return;
   }
 

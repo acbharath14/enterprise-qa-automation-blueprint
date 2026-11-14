@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/test';
+import { withDbClient } from '../fixtures/db';
 import type { APIRequestContext } from '@playwright/test';
 import { pageCartHeaders } from './helpers/cart';
 
@@ -116,6 +117,16 @@ test.describe('store smoke', () => {
       const expected = order.items.reduce((s: number, i: { price: number; qty: number }) => s + i.price * i.qty, 0);
       expect(order.total).toBeCloseTo(expected, 2);
       expect(order.items.map((i: { name: string }) => i.name)).toContain(name);
+      // DB cross-check: the order the UI just placed is persisted in
+      // Postgres (no-op in in-memory mode, where DATABASE_URL is unset).
+      await withDbClient(async (db) => {
+        const row = await db.queryOne<{ status: string; total_cents: number }>(
+          'SELECT status, total_cents FROM orders WHERE id = $1',
+          [orderId.trim()],
+        );
+        expect(row?.status).toBe('confirmed');
+        expect(row?.total_cents).toBe(Math.round(order.total * 100));
+      });
     } finally {
       await cleanupProduct(request, id, await pageCartHeaders(page));
     }
