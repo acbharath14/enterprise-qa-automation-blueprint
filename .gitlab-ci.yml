@@ -395,6 +395,9 @@ pages:
     - |
       if curl -sf "$CI_PAGES_URL/allure/history/history.json" -o allure-results/history/history.json; then
         echo "Restored history.json from Pages"
+        # history-trend.json is what the trend graph is drawn from; without it
+        # every report starts with a single point.
+        curl -sf "$CI_PAGES_URL/allure/history/history-trend.json" -o allure-results/history/history-trend.json || true
         # Also try to get the full history directory listing
         curl -sf "$CI_PAGES_URL/allure/history/" -o /tmp/history_index.html || true
       else
