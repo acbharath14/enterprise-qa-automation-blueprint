@@ -227,6 +227,8 @@ jobs:
           mkdir -p allure-results/history
           curl -sf https://acbharath14.github.io/enterprise-qa-automation-blueprint/allure/history/history.json \
             -o allure-results/history/history.json || echo "No previous history (first run)"
+          curl -sf https://acbharath14.github.io/enterprise-qa-automation-blueprint/allure/history/history-trend.json \
+            -o allure-results/history/history-trend.json || echo "No previous trend (first run)"
 
       - name: Generate Allure report (suite + showcase merged)
         run: |
