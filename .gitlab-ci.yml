@@ -51,7 +51,7 @@ stages:
   - notify
 
 # Playwright Docker image pinned to the @playwright/test version in
-# playwright-suite/package.json (^1.64.0). Browsers are pre-installed in the
+# playwright-suite/package.json (^1.65.0). Browsers are pre-installed in the
 # image, so `npx playwright install --with-deps` is not needed.
 # Bump the tag when package.json moves to a new Playwright minor.
 
@@ -124,7 +124,7 @@ build:
 test:
   extends: [.imac-runner, .npm-cache]
   stage: test
-  image: mcr.microsoft.com/playwright:v1.64.0
+  image: mcr.microsoft.com/playwright:v1.65.0
   timeout: 30m
   interruptible: true # cancels redundant pipelines; needs the project setting
                       # "Auto-cancel redundant pipelines" enabled to take effect
@@ -359,7 +359,7 @@ pages:
     paths:
       - playwright-suite/allure-results/history/
     policy: pull-push
-  image: mcr.microsoft.com/playwright:v1.64.0
+  image: mcr.microsoft.com/playwright:v1.65.0
   timeout: 20m
   interruptible: true
   needs:
