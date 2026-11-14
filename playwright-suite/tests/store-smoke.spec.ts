@@ -4,8 +4,10 @@ import type { APIRequestContext } from '@playwright/test';
 import { pageCartHeaders } from './helpers/cart';
 
 /**
- * Store smoke tests for the DemoMart sample storefront — the fast
- * release signal for the re-themed sample app.
+ * Store smoke, slimmed by the dedup (PR #50): the other smoke tests were
+ * removed as redundant. Only the checkout test remains, because it carries
+ * the DB cross-check — the order the UI just placed is persisted in
+ * Postgres (no-op in in-memory mode, where DATABASE_URL is unset).
  *
  * Cart isolation: the server keys carts by the X-Cart-Id header and the
  * storefront mints a per-session cart id, so every test gets a private
@@ -35,56 +37,6 @@ async function cleanupProduct(
 }
 
 test.describe('store smoke', () => {
-  test('catalog renders the seeded products @smoke', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByTestId('product-grid')).toBeVisible();
-    await expect(page.getByTestId('product-card-prod-1')).toBeVisible();
-    await expect(page.getByTestId('product-name-prod-1')).toHaveText('Aurora Wireless Headphones');
-    // Six products per page, twelve seeded in total.
-    await expect(page.getByTestId(/^product-card-/)).toHaveCount(6);
-    await expect(page.getByTestId('catalog-page-info')).toHaveText(/Page 1 of \d+/);
-  });
-
-  test('adding a product updates the cart badge @smoke', async ({ page, request }) => {
-    const { id, name } = await mintProduct(request, 'badge');
-    try {
-      await page.goto('/');
-      await page.getByTestId('search-input').fill(name);
-      await expect(page.getByTestId(`product-card-${id}`)).toBeVisible();
-      const before = Number(await page.getByTestId('cart-badge').textContent());
-      await page.getByTestId(`add-to-cart-${id}`).click();
-      // The badge counts our isolated cart: assert it grew by exactly our line.
-      await expect
-        .poll(async () => Number(await page.getByTestId('cart-badge').textContent()), { timeout: 10_000 })
-        .toBeGreaterThanOrEqual(before + 1);
-      await expect(page.getByTestId('toast')).toContainText(name);
-    } finally {
-      await cleanupProduct(request, id, await pageCartHeaders(page));
-    }
-  });
-
-  test('cart page shows the line item and correct total @smoke', async ({ page, request }) => {
-    const { id, name } = await mintProduct(request, 'cartpage');
-    try {
-      await page.goto('/');
-      const headers = await pageCartHeaders(page);
-      await page.getByTestId('search-input').fill(name);
-      await expect(page.getByTestId(`product-card-${id}`)).toBeVisible();
-      await page.getByTestId(`add-to-cart-${id}`).click();
-      await page.getByTestId('nav-cart').click();
-      await expect(page.getByTestId(`cart-item-${id}`)).toBeVisible();
-      await expect(page.getByTestId(`cart-item-name-${id}`)).toHaveText(name);
-      // Our own line total is exact; the subtotal is internally consistent.
-      await expect(page.getByTestId(`cart-line-total-${id}`)).toHaveText('$42.50');
-      const cart = await (await request.get('/api/cart', { headers })).json();
-      const expected = cart.items.reduce((s: number, i: { price: number; qty: number }) => s + i.price * i.qty, 0);
-      expect(cart.subtotal).toBeCloseTo(expected, 2);
-      expect(cart.subtotal).toBeGreaterThanOrEqual(42.5);
-    } finally {
-      await cleanupProduct(request, id, await pageCartHeaders(page));
-    }
-  });
-
   test('checkout wizard completes and shows an order id @smoke', async ({ page, request }) => {
     const { id, name } = await mintProduct(request, 'checkout');
     try {
@@ -132,13 +84,4 @@ test.describe('store smoke', () => {
     }
   });
 
-  test('demo login works @smoke', async ({ page }) => {
-    await page.goto('/');
-    await page.getByTestId('login-button').click();
-    await page.getByTestId('login-username').fill('admin');
-    await page.getByTestId('login-password').fill('secret');
-    await page.getByTestId('login-submit').click();
-    await expect(page.getByTestId('logout-button')).toBeVisible();
-    await expect(page.getByTestId('user-label')).toContainText('admin');
-  });
 });

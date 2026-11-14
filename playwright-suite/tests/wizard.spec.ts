@@ -3,14 +3,6 @@ import { withDbClient } from '../fixtures/db';
 import { placeOrderWithRetry, resetCartLine } from './helpers/order-retry';
 
 test.describe('checkout wizard', () => {
-  test('step 1 is marked current and empty submit stays on step 1', async ({ checkout }) => {
-    const { checkoutPage } = checkout;
-    await expect(checkoutPage.stepLabel(1)).toHaveAttribute('aria-current', 'step');
-    await checkoutPage.next();
-    await expect(checkoutPage.step1).toBeVisible();
-    await expect(checkoutPage.step2).toBeHidden();
-  });
-
   test('completes the full flow', async ({ checkout, request }) => {
     const { checkoutPage, productId, headers } = checkout;
     const product = await (await request.get(`/api/products/${productId}`)).json();

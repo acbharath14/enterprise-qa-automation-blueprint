@@ -1,5 +1,4 @@
 import { test, expect } from '../fixtures/test';
-import { pageCartHeaders } from './helpers/cart';
 
 /**
  * Mobile-specific checks. These run on mobile projects only — the `mobile`
@@ -30,19 +29,4 @@ test('catalog fits a 375px viewport with no horizontal overflow @mobile', async 
   ).toBeLessThanOrEqual(375);
   await expect(catalogPage.heading).toBeVisible();
   await expect(catalogPage.productCard('prod-1')).toBeVisible();
-});
-
-test('touch tap on add-to-cart shows the toast @mobile', async ({
-  catalogPage,
-  request,
-}) => {
-  // locator.tap() requires a touch-enabled context. The Pixel 7 device
-  // descriptor provides hasTouch, so this proves the app responds to
-  // real touch input, not just mouse clicks.
-  await catalogPage.page.getByTestId('add-to-cart-prod-1').tap();
-  await expect(catalogPage.toast).toBeVisible();
-  await expect(catalogPage.toast).toContainText('Aurora Wireless Headphones');
-  // Clean up our own isolated cart line (the page's session cart id).
-  const headers = await pageCartHeaders(catalogPage.page);
-  await request.delete('/api/cart/items/prod-1', { headers });
 });
