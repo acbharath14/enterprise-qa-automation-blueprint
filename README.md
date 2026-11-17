@@ -89,6 +89,7 @@ npm install
 # 2. Install the browsers Playwright drives (one-time download)
 npx playwright install chromium
 # On Linux you may need: npx playwright install --with-deps chromium (uses sudo)
+# On Windows: plain `npx playwright install chromium` is enough (`--with-deps` is Linux-only)
 
 # 3. Run the suite
 npm test
@@ -104,6 +105,22 @@ npm run report
 
 You should see all specs listed with pass/fail, timings, and (for failures) traces and screenshots.
 
+### On Windows: setting environment variables
+
+Several commands in this README put an environment variable in front of the command, for example `TEST_ENV=staging npx playwright test`. That form works in bash and zsh only. On Windows, set the variable first, then run the command.
+
+```powershell
+# PowerShell
+$env:TEST_ENV="staging"; npx playwright test
+```
+
+```cmd
+:: Command Prompt
+set TEST_ENV=staging && npx playwright test
+```
+
+The same pattern applies to every `VAR=value` command in this README: `DATABASE_URL`, `USE_SYSTEM_CHROME`, `PWDEBUG`, `BASE_URL`, `BROWSERSTACK_USERNAME`, and `BROWSERSTACK_ACCESS_KEY`.
+
 ## Database (optional Postgres persistence)
 
 By default the sample app keeps everything in memory: a fresh start is a clean catalog, which is what the suite assumes. If `DATABASE_URL` is set, `server.mjs` instead persists products and orders to **Postgres** (carts stay in-memory; they are per-test state). The API surface does not change, only where the data lives.
@@ -114,6 +131,8 @@ npm run db:up        # starts Postgres 16 via the repo-root docker-compose.yml
 DATABASE_URL=postgres://demomart:demomart@localhost:5432/demomart npm start
 npm run db:down      # stops Postgres (data survives in the named volume)
 ```
+
+On Windows, set `DATABASE_URL` first: see [On Windows: setting environment variables](#on-windows-setting-environment-variables).
 
 On boot with `DATABASE_URL` set, the server applies `db/schema.sql` (idempotent) and seeds the 12 catalog products if the table is empty. If Postgres is unreachable it refuses to start — it never silently falls back to in-memory, so a green run in this mode really ran against the database.
 
@@ -216,6 +235,8 @@ npx playwright test --debug tests/store-smoke.spec.ts      # step-through debugg
 > USE_SYSTEM_CHROME=1 npx playwright test --project=chromium
 > ```
 
+On Windows, set the variable first: `$env:USE_SYSTEM_CHROME=1; npx playwright test --project=chromium` (see [On Windows: setting environment variables](#on-windows-setting-environment-variables)).
+
 ### Real devices (BrowserStack)
 
 The `mobile` project is emulation. For a real device, the framework ships an
@@ -226,15 +247,20 @@ connects to a real iPhone over CDP instead of launching a local browser.
 # 1. Start the BrowserStack Local tunnel (the device reaches your
 #    localhost sample app through it):
 ./BrowserStackLocal --key $BROWSERSTACK_ACCESS_KEY
+# Windows (Command Prompt): BrowserStackLocal.exe --key %BROWSERSTACK_ACCESS_KEY%
+# Windows (PowerShell): .\BrowserStackLocal.exe --key $env:BROWSERSTACK_ACCESS_KEY
 
 # 2. In another terminal, run the mobile specs on a real iPhone:
 BROWSERSTACK_USERNAME=you BROWSERSTACK_ACCESS_KEY=xxx npm run test:browserstack
+# Windows (PowerShell): $env:BROWSERSTACK_USERNAME="you"; $env:BROWSERSTACK_ACCESS_KEY="xxx"; npm run test:browserstack
+# Windows (Command Prompt): set BROWSERSTACK_USERNAME=you && set BROWSERSTACK_ACCESS_KEY=xxx && npm run test:browserstack
 ```
 
 - The project only exists when both env vars are set. Without them,
   `npx playwright test` behaves exactly as before.
 - It targets an iPhone via WebKit (`browser: 'safari'` caps). Device and OS
   are configurable: `BROWSERSTACK_DEVICE='iPhone 14' BROWSERSTACK_OS_VERSION=16`.
+  (On Windows, set these first: see [On Windows: setting environment variables](#on-windows-setting-environment-variables).)
 - Real Android needs Playwright's experimental `_android` API, which can't be
   expressed in config, so the project is iOS-only for now.
 - The project only runs `@mobile`-tagged specs. This is enforced in the config, so
@@ -255,6 +281,8 @@ BROWSERSTACK_USERNAME=you BROWSERSTACK_ACCESS_KEY=xxx npm run test:browserstack
 ```bash
 TEST_ENV=staging npx playwright test     # uses env/.env.staging
 TEST_ENV=prod npm run test:smoke         # smoke only against prod
+# Windows (PowerShell): $env:TEST_ENV="staging"; npx playwright test
+# Windows (Command Prompt): set TEST_ENV=staging && npx playwright test
 ```
 
 - `dev` (default) points at the local sample app (`http://127.0.0.1:4173`).
@@ -327,8 +355,17 @@ docker run --rm --network host -v $(pwd):/work -w /work \
   npx playwright test --project=chromium
 ```
 
+```powershell
+# PowerShell on Windows (Docker Desktop ignores --network host, so map the port instead):
+docker run --rm -p 4173:4173 -v ${PWD}:/work -w /work `
+  mcr.microsoft.com/playwright:v1.64.1-noble `
+  npx playwright test --project=chromium
+```
+
 `--network host` lets the container reach the sample app on your
-localhost. This is the closest you get to CI without pushing.
+localhost. This is the closest you get to CI without pushing. On Windows,
+`--network host` is ignored by Docker Desktop, so use `-p 4173:4173` to
+reach the sample app instead.
 
 ### Traces and debug
 
@@ -342,6 +379,7 @@ For step-through debugging of a single spec:
 
 ```bash
 PWDEBUG=1 npx playwright test tests/store-smoke.spec.ts --project=chromium
+# Windows (PowerShell): $env:PWDEBUG=1; npx playwright test tests/store-smoke.spec.ts --project=chromium
 ```
 
 `PWDEBUG=1` opens the Playwright Inspector: set breakpoints, step over
@@ -356,6 +394,7 @@ Adapting this framework to your application is three steps. Here is each one wit
 
 ```bash
 BASE_URL=https://staging.myapp.com npx playwright test
+# Windows (PowerShell): $env:BASE_URL="https://staging.myapp.com"; npx playwright test
 ```
 
 (When you stop using the sample app, delete the `webServer` block in `playwright.config.ts`. It only exists to serve the demo.)
@@ -427,7 +466,7 @@ Setup on the GitLab project: two masked CI/CD variables (`RESEND_API_KEY`, `ALER
 | Symptom | Fix |
 |---|---|
 | `Executable doesn't exist` on first run | `npx playwright install chromium` (browsers are a separate download) |
-| `EADDRINUSE` on port 4173 | another copy of the sample server is running: `lsof -ti:4173 \| xargs kill` |
+| `EADDRINUSE` on port 4173 | another copy of the sample server is running: `lsof -ti:4173 \| xargs kill` (Windows: `netstat -ano \| findstr :4173`, then `taskkill /PID <pid> /F`; or PowerShell `Get-NetTCPConnection -LocalPort 4173`) |
 | Visual test fails after you changed the UI | intentional: regenerate the baseline (see above) and commit it |
 | Tests pass locally but fail in CI | check for timing assumptions and unmasked dynamic content; open the trace from the CI artifact |
 | `npm test` feels slow | run a slice: `npm run test:smoke` or `--project=chromium` while developing |
